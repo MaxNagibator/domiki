@@ -51,6 +51,13 @@ app.MapControllerRoute(
     pattern: "{controller}/{action=Index}/{id?}");
 app.MapRazorPages();
 
-app.MapFallbackToFile("index.html"); ;
-
+app.MapFallbackToFile("index.html");
+app.UseCors(
+    options => options.WithOrigins("http://localhost:44456").AllowAnyHeader().AllowAnyMethod().AllowCredentials()
+);
+//app.UseCors(builder => builder
+//       .AllowAnyHeader()
+//       .AllowAnyMethod()
+//       .AllowAnyOrigin()
+//    );
 app.Run();
