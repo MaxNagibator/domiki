@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
     <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
     <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
     <IsPackable>false</IsPackable>
@@ -34,6 +34,10 @@
   <ItemGroup>
     <None Include="Models\Trash\package-lock2.json" />
     <None Include="Models\Trash\package2.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Domiki.Business\Domiki.Business.csproj" />
   </ItemGroup>
 
   <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">

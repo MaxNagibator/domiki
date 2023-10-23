@@ -1,3 +1,4 @@
+using Domiki.Business.Core;
 using Domiki.Data;
 using Domiki.Models;
 using Microsoft.AspNetCore.Authentication;
@@ -24,7 +25,7 @@ builder.Services.AddAuthentication()
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
-
+builder.Services.AddSingleton<Holder>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -55,9 +56,5 @@ app.MapFallbackToFile("index.html");
 app.UseCors(
     options => options.WithOrigins("http://localhost:44456").AllowAnyHeader().AllowAnyMethod().AllowCredentials()
 );
-//app.UseCors(builder => builder
-//       .AllowAnyHeader()
-//       .AllowAnyMethod()
-//       .AllowAnyOrigin()
-//    );
+
 app.Run();
