@@ -1,8 +1,11 @@
-﻿using Domiki.Models;
+﻿using Domiki.Business.Models;
+using Domiki.Models;
 using Duende.IdentityServer.EntityFramework.Options;
 using Microsoft.AspNetCore.ApiAuthorization.IdentityServer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using System.Reflection.Metadata;
 
 namespace Domiki.Data
 {
@@ -12,6 +15,21 @@ namespace Domiki.Data
             : base(options, operationalStoreOptions)
         {
 
+        }
+
+        public DbSet<Domik> Domiks { get; set; }
+
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Domik>()
+            .HasKey(p => new
+            {
+                p.PlayerId,
+                p.Id
+            });
         }
     }
 }

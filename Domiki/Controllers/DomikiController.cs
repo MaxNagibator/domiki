@@ -18,7 +18,6 @@ namespace Domiki.Controllers
             _holder = holder;
         }
 
-
         [HttpGet]
         [Route("/Domiki/GetDomikTypes")] // todo разобраться с роут префиксом
         public IEnumerable<DomikTypeDto> GetDomikTypes()
@@ -31,17 +30,23 @@ namespace Domiki.Controllers
             return _holder.DomikTypes.Select(x => ToDto(x)).ToArray();
         }
 
-
         [HttpGet]
         [Route("/Domiki/GetDomiks")]
         public IEnumerable<DomikDto> GetDomiks()
         {
             DomikDto ToDto(Domik domik)
             {
-                return new DomikDto { Level = domik.Level, TypeId = domik.Type.Id };
+                return new DomikDto { Id = domik.Id, Level = domik.Level, TypeId = domik.Type.Id };
             }
 
             return _holder.Domiki.Select(x => ToDto(x)).ToArray();
+        }
+
+        [HttpPost]
+        [Route("/Domiki/UpgradeDomik/{id}")]
+        public void UpgradeDomik(int id)
+        {
+            _holder.UpgradeModik(id);
         }
     }
 }

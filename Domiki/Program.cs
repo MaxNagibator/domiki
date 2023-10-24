@@ -25,7 +25,7 @@ builder.Services.AddAuthentication()
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
-builder.Services.AddSingleton<Holder>();
+builder.Services.AddScoped<Holder>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

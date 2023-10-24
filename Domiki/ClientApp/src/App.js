@@ -27,6 +27,23 @@ function App() {
                 console.log(err.message);
             });
     }, []);
+
+    function handleClick(id) {
+        const requestOptions = {
+            method: 'POST'
+            //headers: { 'Content-Type': 'application/json' },
+            //body: JSON.stringify({ id: id })
+        };
+        fetch('https://localhost:7146/Domiki/UpgradeDomik/'+id, requestOptions)
+            .then((res) => res.json())
+            .then((data) => {
+                //setDomiks(data);
+            })
+            .catch((err) => {
+                console.log(err.message);
+            });
+    }
+
     return (
         <div className="App">
             {domiks != null && domikTypes != null &&
@@ -37,6 +54,7 @@ function App() {
                         <div key={index} className="DomikBox">
                             <img src={image} alt={domikType.name} />
                             <label>level: {domik.level}</label>
+                            <button onClick={() => handleClick(domik.id)}>lvl up</button>
                         </div>
                     );
                 })}
