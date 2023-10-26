@@ -21,21 +21,12 @@ namespace Domiki.Data.Migrations
                 {
                     table.PrimaryKey("PK_Domik", x => new { x.PlayerId, x.Id });
                 });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PersistedGrants_ConsumedTime",
-                table: "PersistedGrants",
-                column: "ConsumedTime");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
                 name: "Domik");
-
-            migrationBuilder.DropIndex(
-                name: "IX_PersistedGrants_ConsumedTime",
-                table: "PersistedGrants");
         }
     }
 }

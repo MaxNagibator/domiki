@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domiki.Data
 {
-    [Table("Domik")]
+    [Table("Domiks")]
     public class Domik
     {
         [Key]

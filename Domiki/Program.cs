@@ -54,7 +54,7 @@ app.MapRazorPages();
 
 app.MapFallbackToFile("index.html");
 app.UseCors(
-    options => options.WithOrigins("http://localhost:44456").AllowAnyHeader().AllowAnyMethod().AllowCredentials()
+    options => options.WithOrigins("https://localhost:44456").AllowAnyHeader().AllowAnyMethod().AllowCredentials()
 );
 
 app.Run();
