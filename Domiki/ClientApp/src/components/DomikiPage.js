@@ -1,25 +1,36 @@
 import React, { useState, useEffect } from 'react';
+import authService from './api-authorization/AuthorizeService'
 
 export const DomikiPage = () => {
     const[domiks, setDomiks] = useState([]);
     const[domikTypes, setDomikTypes] = useState([]);
     useEffect(() => {
-        fetch('https://localhost:7146/Domiki/GetDomikTypes')
-            .then((res) => res.json())
-            .then((data) => {
-                setDomikTypes(data);
-            })
-            .catch((err) => {
-                console.log(err.message);
-            });
-        fetch('https://localhost:7146/Domiki/GetDomiks')
-            .then((res) => res.json())
-            .then((data) => {
-                setDomiks(data);
-            })
-            .catch((err) => {
-                console.log(err.message);
-            });
+
+        async function myFunc() {
+            const token = await authService.getAccessToken();
+            let param = {
+                headers: !token ? {} : { 'Authorization': `Bearer ${token}` }
+            }
+            console.log(param.headers);
+            fetch('https://localhost:7146/Domiki/GetDomikTypes', param)
+                .then((res) => res.json())
+                .then((data) => {
+                    setDomikTypes(data);
+                })
+                .catch((err) => {
+                    console.log(err.message);
+                });
+            fetch('https://localhost:7146/Domiki/GetDomiks', param)
+                .then((res) => res.json())
+                .then((data) => {
+                    setDomiks(data);
+                })
+                .catch((err) => {
+                    console.log(err.message);
+                });
+        }
+
+        myFunc();
     });
 
     function handleClick(id) {

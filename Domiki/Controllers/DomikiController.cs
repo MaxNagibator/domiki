@@ -1,11 +1,12 @@
 ﻿using Domiki.Business.Core;
 using Domiki.Business.Models;
 using Domiki.Web.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Domiki.Controllers
 {
-    //[Authorize]
+    [Authorize]
     [ApiController]
     public class DomikiController : ControllerBase
     {
