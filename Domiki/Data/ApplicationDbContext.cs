@@ -18,6 +18,7 @@ namespace Domiki.Data
         }
 
         public DbSet<Domik> Domiks { get; set; }
+        public DbSet<Player> Players { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -25,11 +26,15 @@ namespace Domiki.Data
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Domik>()
-            .HasKey(p => new
-            {
-                p.PlayerId,
-                p.Id
-            });
+                .HasKey(p => new
+                {
+                    p.PlayerId,
+                    p.Id
+                });
+
+            modelBuilder.Entity<Player>()
+                .HasIndex(u => u.AspNetUserId)
+                .IsUnique();
         }
     }
 }

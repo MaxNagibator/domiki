@@ -35,7 +35,8 @@ namespace Domiki.Business.Core
                 {
                     Id = x.Id,
                     Type = DomikTypes.First(y => y.Id == x.TypeId),
-                    Level = x.Level
+                    Level = x.Level,
+                    PlayerId = x.PlayerId,
                 }).ToList();
         }
 
@@ -52,6 +53,20 @@ namespace Domiki.Business.Core
             {
                 throw new Exception("max level");
             }
+        }
+
+        public int GetPlayerId(string aspNetUserId)
+        {
+            var dbPlayer = _context.Players.FirstOrDefault(x => x.AspNetUserId == aspNetUserId);
+            if (dbPlayer == null)
+            {
+                dbPlayer = new Data.Player();
+                dbPlayer.AspNetUserId = aspNetUserId;
+                dbPlayer.Name = "Держатель домиков";
+                _context.Players.Add(dbPlayer);
+                _context.SaveChanges();
+            }
+            return dbPlayer.Id;
         }
     }
 }

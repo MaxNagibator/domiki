@@ -11,7 +11,6 @@ export const DomikiPage = () => {
             let param = {
                 headers: !token ? {} : { 'Authorization': `Bearer ${token}` }
             }
-            console.log(param.headers);
             fetch('https://localhost:7146/Domiki/GetDomikTypes', param)
                 .then((res) => res.json())
                 .then((data) => {
@@ -31,11 +30,13 @@ export const DomikiPage = () => {
         }
 
         myFunc();
-    });
+    }, []);
 
-    function handleClick(id) {
+    async function handleClick(id) {
+        const token = await authService.getAccessToken();
         const requestOptions = {
-            method: 'POST'
+            method: 'POST',
+            headers: !token ? {} : { 'Authorization': `Bearer ${token}` }
             //headers: { 'Content-Type': 'application/json' },
             //body: JSON.stringify({ id: id })
         };
