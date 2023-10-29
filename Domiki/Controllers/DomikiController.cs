@@ -12,19 +12,19 @@ namespace Domiki.Controllers
     public class DomikiController : ControllerBase
     {
         private readonly ILogger<DomikiController> _logger;
-        private readonly Holder _bll;
+        private readonly DomikManager _domikManager;
 
-        public DomikiController(ILogger<DomikiController> logger, Holder holder)
+        public DomikiController(ILogger<DomikiController> logger, DomikManager holder)
         {
             _logger = logger;
-            _bll = holder;
+            _domikManager = holder;
         }
 
         [HttpGet]
         [Route("/Domiki/GetDomikTypes")] // todo разобраться с роут префиксом
         public IEnumerable<DomikTypeDto> GetDomikTypes()
         {
-            return Holder.DomikTypes.Select(x => ToDto(x)).ToArray();
+            return _domikManager.GetDomikTypes().Select(x => ToDto(x)).ToArray();
 
             DomikTypeDto ToDto(DomikType t)
             {
@@ -38,7 +38,7 @@ namespace Domiki.Controllers
         {
             int playerId = GetPlayerId();
 
-            return _bll.GetDomiks(playerId).Select(x => ToDto(x)).ToArray();
+            return _domikManager.GetDomiks(playerId).Select(x => ToDto(x)).ToArray();
 
             DomikDto ToDto(Domik domik)
             {
@@ -50,7 +50,7 @@ namespace Domiki.Controllers
         [Route("/Domiki/UpgradeDomik/{id}")]
         public void UpgradeDomik(int id)
         {
-            _bll.UpgradeModik(id);
+            _domikManager.UpgradeDomik(id);
         }
 
         [HttpGet]
@@ -59,7 +59,7 @@ namespace Domiki.Controllers
         {
             int playerId = GetPlayerId();
 
-            return _bll.GetPurchaseAvailableDomiks(playerId).Select(x => ToDto(x)).ToArray();
+            return _domikManager.GetPurchaseAvailableDomiks(playerId).Select(x => ToDto(x)).ToArray();
 
             DomikTypeDto ToDto(DomikType t)
             {
@@ -73,13 +73,13 @@ namespace Domiki.Controllers
         {
             int playerId = GetPlayerId();
 
-            _bll.BuyDomik(playerId, typeId);
+            _domikManager.BuyDomik(playerId, typeId);
         }
 
         private int GetPlayerId()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var playerId = _bll.GetPlayerId(userId);
+            var playerId = _domikManager.GetPlayerId(userId);
             return playerId;
         }
     }

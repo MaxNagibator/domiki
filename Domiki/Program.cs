@@ -25,7 +25,7 @@ builder.Services.AddAuthentication()
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
-builder.Services.AddScoped<Holder>();
+builder.Services.AddScoped<DomikManager>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

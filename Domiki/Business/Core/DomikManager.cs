@@ -2,23 +2,23 @@
 
 namespace Domiki.Business.Core
 {
-    public class Holder
+    public class DomikManager
     {
         private Data.ApplicationDbContext _context;
 
-        public static List<DomikType> DomikTypes = new List<DomikType>
+        private static List<DomikType> DomikTypes = new List<DomikType>
             {
                 new DomikType { Id = 1, Name = "Кузница", LogicName = "forge", MaxCount = 1 },
                 new DomikType { Id = 2, Name = "Барак", LogicName = "barracks", MaxCount = 5 },
 
             };
 
-        public Holder(Data.ApplicationDbContext context)
+        public DomikManager(Data.ApplicationDbContext context)
         {
             _context = context;
         }
 
-        public void UpgradeModik(int id)
+        public void UpgradeDomik(int id)
         {
             var domik = _context.Domiks.First(x => x.Id == id);
             if (domik.Level < 10)
@@ -46,7 +46,7 @@ namespace Domiki.Business.Core
             return dbPlayer.Id;
         }
 
-        internal IEnumerable<DomikType> GetPurchaseAvailableDomiks(int playerId)
+        public IEnumerable<DomikType> GetPurchaseAvailableDomiks(int playerId)
         {
             var available = new List<DomikType>();
             var domiks = GetDomiks(playerId);
@@ -61,7 +61,7 @@ namespace Domiki.Business.Core
             return available;
         }
 
-        internal IEnumerable<Domik> GetDomiks(int playerId)
+        public IEnumerable<Domik> GetDomiks(int playerId)
         {
             return _context.Domiks.Where(x => x.PlayerId == playerId).ToArray().Select(x =>
                 new Domik
@@ -73,7 +73,12 @@ namespace Domiki.Business.Core
                 }).ToList();
         }
 
-        internal void BuyDomik(int playerId, int typeId)
+        public IEnumerable<DomikType> GetDomikTypes()
+        {
+            return DomikTypes;
+        }
+
+        public void BuyDomik(int playerId, int typeId)
         {
             var available = GetPurchaseAvailableDomiks(playerId);
             if (available.Any(x => x.Id == typeId))
