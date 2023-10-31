@@ -23,9 +23,8 @@ namespace Domiki.Web.Data
                 throw new Exception("commit or rollback has been called.");
             }
 
+            Context.SaveChanges();
             Transaction.Commit();
-
-            Console.WriteLine("COMMIT");
             isCommitted = true;
         }
 
@@ -44,7 +43,6 @@ namespace Domiki.Web.Data
         {
             if (!isCommitted && !isRollbacked)
             {
-                Console.WriteLine("Rollback");
                 Rollback();
             }
 

@@ -81,15 +81,14 @@ namespace Domiki.Business.Core
 
         public void BuyDomik(int playerId, int typeId)
         {
+            _context.Players.First(x => x.Id == playerId).Version = Guid.NewGuid();
+
             var available = GetPurchaseAvailableDomiks(playerId);
             if (available.Any(x => x.Id == typeId))
             {
-                // todo обработать конкурирующие запросы
                 var currentId = _context.Domiks.Where(x => x.PlayerId == playerId).Max(x => (int?)x.Id) ?? 0;
                 var nextId = currentId + 1;
                 _context.Domiks.Add(new Data.Domik { PlayerId = playerId, TypeId = typeId, Level = 1, Id = nextId });
-                Console.WriteLine(1);
-               // _context.Players.First(x => x.Id == playerId).Version = Guid.NewGuid();
             }
             else
             {

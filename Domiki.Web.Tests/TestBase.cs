@@ -1,7 +1,9 @@
 ﻿using Domiki.Data;
 using Domiki.Web.Data;
+using Duende.IdentityServer.EntityFramework.Options;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using static Domiki.Web.Tests.DomiksTests;
 
 namespace Domiki.Web.Tests
@@ -31,6 +33,18 @@ namespace Domiki.Web.Tests
                .AddJsonFile("appsettings.json")
                 .Build();
             return config;
+        }
+
+        public class MyOperationalStoreOptions : IOptions<OperationalStoreOptions>
+        {
+            public OperationalStoreOptions Value => new OperationalStoreOptions()
+            {
+                DeviceFlowCodes = new TableConfiguration("DeviceCodes"),
+                EnableTokenCleanup = false,
+                PersistedGrants = new TableConfiguration("PersistedGrants"),
+                TokenCleanupBatchSize = 100,
+                TokenCleanupInterval = 3600,
+            };
         }
     }
 }
