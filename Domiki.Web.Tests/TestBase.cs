@@ -1,4 +1,5 @@
 ﻿using Domiki.Data;
+using Domiki.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using static Domiki.Web.Tests.DomiksTests;
@@ -7,7 +8,7 @@ namespace Domiki.Web.Tests
 {
     public class TestBase
     {
-        private Settings _options;
+        protected Settings _options;
 
         public TestBase()
         {
@@ -15,11 +16,13 @@ namespace Domiki.Web.Tests
             _options = config.Get<Settings>();
         }
 
-        public ApplicationDbContext GetContext()
+        public UnitOfWork GetUow()
         {
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
             optionsBuilder.UseSqlServer(_options.ConnectionStrings.DefaultConnection);
-            return new ApplicationDbContext(optionsBuilder.Options, new MyOperationalStoreOptions());
+            var context = new ApplicationDbContext(optionsBuilder.Options, new MyOperationalStoreOptions());
+            var uow = new UnitOfWork(context);
+            return uow;
         }
 
         public static IConfiguration InitConfiguration()

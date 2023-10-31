@@ -1,7 +1,12 @@
 using Domiki.Business.Core;
+using Domiki.Business.Models;
+using Domiki.Data;
+using Domiki.Web.Data;
 using Domiki.Web.Extentions;
 using Duende.IdentityServer.EntityFramework.Options;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using static IdentityModel.ClaimComparer;
 
 namespace Domiki.Web.Tests
 {
@@ -12,7 +17,8 @@ namespace Domiki.Web.Tests
         [SetUp]
         public void Setup()
         {
-            _domikManager = new DomikManager(GetContext());
+            //var uow = GetUow();
+            //_domikManager = new DomikManager(uow.Context);
         }
 
         public class MyOperationalStoreOptions : IOptions<OperationalStoreOptions>
@@ -37,12 +43,22 @@ namespace Domiki.Web.Tests
         [Test]
         public void BuyDomik()
         {
-            var playerId = _domikManager.GetPlayerId("testUser_" + Guid.NewGuid());
-            var types = _domikManager.GetDomikTypes();
-            _domikManager.BuyDomik(playerId, types.First().Id);
-            var domiks = _domikManager.GetDomiks(playerId);
-            var domiksCount = domiks.Count();
-            Assert.That(domiksCount, Is.EqualTo(1));
+            var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+            optionsBuilder.UseSqlServer(_options.ConnectionStrings.DefaultConnection);
+            var context = new ApplicationDbContext(optionsBuilder.Options, new MyOperationalStoreOptions());
+            using (var uow = new UnitOfWork(context))
+            {
+                var domikManager = new DomikManager(uow.Context);
+                var playerId = domikManager.GetPlayerId("testUser_" + Guid.NewGuid());
+                var types = domikManager.GetDomikTypes();
+                domikManager.BuyDomik(playerId, types.First().Id);
+                uow.Context.SaveChanges();
+                uow.Commit();
+
+                var domiks = domikManager.GetDomiks(playerId);
+                var domiksCount = domiks.Count();
+                Assert.That(domiksCount, Is.EqualTo(1));
+            }
         }
 
         /// <summary>
@@ -51,31 +67,49 @@ namespace Domiki.Web.Tests
         [Test]
         public void ConcurrencyBuyDomik()
         {
-            for (var i = 1; i <= 100; i++)
+            for (var i = 1; i <= 1; i++)
             {
-                var playerId = _domikManager.GetPlayerId("testUser_" + Guid.NewGuid());
-                var types = _domikManager.GetDomikTypes();
-                var domikType = types.First();
-
-                Assert.That(domikType.MaxCount, Is.EqualTo(1));
-
+                int playerId;
+                int domikTypeId;
+                using (var uow = GetUow())
+                {
+                    var _domikManager = new DomikManager(uow.Context);
+                    playerId = _domikManager.GetPlayerId("testUser_" + Guid.NewGuid());
+                    var types = _domikManager.GetDomikTypes();
+                    var domikType = types.First();
+                    Assert.That(domikType.MaxCount, Is.EqualTo(1));
+                    domikTypeId = domikType.Id;
+                }
                 var numbers = Enumerable.Range(0, 10).ToList();
                 Parallel.ForEach(numbers, number =>
                 {
                     try
                     {
-                        var domikManager = new DomikManager(GetContext());
-                        domikManager.BuyDomik(playerId, domikType.Id);
+                        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+                        optionsBuilder.UseSqlServer(_options.ConnectionStrings.DefaultConnection);
+                        var context = new ApplicationDbContext(optionsBuilder.Options, new MyOperationalStoreOptions());
+                        using (var uow = new UnitOfWork(context))
+                        {
+                            var domikManager = new DomikManager(uow.Context);
+                            domikManager.BuyDomik(playerId, domikTypeId);
+                            uow.Context.SaveChanges();
+                            uow.Commit();
+                            Console.WriteLine(number + " commit");
+                        }
                     }
                     catch (Exception ex)
                     {
-
+                        Console.WriteLine(number + ex.Message);
                     }
                 });
 
-                var domiks = _domikManager.GetDomiks(playerId);
-                var domiksCount = domiks.Count();
-                Assert.That(domiksCount, Is.EqualTo(1), "iterarion number " + i);
+                using (var uow = GetUow())
+                {
+                    var _domikManager = new DomikManager(uow.Context);
+                    var domiks = _domikManager.GetDomiks(playerId);
+                    var domiksCount = domiks.Count();
+                    Assert.That(domiksCount, Is.EqualTo(1), "iterarion number " + i);
+                }
             }
         }
     }

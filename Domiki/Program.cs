@@ -1,6 +1,8 @@
 using Domiki.Business.Core;
 using Domiki.Data;
 using Domiki.Models;
+using Domiki.Web;
+using Domiki.Web.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI;
@@ -25,6 +27,7 @@ builder.Services.AddAuthentication()
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+builder.Services.AddScoped<UnitOfWork>();
 builder.Services.AddScoped<DomikManager>();
 var app = builder.Build();
 
@@ -57,4 +60,5 @@ app.UseCors(
     options => options.WithOrigins("https://localhost:44444").AllowAnyHeader().AllowAnyMethod().AllowCredentials()
 );
 
+app.UseMiddleware<UnitOfWorkMiddleware>();
 app.Run();

@@ -17,5 +17,8 @@ namespace Domiki.Data
         [MaxLength(450)]
         [Required(AllowEmptyStrings = false)]
         public string AspNetUserId { get; set; }
+
+        [ConcurrencyCheck]
+        public Guid Version { get; set; }
     }
 }

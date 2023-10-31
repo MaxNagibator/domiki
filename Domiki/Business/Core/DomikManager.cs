@@ -1,4 +1,5 @@
 ﻿using Domiki.Business.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Domiki.Business.Core
 {
@@ -87,7 +88,8 @@ namespace Domiki.Business.Core
                 var currentId = _context.Domiks.Where(x => x.PlayerId == playerId).Max(x => (int?)x.Id) ?? 0;
                 var nextId = currentId + 1;
                 _context.Domiks.Add(new Data.Domik { PlayerId = playerId, TypeId = typeId, Level = 1, Id = nextId });
-                _context.SaveChanges();
+                Console.WriteLine(1);
+               // _context.Players.First(x => x.Id == playerId).Version = Guid.NewGuid();
             }
             else
             {
