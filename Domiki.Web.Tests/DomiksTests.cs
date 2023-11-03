@@ -1,4 +1,4 @@
-using Domiki.Business.Core;
+using Domiki.Web.Business.Core;
 using Microsoft.EntityFrameworkCore;
 using System;
 

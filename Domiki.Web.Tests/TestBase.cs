@@ -1,4 +1,4 @@
-﻿using Domiki.Data;
+﻿using Domiki.Web.Data;
 using Domiki.Web.Data;
 using Duende.IdentityServer.EntityFramework.Options;
 using Microsoft.EntityFrameworkCore;

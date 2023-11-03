@@ -1,4 +1,4 @@
-﻿using Domiki.Business.Models;
+﻿using Domiki.Web.Business.Models;
 using Domiki.Models;
 using Duende.IdentityServer.EntityFramework.Options;
 using Microsoft.AspNetCore.ApiAuthorization.IdentityServer;
@@ -7,7 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using System.Reflection.Metadata;
 
-namespace Domiki.Data
+namespace Domiki.Web.Data
 {
     public class ApplicationDbContext : ApiAuthorizationDbContext<ApplicationUser>
     {

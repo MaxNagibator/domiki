@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace Domiki.Data.Migrations
+namespace Domiki.Web.Data.Migrations
 {
     public partial class CreateDomikTable : Migration
     {

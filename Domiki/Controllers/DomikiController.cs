@@ -1,5 +1,6 @@
-﻿using Domiki.Business.Core;
-using Domiki.Business.Models;
+﻿using Domiki.Web.Business.Core;
+using Domiki.Web.Business.Models;
+using Domiki.Web;
 using Domiki.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,11 +26,6 @@ namespace Domiki.Controllers
         public IEnumerable<DomikTypeDto> GetDomikTypes()
         {
             return _domikManager.GetDomikTypes().Select(x => ToDto(x)).ToArray();
-
-            DomikTypeDto ToDto(DomikType t)
-            {
-                return new DomikTypeDto { Id = t.Id, Name = t.Name, LogicName = t.LogicName };
-            }
         }
 
         [HttpGet]
@@ -48,9 +44,10 @@ namespace Domiki.Controllers
 
         [HttpPost]
         [Route("/Domiki/UpgradeDomik/{id}")]
-        public void UpgradeDomik(int id)
+        public Response UpgradeDomik(int id)
         {
             _domikManager.UpgradeDomik(id);
+            return new Response { Type = ResponseType.Success };
         }
 
         [HttpGet]
@@ -60,20 +57,20 @@ namespace Domiki.Controllers
             int playerId = GetPlayerId();
 
             return _domikManager.GetPurchaseAvailableDomiks(playerId).Select(x => ToDto(x)).ToArray();
+        }
 
-            DomikTypeDto ToDto(DomikType t)
-            {
-                return new DomikTypeDto { Id = t.Id, Name = t.Name, LogicName = t.LogicName };
-            }
+        private DomikTypeDto ToDto(DomikType t)
+        {
+            return new DomikTypeDto { Id = t.Id, Name = t.Name, LogicName = t.LogicName, MaxCount = t.MaxCount, MaxLevel = t.MaxLevel };
         }
 
         [HttpPost]
         [Route("/Domiki/BuyDomik/{typeId}")]
-        public void BuyDomik(int typeId)
+        public Response BuyDomik(int typeId)
         {
             int playerId = GetPlayerId();
-
             _domikManager.BuyDomik(playerId, typeId);
+            return new Response { Type = ResponseType.Success };
         }
 
         private int GetPlayerId()

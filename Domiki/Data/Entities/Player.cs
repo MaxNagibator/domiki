@@ -1,8 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Domiki.Data
+namespace Domiki.Web.Data
 {
     [Table("Players")]
     public class Player

@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Domiki.Data
+namespace Domiki.Web.Data
 {
     [Table("Domiks")]
     public class Domik

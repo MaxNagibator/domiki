@@ -1,7 +1,7 @@
-﻿using Domiki.Business.Models;
+﻿using Domiki.Web.Business.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace Domiki.Business.Core
+namespace Domiki.Web.Business.Core
 {
     public class DomikManager
     {
@@ -9,8 +9,8 @@ namespace Domiki.Business.Core
 
         private static List<DomikType> DomikTypes = new List<DomikType>
             {
-                new DomikType { Id = 1, Name = "Кузница", LogicName = "forge", MaxCount = 1 },
-                new DomikType { Id = 2, Name = "Барак", LogicName = "barracks", MaxCount = 5 },
+                new DomikType { Id = 1, Name = "Кузница", LogicName = "forge", MaxCount = 1, MaxLevel = 10 },
+                new DomikType { Id = 2, Name = "Барак", LogicName = "barracks", MaxCount = 5, MaxLevel = 5 },
 
             };
 
@@ -22,14 +22,15 @@ namespace Domiki.Business.Core
         public void UpgradeDomik(int id)
         {
             var domik = _context.Domiks.First(x => x.Id == id);
-            if (domik.Level < 10)
+            var domikType = DomikTypes.First(x => x.Id == domik.TypeId);
+            if (domik.Level < domikType.MaxLevel)
             {
                 domik.Level++;
                 _context.SaveChanges();
             }
             else
             {
-                throw new Exception("max level");
+                throw new BusinessException("Максимальный уровень");
             }
         }
 
@@ -92,7 +93,7 @@ namespace Domiki.Business.Core
             }
             else
             {
-                throw new Exception("max limit");
+                throw new BusinessException("Превышено максимальное количество");
             }
         }
     }

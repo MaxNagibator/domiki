@@ -1,5 +1,5 @@
-using Domiki.Business.Core;
-using Domiki.Data;
+using Domiki.Web.Business.Core;
+using Domiki.Web.Data;
 using Domiki.Models;
 using Domiki.Web;
 using Domiki.Web.Data;
@@ -61,5 +61,6 @@ app.UseCors(
     options => options.WithOrigins("https://localhost:44444").AllowAnyHeader().AllowAnyMethod().AllowCredentials()
 );
 
+app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<UnitOfWorkMiddleware>();
 app.Run();

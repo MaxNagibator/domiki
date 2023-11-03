@@ -1,4 +1,4 @@
-﻿using Domiki.Data;
+﻿using Domiki.Web.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Domiki.Web.Data

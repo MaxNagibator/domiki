@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
 using System;
 
-namespace Domiki.Data.Migrations
+namespace Domiki.Web.Data.Migrations
 {
     public partial class CreateIdentitySchema : Migration
     {

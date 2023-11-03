@@ -1,4 +1,4 @@
-﻿namespace Domiki.Business.Models
+﻿namespace Domiki.Web.Business.Models
 {
     public class Domik
     {

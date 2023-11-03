@@ -1,4 +1,4 @@
-﻿namespace Domiki.Business.Models
+﻿namespace Domiki.Web.Business.Models
 {
     public class DomikType
     {
@@ -7,9 +7,13 @@
         public string LogicName { get; set; }
 
         /// <summary>
-        /// Максимальное количество для постройки.
+        /// Максимальное количество построек данного типа.
         /// </summary>
         public int MaxCount { get; set; }
 
+        /// <summary>
+        /// Максимальный уровень, до которого можно улучший.
+        /// </summary>
+        public int MaxLevel { get; set; }
     }
 }

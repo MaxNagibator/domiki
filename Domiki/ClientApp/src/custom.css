@@ -20,7 +20,7 @@ code {
 .domik-box {
     display: flex;
     flex-wrap: wrap;
-    width: 128px;
+    width: 100px;
 }
 
     .domik-box .domik-level {
@@ -28,6 +28,11 @@ code {
         background: green;
         color: white;
         padding: 0 5px;
+    }
+
+    .domik-box img {
+        max-width: 64px;
+        max-height: 64px;
     }
 
 .purchase-box{
