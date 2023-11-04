@@ -45,6 +45,8 @@ export const DomikiPage = () => {
         let param = {
             headers: token
         }
+        // todo обобщить фетчи, много дулирования
+        // todo покупать домики за ресурсики
         fetch('https://localhost:7146/Domiki/GetDomiks', param)
             .then((res) => res.json())
             .then((data) => {
