@@ -73,6 +73,32 @@ namespace Domiki.Controllers
             return new Response { Type = ResponseType.Success };
         }
 
+        [HttpGet]
+        [Route("/Domiki/GetResourceTypes")]
+        public IEnumerable<ResourceTypeDto> GetResourceTypes()
+        {
+            return _domikManager.GetResourceTypes().Select(x => ToDto(x)).ToArray();
+
+            ResourceTypeDto ToDto(ResourceType resourceType)
+            {
+                return new ResourceTypeDto { Id = resourceType.Id, LogicName = resourceType.LogicName, Name = resourceType.Name };
+            }
+        }
+
+        [HttpGet]
+        [Route("/Domiki/GetResources")]
+        public IEnumerable<ResourceDto> GetResources()
+        {
+            int playerId = GetPlayerId();
+
+            return _domikManager.GetResources(playerId).Select(x => ToDto(x)).ToArray();
+
+            ResourceDto ToDto(Resource res)
+            {
+                return new ResourceDto { Value = res.Value, TypeId = res.Type.Id };
+            }
+        }
+
         private int GetPlayerId()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

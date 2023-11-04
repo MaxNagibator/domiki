@@ -7,6 +7,7 @@ namespace Domiki.Web.Data
     public class Player
     {
         [Key]
+        //[DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
         [MaxLength(100)]
@@ -19,5 +20,7 @@ namespace Domiki.Web.Data
 
         [ConcurrencyCheck]
         public Guid Version { get; set; }
+
+        public ICollection<Resource> Resources { get; set; }
     }
 }

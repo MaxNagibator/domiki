@@ -1,6 +1,6 @@
+using Domiki.Web.Business;
 using Domiki.Web.Business.Core;
-using Microsoft.EntityFrameworkCore;
-using System;
+using Domiki.Web.Data;
 
 namespace Domiki.Web.Tests
 {
@@ -16,6 +16,25 @@ namespace Domiki.Web.Tests
                 Assert.Greater(playerId, 0);
             }
         }
+
+        [Test]
+        public void CheckBaseResources()
+        {
+            using (var uow = GetUow())
+            {
+                var domikManager = new DomikManager(uow.Context);
+                var playerId = domikManager.GetPlayerId("testUser_" + Guid.NewGuid());
+                uow.Commit();
+
+                var resources = domikManager.GetResources(playerId);
+                Assert.That(resources.Count, Is.EqualTo(StaticEntities.ResourceTypes.Count));
+                foreach (var resource in resources)
+                {
+                    Assert.That(resource.Value, Is.EqualTo(1000));
+                }
+            }
+        }
+
 
         [Test]
         public void BuyDomik()

@@ -17,24 +17,40 @@ code {
     display: flex;
 }
 
-.domik-box {
-    display: flex;
-    flex-wrap: wrap;
-    width: 100px;
-}
-
-    .domik-box .domik-level {
-        position: absolute;
-        background: green;
-        color: white;
-        padding: 0 5px;
+    .domiks .domik-box {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100px;
     }
 
-    .domik-box img {
-        max-width: 64px;
-        max-height: 64px;
-    }
+        .domiks .domik-box .domik-level {
+            position: absolute;
+            background: green;
+            color: white;
+            padding: 0 5px;
+        }
 
-.purchase-box{
+        .domiks .domik-box img {
+            max-width: 64px;
+            max-height: 64px;
+        }
+
+.purchase-box {
     margin-top: 40px;
 }
+
+.resources {
+    display: flex;
+    margin-bottom: 20px;
+}
+
+    .resources .resource-box {
+        display: flex;
+        flex-wrap: wrap;
+        width: 50px;
+    }
+
+        .resources .resource-box img {
+            max-width: 32px;
+            max-height: 32px;
+        }

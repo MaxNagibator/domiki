@@ -4,6 +4,8 @@ import authService from './api-authorization/AuthorizeService'
 export const DomikiPage = () => {
     const [domiks, setDomiks] = useState([]);
     const [domikTypes, setDomikTypes] = useState([]);
+    const [resources, setResources] = useState([]);
+    const [resourceTypes, setResourceTypes] = useState([]);
     const [purchaseDomikTypes, setPurchaseDomikTypes] = useState([]);
     const [purchaseDomikTypesVisible, setPurchaseDomikTypesVisible] = useState([]);
 
@@ -23,7 +25,16 @@ export const DomikiPage = () => {
                 .catch((err) => {
                     console.log(err.message);
                 });
+            fetch('https://localhost:7146/Domiki/GetResourceTypes', param)
+                .then((res) => res.json())
+                .then((data) => {
+                    setResourceTypes(data);
+                })
+                .catch((err) => {
+                    console.log(err.message);
+                });
             getDomiks();
+            getResources();
         }
 
         myFunc();
@@ -38,6 +49,21 @@ export const DomikiPage = () => {
             .then((res) => res.json())
             .then((data) => {
                 setDomiks(data);
+            })
+            .catch((err) => {
+                console.log(err.message);
+            });
+    }
+
+    async function getResources() {
+        const token = await authService.getHeaderWithAccessToken();
+        let param = {
+            headers: token
+        }
+        fetch('https://localhost:7146/Domiki/GetResources', param)
+            .then((res) => res.json())
+            .then((data) => {
+                setResources(data);
             })
             .catch((err) => {
                 console.log(err.message);
@@ -113,15 +139,24 @@ export const DomikiPage = () => {
 
     return (
         <div className="App">
+            <div className="resources">
+                {resources != null && resourceTypes != null &&
+                    resources.map((resource, index) => {
+                        let resourceType = resourceTypes.filter(x => x.id === resource.typeId)[0];
+                        let image = "/images/resourceTypes/" + resourceType.logicName + ".png";
+                        return (
+                            <div key={index} className="resource-box">
+                                <img src={image} alt={resourceType.name} />
+                                <label className="resource-value">{resource.value}</label>
+                            </div>
+                        );
+                    })
+                }</div>
             <div className="domiks">
+
                 {domiks != null && domikTypes != null &&
                     domiks.map((domik, index) => {
-
-                        console.log('domikTypes');
-                        console.log(domikTypes);
                         let domikType = domikTypes.filter(x => x.id === domik.typeId)[0];
-                        console.log('domikType');
-                        console.log(domikType);
                         let image = "/images/domikTypes/" + domikType.logicName + ".png";
                         return (
                             <div key={index} className="domik-box">

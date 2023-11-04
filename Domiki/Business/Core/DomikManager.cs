@@ -1,18 +1,10 @@
 ﻿using Domiki.Web.Business.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace Domiki.Web.Business.Core
 {
     public class DomikManager
     {
         private Data.ApplicationDbContext _context;
-
-        private static List<DomikType> DomikTypes = new List<DomikType>
-            {
-                new DomikType { Id = 1, Name = "Кузница", LogicName = "forge", MaxCount = 1, MaxLevel = 10 },
-                new DomikType { Id = 2, Name = "Барак", LogicName = "barracks", MaxCount = 5, MaxLevel = 5 },
-
-            };
 
         public DomikManager(Data.ApplicationDbContext context)
         {
@@ -22,7 +14,7 @@ namespace Domiki.Web.Business.Core
         public void UpgradeDomik(int id)
         {
             var domik = _context.Domiks.First(x => x.Id == id);
-            var domikType = DomikTypes.First(x => x.Id == domik.TypeId);
+            var domikType = StaticEntities.DomikTypes.First(x => x.Id == domik.TypeId);
             if (domik.Level < domikType.MaxLevel)
             {
                 domik.Level++;
@@ -43,6 +35,12 @@ namespace Domiki.Web.Business.Core
                 dbPlayer.AspNetUserId = aspNetUserId;
                 dbPlayer.Name = "Держатель домиков";
                 _context.Players.Add(dbPlayer);
+
+                foreach (var resourceType in StaticEntities.ResourceTypes)
+                {
+                    _context.Resources.Add(new Data.Resource { TypeId = resourceType.Id, Player = dbPlayer, Value = 1000 });
+                }
+
                 _context.SaveChanges();
             }
             return dbPlayer.Id;
@@ -52,7 +50,7 @@ namespace Domiki.Web.Business.Core
         {
             var available = new List<DomikType>();
             var domiks = GetDomiks(playerId);
-            foreach (var domikType in DomikTypes)
+            foreach (var domikType in StaticEntities.DomikTypes)
             {
                 var current = domiks.Count(x => x.Type.Id == domikType.Id);
                 if (current < domikType.MaxCount)
@@ -69,15 +67,14 @@ namespace Domiki.Web.Business.Core
                 new Domik
                 {
                     Id = x.Id,
-                    Type = DomikTypes.First(y => y.Id == x.TypeId),
+                    Type = StaticEntities.DomikTypes.First(y => y.Id == x.TypeId),
                     Level = x.Level,
-                    PlayerId = x.PlayerId,
                 }).ToList();
         }
 
         public IEnumerable<DomikType> GetDomikTypes()
         {
-            return DomikTypes;
+            return StaticEntities.DomikTypes;
         }
 
         public void BuyDomik(int playerId, int typeId)
@@ -95,6 +92,21 @@ namespace Domiki.Web.Business.Core
             {
                 throw new BusinessException("Превышено максимальное количество");
             }
+        }
+
+        public IEnumerable<Resource> GetResources(int playerId)
+        {
+            return _context.Resources.Where(x => x.PlayerId == playerId).ToArray().Select(x =>
+                new Resource
+                {
+                    Type = StaticEntities.ResourceTypes.First(y => y.Id == x.TypeId),
+                    Value = x.Value,
+                }).ToList();
+        }
+
+        public IEnumerable<ResourceType> GetResourceTypes()
+        {
+            return StaticEntities.ResourceTypes;
         }
     }
 }
