@@ -1,6 +1,5 @@
-﻿using Domiki.Web.Business.Core;
-using Domiki.Web.Business.Models;
-using Domiki.Web;
+﻿using Domiki.Web;
+using Domiki.Web.Business.Core;
 using Domiki.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,23 +22,20 @@ namespace Domiki.Controllers
 
         [HttpGet]
         [Route("/Domiki/GetDomikTypes")] // todo разобраться с роут префиксом
-        public IEnumerable<DomikTypeDto> GetDomikTypes()
+        public Response<DomikTypeDto[]> GetDomikTypes()
         {
-            return _domikManager.GetDomikTypes().Select(x => ToDto(x)).ToArray();
+            var content = _domikManager.GetDomikTypes().Select(x => x.ToDto()).ToArray();
+            return new Response<DomikTypeDto[]>(content);
         }
 
         [HttpGet]
         [Route("/Domiki/GetDomiks")]
-        public IEnumerable<DomikDto> GetDomiks()
+        public Response<DomikDto[]> GetDomiks()
         {
             int playerId = GetPlayerId();
 
-            return _domikManager.GetDomiks(playerId).Select(x => ToDto(x)).ToArray();
-
-            DomikDto ToDto(Domik domik)
-            {
-                return new DomikDto { Id = domik.Id, Level = domik.Level, TypeId = domik.Type.Id };
-            }
+            var content = _domikManager.GetDomiks(playerId).Select(x => x.ToDto()).ToArray();
+            return new Response<DomikDto[]>(content);
         }
 
         [HttpPost]
@@ -52,16 +48,12 @@ namespace Domiki.Controllers
 
         [HttpGet]
         [Route("/Domiki/GetPurchaseAvaialableDomiks")]
-        public IEnumerable<DomikTypeDto> GetPurchaseAvaialableDomiks()
+        public Response<DomikTypeDto[]> GetPurchaseAvaialableDomiks()
         {
             int playerId = GetPlayerId();
 
-            return _domikManager.GetPurchaseAvailableDomiks(playerId).Select(x => ToDto(x)).ToArray();
-        }
-
-        private DomikTypeDto ToDto(DomikType t)
-        {
-            return new DomikTypeDto { Id = t.Id, Name = t.Name, LogicName = t.LogicName, MaxCount = t.MaxCount, MaxLevel = t.MaxLevel };
+            var content = _domikManager.GetPurchaseAvailableDomiks(playerId).Select(x => x.ToDto()).ToArray();
+            return new Response<DomikTypeDto[]>(content);
         }
 
         [HttpPost]
@@ -75,28 +67,20 @@ namespace Domiki.Controllers
 
         [HttpGet]
         [Route("/Domiki/GetResourceTypes")]
-        public IEnumerable<ResourceTypeDto> GetResourceTypes()
+        public Response<ResourceTypeDto[]> GetResourceTypes()
         {
-            return _domikManager.GetResourceTypes().Select(x => ToDto(x)).ToArray();
-
-            ResourceTypeDto ToDto(ResourceType resourceType)
-            {
-                return new ResourceTypeDto { Id = resourceType.Id, LogicName = resourceType.LogicName, Name = resourceType.Name };
-            }
+            var content = _domikManager.GetResourceTypes().Select(x => x.ToDto()).ToArray();
+            return new Response<ResourceTypeDto[]>(content);
         }
 
         [HttpGet]
         [Route("/Domiki/GetResources")]
-        public IEnumerable<ResourceDto> GetResources()
+        public Response<ResourceDto[]> GetResources()
         {
             int playerId = GetPlayerId();
 
-            return _domikManager.GetResources(playerId).Select(x => ToDto(x)).ToArray();
-
-            ResourceDto ToDto(Resource res)
-            {
-                return new ResourceDto { Value = res.Value, TypeId = res.Type.Id };
-            }
+            var content = _domikManager.GetResources(playerId).Select(x => x.ToDto()).ToArray();
+            return new Response<ResourceDto[]>(content);
         }
 
         private int GetPlayerId()

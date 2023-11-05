@@ -13,26 +13,12 @@ export const DomikiPage = () => {
         setPurchaseDomikTypes(null);
         getPurchaseDomikTypes();
         async function myFunc() {
-            const token = await authService.getHeaderWithAccessToken();
-            let param = {
-                headers: token
-            }
-            fetch('https://localhost:7146/Domiki/GetDomikTypes', param)
-                .then((res) => res.json())
-                .then((data) => {
-                    setDomikTypes(data);
-                })
-                .catch((err) => {
-                    console.log(err.message);
-                });
-            fetch('https://localhost:7146/Domiki/GetResourceTypes', param)
-                .then((res) => res.json())
-                .then((data) => {
-                    setResourceTypes(data);
-                })
-                .catch((err) => {
-                    console.log(err.message);
-                });
+            sendRequest('GET', 'Domiki/GetDomikTypes', function (data) {
+                setDomikTypes(data);
+            });
+            sendRequest('GET', 'Domiki/GetResourceTypes', function (data) {
+                setResourceTypes(data);
+            });
             getDomiks();
             getResources();
         }
@@ -41,55 +27,22 @@ export const DomikiPage = () => {
     }, []);
 
     async function getDomiks() {
-        const token = await authService.getHeaderWithAccessToken();
-        let param = {
-            headers: token
-        }
-        // todo обобщить фетчи, много дулирования
-        // todo покупать домики за ресурсики
-        fetch('https://localhost:7146/Domiki/GetDomiks', param)
-            .then((res) => res.json())
-            .then((data) => {
-                setDomiks(data);
-            })
-            .catch((err) => {
-                console.log(err.message);
-            });
+        sendRequest('GET', 'Domiki/GetDomiks', function (data) {
+            setDomiks(data);
+        });
     }
 
     async function getResources() {
-        const token = await authService.getHeaderWithAccessToken();
-        let param = {
-            headers: token
-        }
-        fetch('https://localhost:7146/Domiki/GetResources', param)
-            .then((res) => res.json())
-            .then((data) => {
-                setResources(data);
-            })
-            .catch((err) => {
-                console.log(err.message);
-            });
+        sendRequest('GET', 'Domiki/GetResources', function (data) {
+            setResources(data);
+        });
     }
 
     async function upgrade(id) {
-        const token = await authService.getAccessToken();
-        const requestOptions = {
-            method: 'POST',
-            headers: !token ? {} : { 'Authorization': `Bearer ${token}` }
-        };
-        fetch('https://localhost:7146/Domiki/UpgradeDomik/' + id, requestOptions)
-            .then((res) => res.json())
-            .then((data) => {
-                if (data.Type === 2) {
-                    alert(data.Content);
-                } else {
-                    getDomiks();
-                }
-            })
-            .catch((err) => {
-                console.log(err.message);
-            });
+        sendRequest('POST', 'Domiki/UpgradeDomik/'+ id, function (data) {
+            getDomiks();
+            setResources();
+        });
     }
 
     async function showPurchaseDomikWindow() {
@@ -104,34 +57,33 @@ export const DomikiPage = () => {
     }
 
     async function getPurchaseDomikTypes() {
-        const token = await authService.getAccessToken();
-        const requestOptions = {
-            headers: !token ? {} : { 'Authorization': `Bearer ${token}` }
-        };
-        fetch('https://localhost:7146/Domiki/GetPurchaseAvaialableDomiks', requestOptions)
-            .then((res) => res.json())
-            .then((data) => {
-                setPurchaseDomikTypes(data);
-            })
-            .catch((err) => {
-                console.log(err.message);
-            });
+        sendRequest('GET', 'Domiki/GetPurchaseAvaialableDomiks', function (data) {
+            setPurchaseDomikTypes(data);
+        });
     }
 
     async function buy(typeId) {
+        sendRequest('POST', 'Domiki/BuyDomik/' + typeId, function (data) {
+            getDomiks();
+            setResources();
+            getPurchaseDomikTypes();
+        });
+    }
+
+    // todo переместить в сервис какойнить
+    async function sendRequest(method, url, succesAction) {
         const token = await authService.getAccessToken();
         const requestOptions = {
-            method: 'POST',
+            method: method,
             headers: !token ? {} : { 'Authorization': `Bearer ${token}` }
         };
-        fetch('https://localhost:7146/Domiki/BuyDomik/' + typeId, requestOptions)
+        fetch('https://localhost:7146/' + url, requestOptions)
             .then((res) => res.json())
             .then((data) => {
                 if (data.Type === 2) {
-                    alert(data.Content);
+                    alert(data.content);
                 } else {
-                    getDomiks();
-                    getPurchaseDomikTypes();
+                    succesAction(data.content);
                 }
             })
             .catch((err) => {

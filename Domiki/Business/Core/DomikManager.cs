@@ -79,6 +79,8 @@ namespace Domiki.Web.Business.Core
 
         public void BuyDomik(int playerId, int typeId)
         {
+
+            // todo покупать домики за ресурсики
             _context.Players.First(x => x.Id == playerId).Version = Guid.NewGuid();
 
             var available = GetPurchaseAvailableDomiks(playerId);

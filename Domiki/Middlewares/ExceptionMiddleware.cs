@@ -14,7 +14,7 @@ namespace Domiki.Web
         }
 
         // IMessageWriter is injected into InvokeAsync
-        public async Task InvokeAsync(HttpContext httpContext, UnitOfWork uow)
+        public async Task InvokeAsync(HttpContext httpContext)
         {
             try
             {
@@ -22,7 +22,7 @@ namespace Domiki.Web
             }
             catch (BusinessException ex)
             {
-                var jsonString = JsonConvert.SerializeObject(new Response<string> { Type = ResponseType.ErrorMessage, Content = ex.Message });
+                var jsonString = JsonConvert.SerializeObject(new Response<string>(ex.Message) { Type = ResponseType.ErrorMessage });
                 await httpContext.Response.WriteAsync(jsonString);
             }
         }
