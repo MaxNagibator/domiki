@@ -42,7 +42,8 @@ namespace Domiki.Controllers
         [Route("/Domiki/UpgradeDomik/{id}")]
         public Response UpgradeDomik(int id)
         {
-            _domikManager.UpgradeDomik(id);
+            int playerId = GetPlayerId();
+            _domikManager.UpgradeDomik(playerId, id);
             return new Response { Type = ResponseType.Success };
         }
 

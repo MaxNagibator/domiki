@@ -1,10 +1,8 @@
 ﻿using Domiki.Web.Data;
-using Domiki.Web.Data;
 using Duende.IdentityServer.EntityFramework.Options;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using static Domiki.Web.Tests.DomiksTests;
 
 namespace Domiki.Web.Tests
 {

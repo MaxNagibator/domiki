@@ -14,6 +14,8 @@
         /// <summary>
         /// Максимальный уровень, до которого можно улучший.
         /// </summary>
-        public int MaxLevel { get; set; }
+        public int MaxLevel => UpgradeLevels.Length;
+
+        public UpgradeLevel[] UpgradeLevels { get; set; }
     }
 }

@@ -11,9 +11,12 @@ namespace Domiki.Web.Business.Core
             _context = context;
         }
 
-        public void UpgradeDomik(int id)
+        public void UpgradeDomik(int playerId, int id)
         {
-            var domik = _context.Domiks.First(x => x.Id == id);
+            // todo перечитать и попробовать повтоно выполнить. обработка оптимистика
+            LockDbPlayerRow(playerId);
+
+            var domik = _context.Domiks.First(x => x.PlayerId == playerId && x.Id == id);
             var domikType = StaticEntities.DomikTypes.First(x => x.Id == domik.TypeId);
             if (domik.Level < domikType.MaxLevel)
             {
@@ -109,6 +112,12 @@ namespace Domiki.Web.Business.Core
         public IEnumerable<ResourceType> GetResourceTypes()
         {
             return StaticEntities.ResourceTypes;
+        }
+
+        // пессимистичная блокировка строки в БД, для борьбы с конкурентными потоками
+        private void LockDbPlayerRow(int playerId)
+        {
+            _context.Players.First(x => x.Id == playerId).Version = Guid.NewGuid();
         }
     }
 }

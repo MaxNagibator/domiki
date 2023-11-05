@@ -35,7 +35,9 @@ namespace Domiki.Web.Tests
             }
         }
 
-
+        /// <summary>
+        /// ѕокупаем домик и провер€ем, что у нас 1 домик первого уровн€.
+        /// </summary>
         [Test]
         public void BuyDomik()
         {
@@ -50,6 +52,8 @@ namespace Domiki.Web.Tests
                 var domiks = domikManager.GetDomiks(playerId);
                 var domiksCount = domiks.Count();
                 Assert.That(domiksCount, Is.EqualTo(1));
+                var level = domiks.First().Level;
+                Assert.That(level, Is.EqualTo(1));
             }
         }
 
@@ -98,6 +102,91 @@ namespace Domiki.Web.Tests
                     var domiks = domikManager.GetDomiks(playerId);
                     var domiksCount = domiks.Count();
                     Assert.That(domiksCount, Is.EqualTo(1), "iterarion number " + i);
+                }
+            }
+        }
+
+        [Test]
+        public void UpgradeDomik()
+        {
+            int playerId;
+            using (var uow = GetUow())
+            {
+                var domikManager = new DomikManager(uow.Context);
+                playerId = domikManager.GetPlayerId("testUser_" + Guid.NewGuid());
+                var types = domikManager.GetDomikTypes();
+                domikManager.BuyDomik(playerId, types.First().Id);
+                uow.Commit();
+            }
+
+            using (var uow = GetUow())
+            {
+                var domikManager = new DomikManager(uow.Context);
+                domikManager.UpgradeDomik(playerId, 1);
+                uow.Commit();
+
+                var domiks = domikManager.GetDomiks(playerId);
+                var level = domiks.First().Level;
+                Assert.That(level, Is.EqualTo(2));
+            }
+        }
+
+        /// <summary>
+        /// ѕроверка на то, что конкурирующие запросы корректно улучшают домик
+        /// </summary>
+        [Test]
+        public void ConcurrencyUpgradeDomik()
+        {
+            for (var i = 1; i <= 217; i++)
+            {
+                int playerId;
+                int domikTypeId;
+                using (var uow = GetUow())
+                {
+                    var domikManager = new DomikManager(uow.Context);
+                    playerId = domikManager.GetPlayerId("testUser_" + Guid.NewGuid());
+                    var types = domikManager.GetDomikTypes();
+                    var domikType = types.First();
+                    Assert.That(domikType.MaxCount, Is.EqualTo(1));
+                    domikTypeId = domikType.Id;
+
+                    domikManager.BuyDomik(playerId, domikTypeId);
+                    uow.Commit();
+                }
+
+                var actionCount = 4;
+                var numbers = Enumerable.Range(0, actionCount).ToList();
+                var errorCount = 0;
+                Parallel.ForEach(numbers, number =>
+                {
+                    try
+                    {
+                        using (var uow = GetUow())
+                        {
+                            var domikManager = new DomikManager(uow.Context);
+                            domikManager.UpgradeDomik(playerId, 1);
+                            uow.Commit();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        errorCount++;
+                    }
+                });
+
+                using (var uow = GetUow())
+                {
+                    var domikManager = new DomikManager(uow.Context);
+                    var domiks = domikManager.GetDomiks(playerId);
+                    var level = domiks.First().Level;
+                    var checkValue = level + errorCount;
+                    var expected = 1 + actionCount;
+
+                    // минимум один будет успешный
+                    Assert.That(checkValue, Is.GreaterThan(1));
+
+                    // количество успешных улучшеий + 1 базовый уровень + количество ошибок равно = 1 базовый уровень + количество действи
+                    Assert.That(checkValue, Is.EqualTo(expected), "iterarion number " + i + ", checkValue " + checkValue + ",  error count " + errorCount);
                 }
             }
         }
