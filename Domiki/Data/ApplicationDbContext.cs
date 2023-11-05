@@ -33,7 +33,7 @@ namespace Domiki.Web.Data
             modelBuilder.Entity<Domik>()
                 .HasKey(p => new
                 {
-                    p.TypeId,
+                    p.PlayerId,
                     p.Id
                 });
 

@@ -24,18 +24,6 @@ namespace Domiki.Web.Data.Migrations
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropPrimaryKey(
-                name: "PK_Domiks",
-                table: "Domiks");
-
-            migrationBuilder.RenameTable(
-                name: "Domiks",
-                newName: "Domik");
-
-            migrationBuilder.AddPrimaryKey(
-                name: "PK_Domik",
-                table: "Domik",
-                columns: new[] { "PlayerId", "Id" });
         }
     }
 }

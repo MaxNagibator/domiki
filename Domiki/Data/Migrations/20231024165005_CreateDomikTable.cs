@@ -25,8 +25,6 @@ namespace Domiki.Web.Data.Migrations
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "Domik");
         }
     }
 }

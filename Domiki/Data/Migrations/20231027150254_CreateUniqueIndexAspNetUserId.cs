@@ -17,9 +17,6 @@ namespace Domiki.Web.Data.Migrations
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_Player_AspNetUserId",
-                table: "Player");
         }
     }
 }

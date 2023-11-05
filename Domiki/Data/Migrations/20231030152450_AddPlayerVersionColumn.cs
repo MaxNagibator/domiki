@@ -19,9 +19,6 @@ namespace Domiki.Web.Data.Migrations
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "Version",
-                table: "Players");
         }
     }
 }
