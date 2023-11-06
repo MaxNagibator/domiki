@@ -1,5 +1,6 @@
 using Domiki.Web.Business;
 using Domiki.Web.Business.Core;
+using Domiki.Web.Business.Models;
 using Domiki.Web.Data;
 
 namespace Domiki.Web.Tests
@@ -46,14 +47,26 @@ namespace Domiki.Web.Tests
                 var domikManager = new DomikManager(uow.Context);
                 var playerId = domikManager.GetPlayerId("testUser_" + Guid.NewGuid());
                 var types = domikManager.GetDomikTypes();
-                domikManager.BuyDomik(playerId, types.First().Id);
+                var beforeResources = domikManager.GetResources(playerId);
+                var buyType = types.First();
+                domikManager.BuyDomik(playerId, buyType.Id);
                 uow.Commit();
 
+                var afterResources = domikManager.GetResources(playerId);
                 var domiks = domikManager.GetDomiks(playerId);
                 var domiksCount = domiks.Count();
                 Assert.That(domiksCount, Is.EqualTo(1));
                 var level = domiks.First().Level;
                 Assert.That(level, Is.EqualTo(1));
+
+                foreach (var resource in buyType.UpgradeLevels[0].Resources)
+                {
+                    var beforeResource = beforeResources.First(x => x.Type.Id == resource.Type.Id);
+                    var afterResource = afterResources.First(x => x.Type.Id == resource.Type.Id);
+                    var actualDiffResource = beforeResource.Value - afterResource.Value;
+                    var expectedDiffResource = resource.Value;
+                    Assert.That(actualDiffResource, Is.EqualTo(expectedDiffResource));
+                }
             }
         }
 
@@ -110,24 +123,38 @@ namespace Domiki.Web.Tests
         public void UpgradeDomik()
         {
             int playerId;
+            DomikType buyType;
             using (var uow = GetUow())
             {
                 var domikManager = new DomikManager(uow.Context);
                 playerId = domikManager.GetPlayerId("testUser_" + Guid.NewGuid());
                 var types = domikManager.GetDomikTypes();
-                domikManager.BuyDomik(playerId, types.First().Id);
+                buyType = types.First();
+                domikManager.BuyDomik(playerId, buyType.Id);
                 uow.Commit();
             }
 
             using (var uow = GetUow())
             {
                 var domikManager = new DomikManager(uow.Context);
+                var beforeResources = domikManager.GetResources(playerId);
                 domikManager.UpgradeDomik(playerId, 1);
                 uow.Commit();
 
                 var domiks = domikManager.GetDomiks(playerId);
                 var level = domiks.First().Level;
                 Assert.That(level, Is.EqualTo(2));
+
+                var afterResources = domikManager.GetResources(playerId);
+
+                foreach (var resource in buyType.UpgradeLevels.First(x => x.Value == 2).Resources)
+                {
+                    var beforeResource = beforeResources.First(x => x.Type.Id == resource.Type.Id);
+                    var afterResource = afterResources.First(x => x.Type.Id == resource.Type.Id);
+                    var actualDiffResource = beforeResource.Value - afterResource.Value;
+                    var expectedDiffResource = resource.Value;
+                    Assert.That(actualDiffResource, Is.EqualTo(expectedDiffResource));
+                }
             }
         }
 
