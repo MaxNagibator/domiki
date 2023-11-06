@@ -59,7 +59,7 @@ namespace Domiki.Web.Tests
                 var level = domiks.First().Level;
                 Assert.That(level, Is.EqualTo(1));
 
-                foreach (var resource in buyType.UpgradeLevels[0].Resources)
+                foreach (var resource in buyType.Levels[0].Resources)
                 {
                     var beforeResource = beforeResources.First(x => x.Type.Id == resource.Type.Id);
                     var afterResource = afterResources.First(x => x.Type.Id == resource.Type.Id);
@@ -147,7 +147,7 @@ namespace Domiki.Web.Tests
 
                 var afterResources = domikManager.GetResources(playerId);
 
-                foreach (var resource in buyType.UpgradeLevels.First(x => x.Value == 2).Resources)
+                foreach (var resource in buyType.Levels.First(x => x.Value == 2).Resources)
                 {
                     var beforeResource = beforeResources.First(x => x.Type.Id == resource.Type.Id);
                     var afterResource = afterResources.First(x => x.Type.Id == resource.Type.Id);

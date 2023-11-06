@@ -25,7 +25,7 @@ namespace Domiki.Web.Business.Core
             }
 
             var nextLevel = dbDomik.Level + 1;
-            var domikLevel = domikType.UpgradeLevels.First(x => x.Value == nextLevel);
+            var domikLevel = domikType.Levels.First(x => x.Value == nextLevel);
             WriteOffResources(playerId, domikLevel.Resources);
             dbDomik.Level = nextLevel;
         }
@@ -89,7 +89,7 @@ namespace Domiki.Web.Business.Core
             if (available.Any(x => x.Id == typeId))
             {
                 var domikType = GetDomikTypes().First(x => x.Id == typeId);
-                var domikLevel = domikType.UpgradeLevels.First(x => x.Value == 1);
+                var domikLevel = domikType.Levels.First(x => x.Value == 1);
                 WriteOffResources(playerId, domikLevel.Resources);
 
                 var currentId = _context.Domiks.Where(x => x.PlayerId == playerId).Max(x => (int?)x.Id) ?? 0;

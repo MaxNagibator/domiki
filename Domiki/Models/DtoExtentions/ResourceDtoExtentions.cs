@@ -6,7 +6,11 @@ namespace Domiki.Web.Models
     {
         public static ResourceDto ToDto(this Resource res)
         {
-            return new ResourceDto { Value = res.Value, TypeId = res.Type.Id };
+            return new ResourceDto
+            {
+                Value = res.Value,
+                TypeId = res.Type.Id,
+            };
         }
     }
 }

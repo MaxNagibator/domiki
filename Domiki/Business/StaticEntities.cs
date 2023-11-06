@@ -17,7 +17,7 @@ namespace Domiki.Web.Business
         public static List<DomikType> DomikTypes = new List<DomikType>
             {
                 new DomikType { Id = 1, Name = "Кузница", LogicName = "forge", MaxCount = 1,
-                    UpgradeLevels = new UpgradeLevel[]
+                    Levels = new UpgradeLevel[]
                     {
                         new UpgradeLevel
                         {
@@ -61,14 +61,14 @@ namespace Domiki.Web.Business
                         },
                     } },
                 new DomikType { Id = 2, Name = "Барак", LogicName = "barracks", MaxCount = 5,
-                    UpgradeLevels = new UpgradeLevel[]
+                    Levels = new UpgradeLevel[]
                     {
                         new UpgradeLevel
                         {
                             Value = 1,
                             Resources = new Resource[]
                             {
-                                new Resource { Type = ResourceTypesDict[1], Value = 1 }
+                                new Resource { Type = ResourceTypesDict[3], Value = 1 }
                             }
                         },
                         new UpgradeLevel
@@ -76,7 +76,7 @@ namespace Domiki.Web.Business
                             Value = 2,
                             Resources = new Resource[]
                             {
-                                new Resource { Type = ResourceTypesDict[1], Value = 2 }
+                                new Resource { Type = ResourceTypesDict[3], Value = 2 }
                             }
                         },
                     } },
@@ -84,14 +84,14 @@ namespace Domiki.Web.Business
                     Name = "Каменоломня",
                     LogicName = "stone_mine",
                     MaxCount = 2,
-                    UpgradeLevels = new UpgradeLevel[]
+                    Levels = new UpgradeLevel[]
                     {
                         new UpgradeLevel
                         {
                             Value = 1,
                             Resources = new Resource[]
                             {
-                                new Resource { Type = ResourceTypesDict[1], Value = 1 }
+                                new Resource { Type = ResourceTypesDict[2], Value = 1 }
                             }
                         },
                         new UpgradeLevel
@@ -99,7 +99,7 @@ namespace Domiki.Web.Business
                             Value = 2,
                             Resources = new Resource[]
                             {
-                                new Resource { Type = ResourceTypesDict[1], Value = 2 }
+                                new Resource { Type = ResourceTypesDict[2], Value = 2 }
                             }
                         },
                         new UpgradeLevel
@@ -107,7 +107,7 @@ namespace Domiki.Web.Business
                             Value = 3,
                             Resources = new Resource[]
                             {
-                                new Resource { Type = ResourceTypesDict[1], Value = 4 }
+                                new Resource { Type = ResourceTypesDict[2], Value = 4 }
                             }
                         },
                         new UpgradeLevel
@@ -115,20 +115,21 @@ namespace Domiki.Web.Business
                             Value = 4,
                             Resources = new Resource[]
                             {
-                                new Resource { Type = ResourceTypesDict[1], Value = 5 }
+                                new Resource { Type = ResourceTypesDict[2], Value = 5 }
                             }
                         },
                     }
                 },
                 new DomikType { Id = 4, Name = "Золотой рудник", LogicName = "gold_mine", MaxCount = 2,
-                    UpgradeLevels = new UpgradeLevel[]
+                    Levels = new UpgradeLevel[]
                     {
                         new UpgradeLevel
                         {
                             Value = 1,
                             Resources = new Resource[]
                             {
-                                new Resource { Type = ResourceTypesDict[1], Value = 1 }
+                                new Resource { Type = ResourceTypesDict[1], Value = 1 },
+                                new Resource { Type = ResourceTypesDict[2], Value = 1 },
                             }
                         },
                         new UpgradeLevel
@@ -136,7 +137,8 @@ namespace Domiki.Web.Business
                             Value = 2,
                             Resources = new Resource[]
                             {
-                                new Resource { Type = ResourceTypesDict[1], Value = 2 }
+                                new Resource { Type = ResourceTypesDict[1], Value = 2 },
+                                new Resource { Type = ResourceTypesDict[2], Value = 2 },
                             }
                         },
                     } },

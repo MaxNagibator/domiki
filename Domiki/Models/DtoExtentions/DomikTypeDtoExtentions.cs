@@ -6,7 +6,15 @@ namespace Domiki.Web.Models
     {
         public static DomikTypeDto ToDto(this DomikType t)
         {
-            return new DomikTypeDto { Id = t.Id, Name = t.Name, LogicName = t.LogicName, MaxCount = t.MaxCount, MaxLevel = t.MaxLevel };
+            return new DomikTypeDto
+            {
+                Id = t.Id,
+                Name = t.Name,
+                LogicName = t.LogicName,
+                MaxCount = t.MaxCount,
+                MaxLevel = t.MaxLevel,
+                Levels = t.Levels.Select(x => x.ToDto()).ToArray(),
+            };
         }
     }
 }

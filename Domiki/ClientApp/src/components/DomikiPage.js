@@ -39,9 +39,9 @@ export const DomikiPage = () => {
     }
 
     async function upgrade(id) {
-        sendRequest('POST', 'Domiki/UpgradeDomik/'+ id, function (data) {
+        sendRequest('POST', 'Domiki/UpgradeDomik/' + id, function (data) {
             getDomiks();
-            setResources();
+            getResources();
         });
     }
 
@@ -65,7 +65,7 @@ export const DomikiPage = () => {
     async function buy(typeId) {
         sendRequest('POST', 'Domiki/BuyDomik/' + typeId, function (data) {
             getDomiks();
-            setResources();
+            getResources();
             getPurchaseDomikTypes();
         });
     }
@@ -94,7 +94,7 @@ export const DomikiPage = () => {
     return (
         <div className="App">
             <div className="resources">
-                {resources != null && resourceTypes != null &&
+                {resourceTypes != null && resourceTypes.length > 0 &&
                     resources.map((resource, index) => {
                         let resourceType = resourceTypes.filter(x => x.id === resource.typeId)[0];
                         let image = "/images/resourceTypes/" + resourceType.logicName + ".png";
@@ -108,7 +108,7 @@ export const DomikiPage = () => {
                 }</div>
             <div className="domiks">
 
-                {domiks != null && domikTypes != null &&
+                {domikTypes != null && domikTypes.length > 0 &&
                     domiks.map((domik, index) => {
                         let domikType = domikTypes.filter(x => x.id === domik.typeId)[0];
                         let image = "/images/domikTypes/" + domikType.logicName + ".png";
@@ -133,6 +133,19 @@ export const DomikiPage = () => {
                             return (
                                 <div key={index} className="domik-box">
                                     <img src={image} alt={purchaseDomikType.name} />
+                                    <div>
+                                        {purchaseDomikType.levels[0].resources.map((res, resIndex) => {
+                                            let resourceType = resourceTypes.filter(x => x.id === res.typeId)[0];
+                                            let resImage = "/images/resourceTypes/" + resourceType.logicName + ".png";
+                                            return (
+                                                <div key={resIndex}>
+                                                    <img src={resImage} alt={res.name} />
+                                                    <label>{res.value}</label>
+                                                </div>
+                                            );
+                                        })
+                                        }
+                                    </div>
                                     <button onClick={() => buy(purchaseDomikType.id)}>купить</button>
                                 </div>
                             );
