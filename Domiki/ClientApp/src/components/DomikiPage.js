@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import authService from './api-authorization/AuthorizeService'
+import { ResourcesBox } from './ResourcesBox';
 
 export const DomikiPage = () => {
     const [domiks, setDomiks] = useState([]);
@@ -107,7 +108,6 @@ export const DomikiPage = () => {
                     })
                 }</div>
             <div className="domiks">
-
                 {domikTypes != null && domikTypes.length > 0 &&
                     domiks.map((domik, index) => {
                         let domikType = domikTypes.filter(x => x.id === domik.typeId)[0];
@@ -133,19 +133,7 @@ export const DomikiPage = () => {
                             return (
                                 <div key={index} className="domik-box">
                                     <img src={image} alt={purchaseDomikType.name} />
-                                    <div>
-                                        {purchaseDomikType.levels[0].resources.map((res, resIndex) => {
-                                            let resourceType = resourceTypes.filter(x => x.id === res.typeId)[0];
-                                            let resImage = "/images/resourceTypes/" + resourceType.logicName + ".png";
-                                            return (
-                                                <div key={resIndex}>
-                                                    <img src={resImage} alt={res.name} />
-                                                    <label>{res.value}</label>
-                                                </div>
-                                            );
-                                        })
-                                        }
-                                    </div>
+                                    <ResourcesBox resources={purchaseDomikType.levels[0].resources} resourceTypes={resourceTypes} />
                                     <button onClick={() => buy(purchaseDomikType.id)}>купить</button>
                                 </div>
                             );
