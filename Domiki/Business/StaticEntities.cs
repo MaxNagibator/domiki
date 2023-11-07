@@ -22,6 +22,7 @@ namespace Domiki.Web.Business
                         new UpgradeLevel
                         {
                             Value = 1,
+                            UpgradeSeconds = 10,
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[1], Value = 1 }
@@ -30,6 +31,7 @@ namespace Domiki.Web.Business
                         new UpgradeLevel
                         {
                             Value = 2,
+                            UpgradeSeconds = 300,
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[1], Value = 2 }
@@ -38,6 +40,7 @@ namespace Domiki.Web.Business
                         new UpgradeLevel
                         {
                             Value = 3,
+                            UpgradeSeconds = 3000,
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[1], Value = 4 }
@@ -46,6 +49,7 @@ namespace Domiki.Web.Business
                         new UpgradeLevel
                         {
                             Value = 4,
+                            UpgradeSeconds = 6000,
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[1], Value = 8 }
@@ -54,6 +58,7 @@ namespace Domiki.Web.Business
                         new UpgradeLevel
                         {
                             Value = 5,
+                            UpgradeSeconds = 12000,
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[1], Value = 16 }
@@ -66,6 +71,7 @@ namespace Domiki.Web.Business
                         new UpgradeLevel
                         {
                             Value = 1,
+                            UpgradeSeconds = 3000,
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[3], Value = 1 }
@@ -74,6 +80,7 @@ namespace Domiki.Web.Business
                         new UpgradeLevel
                         {
                             Value = 2,
+                            UpgradeSeconds = 3000,
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[3], Value = 2 }
@@ -89,6 +96,7 @@ namespace Domiki.Web.Business
                         new UpgradeLevel
                         {
                             Value = 1,
+                            UpgradeSeconds = 5,
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[2], Value = 1 }
@@ -97,6 +105,7 @@ namespace Domiki.Web.Business
                         new UpgradeLevel
                         {
                             Value = 2,
+                            UpgradeSeconds = 3000,
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[2], Value = 2 }
@@ -105,6 +114,7 @@ namespace Domiki.Web.Business
                         new UpgradeLevel
                         {
                             Value = 3,
+                            UpgradeSeconds = 3000,
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[2], Value = 4 }
@@ -113,6 +123,7 @@ namespace Domiki.Web.Business
                         new UpgradeLevel
                         {
                             Value = 4,
+                            UpgradeSeconds = 3000,
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[2], Value = 5 }
@@ -126,6 +137,7 @@ namespace Domiki.Web.Business
                         new UpgradeLevel
                         {
                             Value = 1,
+                            UpgradeSeconds = 3000,
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[1], Value = 1 },
@@ -135,6 +147,7 @@ namespace Domiki.Web.Business
                         new UpgradeLevel
                         {
                             Value = 2,
+                            UpgradeSeconds = 3000,
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[1], Value = 2 },

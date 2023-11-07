@@ -2,11 +2,11 @@ using Domiki.Web.Business.Core;
 using Domiki.Web.Data;
 using Domiki.Models;
 using Domiki.Web;
-using Domiki.Web.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Domiki.Web.Business;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +30,9 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 builder.Services.AddScoped<UnitOfWork>();
 builder.Services.AddScoped<DomikManager>();
+builder.Services.AddSingleton<Calculator>();
+builder.Services.AddScoped<CalculatorTick>();
+builder.Services.AddHostedService<CalculatorBackgroundService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

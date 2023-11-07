@@ -12,7 +12,7 @@ namespace Domiki.Web.Tests
         {
             using (var uow = GetUow())
             {
-                var domikManager = new DomikManager(uow.Context);
+                var domikManager = new DomikManager(uow.Context, null);
                 var playerId = domikManager.GetPlayerId("testUser_" + Guid.NewGuid());
                 Assert.Greater(playerId, 0);
             }
@@ -23,7 +23,7 @@ namespace Domiki.Web.Tests
         {
             using (var uow = GetUow())
             {
-                var domikManager = new DomikManager(uow.Context);
+                var domikManager = new DomikManager(uow.Context, null);
                 var playerId = domikManager.GetPlayerId("testUser_" + Guid.NewGuid());
                 uow.Commit();
 
@@ -44,7 +44,7 @@ namespace Domiki.Web.Tests
         {
             using (var uow = GetUow())
             {
-                var domikManager = new DomikManager(uow.Context);
+                var domikManager = new DomikManager(uow.Context, null);
                 var playerId = domikManager.GetPlayerId("testUser_" + Guid.NewGuid());
                 var types = domikManager.GetDomikTypes();
                 var beforeResources = domikManager.GetResources(playerId);
@@ -82,7 +82,7 @@ namespace Domiki.Web.Tests
                 int domikTypeId;
                 using (var uow = GetUow())
                 {
-                    var domikManager = new DomikManager(uow.Context);
+                    var domikManager = new DomikManager(uow.Context, null);
                     playerId = domikManager.GetPlayerId("testUser_" + Guid.NewGuid());
                     uow.Commit();
 
@@ -99,7 +99,7 @@ namespace Domiki.Web.Tests
                     {
                         using (var uow = GetUow())
                         {
-                            var domikManager = new DomikManager(uow.Context);
+                            var domikManager = new DomikManager(uow.Context, null);
                             domikManager.BuyDomik(playerId, domikTypeId);
                             uow.Commit();
                         }
@@ -111,7 +111,7 @@ namespace Domiki.Web.Tests
 
                 using (var uow = GetUow())
                 {
-                    var domikManager = new DomikManager(uow.Context);
+                    var domikManager = new DomikManager(uow.Context, null);
                     var domiks = domikManager.GetDomiks(playerId);
                     var domiksCount = domiks.Count();
                     Assert.That(domiksCount, Is.EqualTo(1), "iterarion number " + i);
@@ -126,7 +126,7 @@ namespace Domiki.Web.Tests
             DomikType buyType;
             using (var uow = GetUow())
             {
-                var domikManager = new DomikManager(uow.Context);
+                var domikManager = new DomikManager(uow.Context, null);
                 playerId = domikManager.GetPlayerId("testUser_" + Guid.NewGuid());
                 var types = domikManager.GetDomikTypes();
                 buyType = types.First();
@@ -136,7 +136,7 @@ namespace Domiki.Web.Tests
 
             using (var uow = GetUow())
             {
-                var domikManager = new DomikManager(uow.Context);
+                var domikManager = new DomikManager(uow.Context, null);
                 var beforeResources = domikManager.GetResources(playerId);
                 domikManager.UpgradeDomik(playerId, 1);
                 uow.Commit();
@@ -170,7 +170,7 @@ namespace Domiki.Web.Tests
                 int domikTypeId;
                 using (var uow = GetUow())
                 {
-                    var domikManager = new DomikManager(uow.Context);
+                    var domikManager = new DomikManager(uow.Context, null);
                     playerId = domikManager.GetPlayerId("testUser_" + Guid.NewGuid());
                     var types = domikManager.GetDomikTypes();
                     var domikType = types.First();
@@ -190,7 +190,7 @@ namespace Domiki.Web.Tests
                     {
                         using (var uow = GetUow())
                         {
-                            var domikManager = new DomikManager(uow.Context);
+                            var domikManager = new DomikManager(uow.Context, null);
                             domikManager.UpgradeDomik(playerId, 1);
                             uow.Commit();
                         }
@@ -203,7 +203,7 @@ namespace Domiki.Web.Tests
 
                 using (var uow = GetUow())
                 {
-                    var domikManager = new DomikManager(uow.Context);
+                    var domikManager = new DomikManager(uow.Context, null);
                     var domiks = domikManager.GetDomiks(playerId);
                     var level = domiks.First().Level;
                     var checkValue = level + errorCount;

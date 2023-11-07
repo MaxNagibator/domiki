@@ -52,7 +52,6 @@ namespace Domiki.Controllers
         public Response<DomikTypeDto[]> GetPurchaseAvaialableDomiks()
         {
             int playerId = GetPlayerId();
-
             var content = _domikManager.GetPurchaseAvailableDomiks(playerId).Select(x => x.ToDto()).ToArray();
             return new Response<DomikTypeDto[]>(content);
         }

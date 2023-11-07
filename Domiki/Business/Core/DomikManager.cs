@@ -5,10 +5,12 @@ namespace Domiki.Web.Business.Core
     public class DomikManager
     {
         private Data.ApplicationDbContext _context;
+        private Calculator _calculator;
 
-        public DomikManager(Data.ApplicationDbContext context)
+        public DomikManager(Data.ApplicationDbContext context, Calculator calculator)
         {
             _context = context;
+            _calculator = calculator;
         }
 
         public void UpgradeDomik(int playerId, int id)
@@ -94,7 +96,16 @@ namespace Domiki.Web.Business.Core
 
                 var currentId = _context.Domiks.Where(x => x.PlayerId == playerId).Max(x => (int?)x.Id) ?? 0;
                 var nextId = currentId + 1;
-                _context.Domiks.Add(new Data.Domik { PlayerId = playerId, TypeId = typeId, Level = 1, Id = nextId });
+                var date = DateTimeHelper.GetNowDate();
+                _context.Domiks.Add(new Data.Domik { PlayerId = playerId, TypeId = typeId, Level = 0, Id = nextId, UpgradeSeconds = domikLevel.UpgradeSeconds, UpgradeCalculateDate = date });
+
+                _calculator.Insert(new CalculateInfo
+                {
+                    PlayerId = playerId,
+                    ObjectId = nextId,
+                    Type = CalculateTypes.Domiks,
+                    Date = date.AddSeconds(domikLevel.UpgradeSeconds),
+                });
             }
             else
             {
@@ -139,6 +150,26 @@ namespace Domiki.Web.Business.Core
                     throw new BusinessException("Недостаточно " + domikNeedResource.Type);
                 }
             }
+        }
+
+        public bool FinishDomik(DateTime date, CalculateInfo calcInfo)
+        {
+            var dbDomik = _context.Domiks.Single(x => x.Id == calcInfo.ObjectId && x.PlayerId == calcInfo.PlayerId);
+            if (dbDomik.UpgradeSeconds != null)
+            {
+                var period = (date - (DateTime)dbDomik.UpgradeCalculateDate).TotalSeconds;
+                var lostTime = dbDomik.UpgradeSeconds - period;
+                if (lostTime <= 0)
+                {
+                    dbDomik.UpgradeCalculateDate = null;
+                    dbDomik.UpgradeSeconds = null;
+                    dbDomik.Level++;
+
+                    return true;
+                }
+                return false;
+            }
+            return true;
         }
     }
 }
