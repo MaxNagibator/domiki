@@ -25,6 +25,7 @@ namespace Domiki.Web.Data
 
             Context.SaveChanges();
             Transaction.Commit();
+            AfterEventAction?.Invoke();
             isCommitted = true;
         }
 
@@ -48,5 +49,7 @@ namespace Domiki.Web.Data
 
             Transaction.Dispose();
         }
+
+        public Action AfterEventAction { get; set; }
     }
 }

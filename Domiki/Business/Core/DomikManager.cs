@@ -6,11 +6,13 @@ namespace Domiki.Web.Business.Core
     {
         private Data.ApplicationDbContext _context;
         private Calculator _calculator;
+        private Data.UnitOfWork _uow;
 
-        public DomikManager(Data.ApplicationDbContext context, Calculator calculator)
+        public DomikManager(Data.UnitOfWork uow, Data.ApplicationDbContext context, Calculator calculator)
         {
             _context = context;
             _calculator = calculator;
+            _uow = uow;
         }
 
         public void UpgradeDomik(int playerId, int id)
@@ -99,13 +101,16 @@ namespace Domiki.Web.Business.Core
                 var date = DateTimeHelper.GetNowDate();
                 _context.Domiks.Add(new Data.Domik { PlayerId = playerId, TypeId = typeId, Level = 0, Id = nextId, UpgradeSeconds = domikLevel.UpgradeSeconds, UpgradeCalculateDate = date });
 
-                _calculator.Insert(new CalculateInfo
+                _uow.AfterEventAction = () =>
                 {
-                    PlayerId = playerId,
-                    ObjectId = nextId,
-                    Type = CalculateTypes.Domiks,
-                    Date = date.AddSeconds(domikLevel.UpgradeSeconds),
-                });
+                    _calculator.Insert(new CalculateInfo
+                    {
+                        PlayerId = playerId,
+                        ObjectId = nextId,
+                        Type = CalculateTypes.Domiks,
+                        Date = date.AddSeconds(domikLevel.UpgradeSeconds),
+                    });
+                };
             }
             else
             {

@@ -24,15 +24,17 @@ namespace Domiki.Web.Business
     public class Calculator
     {
         private IServiceProvider _serviceProvider;
+        private ILogger<Calculator> _logger;
         private List<CalculateInfo> _datas;
         private DateTime? _minDate;
         private System.Timers.Timer t;
         private bool _isInit;
         private int _errorCount = 0;
 
-        public Calculator(IServiceProvider serviceProvider)
+        public Calculator(IServiceProvider serviceProvider, ILogger<Calculator> logger)
         {
             _serviceProvider = serviceProvider;
+            _logger = logger;
         }
 
         public void Insert(CalculateInfo cData)
@@ -41,7 +43,7 @@ namespace Domiki.Web.Business
             {
                 Init();
             }
-            // DbLogsWorker.WriteExecuteMessage(null, "Calculator - add data: " + cData.PlayerId + " - " + cData.ObjectId + " - " + cData.Type, LogsMessageTypes.Calculator);
+            _logger.LogInformation("Calculator - add data: " + cData.PlayerId + " - " + cData.ObjectId + " - " + cData.Type);
             var index = _datas.FindIndex(x => x.Date > cData.Date);
             if (index == -1)
             {
@@ -65,7 +67,7 @@ namespace Domiki.Web.Business
             {
                 return;
             }
-            // DbLogsWorker.WriteExecuteMessage(null, "Calculator - remove data: " + playerId + " - " + objectId + " - " + type, LogsMessageTypes.Calculator);
+            _logger.LogInformation("Calculator - remove data: " + playerId + " - " + objectId + " - " + type);
             _datas.RemoveAt(index);
             if (index == 0)
             {
@@ -84,7 +86,7 @@ namespace Domiki.Web.Business
                 {
                     _minDate = _datas[0].Date;
                 }
-                // DbLogsWorker.WriteExecuteMessage(null, "Calculator - init: count = " + _datas.Count + " , min date = " + _minDate, LogsMessageTypes.Calculator);
+                _logger.LogInformation("Calculator - init: count = " + _datas.Count + " , min date = " + _minDate);
             }
         }
 
@@ -115,53 +117,39 @@ namespace Domiki.Web.Business
                 {
                     t.Stop();
                     var calcDate = _datas[0];
-#if !DEBUG
                     try
                     {
-#endif
-                    var startDate = DateTime.Now;
-                    using (IServiceScope scope = _serviceProvider.CreateScope())
-                    {
-                        CalculatorTick vasv = scope.ServiceProvider.GetRequiredService<CalculatorTick>();
-                        UnitOfWork uow = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                        var result = vasv.Calculate(date, calcDate);
-                        uow.Context.SaveChanges();
-                        uow.Commit();
+                        var startDate = DateTime.Now;
+                        using (IServiceScope scope = _serviceProvider.CreateScope())
+                        {
+                            CalculatorTick vasv = scope.ServiceProvider.GetRequiredService<CalculatorTick>();
+                            UnitOfWork uow = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
+                            var result = vasv.Calculate(date, calcDate);
+                            uow.Context.SaveChanges();
+                            uow.Commit();
 
-
-                    var time = (DateTime.Now - startDate).TotalMilliseconds;
-                 //   DbLogsWorker.WriteExecuteMessage(null, "Calculator - tick success: " + calcDate.PlayerId + " - " + calcDate.ObjectId + " - " + calcDate.Type + " " + time + "ms", LogsMessageTypes.Calculator);
-                    if (result)
-                    {
-                        _datas.Remove(calcDate);
-                        _minDate = _datas.Count > 0 ? (DateTime?)_datas[0].Date : null;
-                    //    DbLogsWorker.WriteExecuteMessage(null, "Calculator - tick remove data: " + calcDate.PlayerId + " - " + calcDate.ObjectId + " - " + calcDate.Type, LogsMessageTypes.Calculator);
-                    }
-                    }
-                    _errorCount = 0;
-#if !DEBUG
+                            var time = (DateTime.Now - startDate).TotalMilliseconds;
+                            _logger.LogInformation("Calculator - tick success: " + calcDate.PlayerId + " - " + calcDate.ObjectId + " - " + calcDate.Type + " " + time + "ms");
+                            if (result)
+                            {
+                                // todo посмотреть дату следующего, и если она наступила, тоже обработать и так далее. так как за одну секунду менее 1000/25=40 событий можно обработать
+                                _datas.Remove(calcDate);
+                                _minDate = _datas.Count > 0 ? (DateTime?)_datas[0].Date : null;
+                                _logger.LogInformation("Calculator - tick remove data: " + calcDate.PlayerId + " - " + calcDate.ObjectId + " - " + calcDate.Type);
+                            }
+                        }
+                        _errorCount = 0;
                     }
                     catch (Exception ex)
                     {
                         _errorCount++;
-                        DbLogsWorker.WriteExecuteMessage(null, "Calculator - tick trable: " + calcDate.PlayerId + " - " + calcDate.ObjectId + " - " + calcDate.Type + " | message: " + ex.Message, LogsMessageTypes.Calculator, stack: ex.StackTrace);
+                        _logger.LogError(ex, "Calculator - tick trable: " + calcDate.PlayerId + " - " + calcDate.ObjectId + " - " + calcDate.Type + " | message: " + ex.Message);
                     }
-#endif
 
                     if (_errorCount < 10)
                     {
                         t.Start();
                     }
-
-                }
-                else if ((date - LastOrderDate).TotalSeconds > 3600)
-                {
-                    //todo это костыль, так как были траблы с очередью, но я вроде уже нашёл косяк, но псть пока побудет
-                    var prevMinDate = _minDate;
-                    _datas = _datas.OrderBy(x => x.Date).ToList();
-                    _minDate = _datas.Count > 0 ? (DateTime?)_datas[0].Date : null;
-                   // DbLogsWorker.WriteExecuteMessage(null, "Calculator - order datas: count = " + _datas.Count + " prevMinDate = " + prevMinDate + " mindate = " + _minDate, LogsMessageTypes.Calculator);
-                    LastOrderDate = date;
                 }
             }
         }
@@ -169,26 +157,27 @@ namespace Domiki.Web.Business
 
         public List<CalculateInfo> GetCalculateDates()
         {
-           return new List<CalculateInfo>();
-            //using (var context = new Data.MinerContext())
-            //{
-            //    var dates = new List<CalculateInfo>();
-            //    var dbPlayerBuildings = context.PlayerBuilding.Where(s => s.UpgradeSeconds != null).ToList();
-            //    foreach (var dbStorage in dbPlayerBuildings)
-            //    {
-            //        var compliteDate = ((DateTime)dbStorage.UpgradeCalculateDate).AddSeconds((double)dbStorage.UpgradeSeconds);
-            //        dates.Add(new CalculateInfo
-            //        {
-            //            PlayerId = dbStorage.PlayerId,
-            //            ObjectId = dbStorage.Id,
-            //            Date = compliteDate,
-            //            Type = CalculateTypes.Building,
-            //        });
-            //    }
+            using (IServiceScope scope = _serviceProvider.CreateScope())
+            {
+                CalculatorTick vasv = scope.ServiceProvider.GetRequiredService<CalculatorTick>();
+                UnitOfWork uow = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
+                var dates = new List<CalculateInfo>();
+                var dbDomiks = uow.Context.Domiks.Where(s => s.UpgradeSeconds != null).ToList();
+                foreach (var dbStorage in dbDomiks)
+                {
+                    var compliteDate = ((DateTime)dbStorage.UpgradeCalculateDate).AddSeconds((double)dbStorage.UpgradeSeconds);
+                    dates.Add(new CalculateInfo
+                    {
+                        PlayerId = dbStorage.PlayerId,
+                        ObjectId = dbStorage.Id,
+                        Date = compliteDate,
+                        Type = CalculateTypes.Domiks,
+                    });
+                }
 
-            //    dates = dates.OrderBy(x => x.Date).ToList();
-            //    return dates;
-            //}
+                dates = dates.OrderBy(x => x.Date).ToList();
+                return dates;
+            }
         }
     }
 }
