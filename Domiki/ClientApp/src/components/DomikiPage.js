@@ -116,6 +116,7 @@ export const DomikiPage = () => {
                             <div key={index} className="domik-box">
                                 <img src={image} alt={domikType.name} />
                                 <label className="domik-level">{domik.level}</label>
+                                <label>{domik.finishDate}</label>
                                 {domik.level < domikType.maxLevel &&
                                     <button onClick={() => upgrade(domik.id)}>улучшить</button>
                                 }

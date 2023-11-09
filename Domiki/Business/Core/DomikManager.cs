@@ -77,6 +77,7 @@ namespace Domiki.Web.Business.Core
                     Id = x.Id,
                     Type = StaticEntities.DomikTypes.First(y => y.Id == x.TypeId),
                     Level = x.Level,
+                    FinishDate = x.UpgradeSeconds == null ? null : (x.UpgradeCalculateDate.Value.AddSeconds((int)x.UpgradeSeconds))
                 }).ToList();
         }
 
