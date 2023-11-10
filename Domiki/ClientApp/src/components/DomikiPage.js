@@ -1,6 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import authService from './api-authorization/AuthorizeService'
 import { ResourcesBox } from './ResourcesBox';
+import { UpgradeBox } from './UpgradeBox';
 
 export const DomikiPage = () => {
     const [domiks, setDomiks] = useState([]);
@@ -81,7 +82,7 @@ export const DomikiPage = () => {
         fetch('https://localhost:7146/' + url, requestOptions)
             .then((res) => res.json())
             .then((data) => {
-                if (data.Type === 2) {
+                if (data.type === 2) {
                     alert(data.content);
                 } else {
                     succesAction(data.content);
@@ -115,10 +116,13 @@ export const DomikiPage = () => {
                         return (
                             <div key={index} className="domik-box">
                                 <img src={image} alt={domikType.name} />
-                                <label className="domik-level">{domik.level}</label>
-                                <label>{domik.finishDate}</label>
+                                <div className="break" />
+                                <UpgradeBox finishDate={domik.finishDate} level={domik.level} />
+                                <div className="break" />
                                 {domik.level < domikType.maxLevel &&
                                     <button onClick={() => upgrade(domik.id)}>улучшить</button>
+                                    /* todo после улучшения не показывается время, нужно жмакать Ф5 */
+                                    /* todo если домик улучшается, то прятать кнопочку */
                                 }
                             </div>
                         );

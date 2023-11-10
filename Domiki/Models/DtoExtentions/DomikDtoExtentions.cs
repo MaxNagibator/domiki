@@ -11,7 +11,8 @@ namespace Domiki.Web.Models
                 Id = domik.Id,
                 Level = domik.Level,
                 TypeId = domik.Type.Id,
-                FinishDate = domik.FinishDate
+// todo вынести в нормальный хэлпер или в БД с часовым поясом хранить, или ещё чего
+                FinishDate = domik.FinishDate == null ? null : DateTime.SpecifyKind(domik.FinishDate.Value, DateTimeKind.Utc)
             };
         }
     }

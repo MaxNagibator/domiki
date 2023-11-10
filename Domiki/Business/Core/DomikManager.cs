@@ -15,25 +15,6 @@ namespace Domiki.Web.Business.Core
             _uow = uow;
         }
 
-        public void UpgradeDomik(int playerId, int id)
-        {
-            // todo перечитать и попробовать повтоно выполнить. обработка оптимистика
-            // todo прорекламить дискорд
-            LockDbPlayerRow(playerId);
-
-            var dbDomik = _context.Domiks.First(x => x.PlayerId == playerId && x.Id == id);
-            var domikType = GetDomikTypes().First(x => x.Id == dbDomik.TypeId);
-            if (dbDomik.Level >= domikType.MaxLevel)
-            {
-                throw new BusinessException("Максимальный уровень");
-            }
-
-            var nextLevel = dbDomik.Level + 1;
-            var domikLevel = domikType.Levels.First(x => x.Value == nextLevel);
-            WriteOffResources(playerId, domikLevel.Resources);
-            dbDomik.Level = nextLevel;
-        }
-
         public int GetPlayerId(string aspNetUserId)
         {
             var dbPlayer = _context.Players.FirstOrDefault(x => x.AspNetUserId == aspNetUserId);
@@ -117,6 +98,43 @@ namespace Domiki.Web.Business.Core
             {
                 throw new BusinessException("Превышено максимальное количество");
             }
+        }
+
+        public void UpgradeDomik(int playerId, int id)
+        {
+            var date = DateTimeHelper.GetNowDate();
+
+            // todo перечитать и попробовать повтоно выполнить. обработка оптимистика
+            LockDbPlayerRow(playerId);
+
+            var dbDomik = _context.Domiks.First(x => x.PlayerId == playerId && x.Id == id);
+            var domikType = GetDomikTypes().First(x => x.Id == dbDomik.TypeId);
+            if (dbDomik.Level >= domikType.MaxLevel)
+            {
+                throw new BusinessException("Максимальный уровень");
+            }
+            if (dbDomik.UpgradeSeconds != null)
+            {
+                throw new BusinessException("Домик уже улучшается");
+            }
+
+            var nextLevel = dbDomik.Level + 1;
+            var domikLevel = domikType.Levels.First(x => x.Value == nextLevel);
+            WriteOffResources(playerId, domikLevel.Resources);
+            dbDomik.Level = nextLevel;
+            dbDomik.UpgradeSeconds = domikLevel.UpgradeSeconds;
+            dbDomik.UpgradeCalculateDate = date;
+
+            _uow.AfterEventAction = () =>
+            {
+                _calculator.Insert(new CalculateInfo
+                {
+                    PlayerId = playerId,
+                    ObjectId = dbDomik.Id,
+                    Type = CalculateTypes.Domiks,
+                    Date = date.AddSeconds(domikLevel.UpgradeSeconds),
+                });
+            };
         }
 
         public IEnumerable<Resource> GetResources(int playerId)
