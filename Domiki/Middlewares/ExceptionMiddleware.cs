@@ -1,6 +1,7 @@
 ﻿using Domiki.Web.Business.Core;
 using Domiki.Web.Data;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace Domiki.Web
 {
@@ -22,7 +23,9 @@ namespace Domiki.Web
             }
             catch (BusinessException ex)
             {
-                var jsonString = JsonConvert.SerializeObject(new Response<string>(ex.Message) { Type = ResponseType.ErrorMessage });
+                var jsonString = JsonConvert.SerializeObject(
+                    new Response<string>(ex.Message) { Type = ResponseType.ErrorMessage }, 
+                    new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() });
                 await httpContext.Response.WriteAsync(jsonString);
             }
         }
