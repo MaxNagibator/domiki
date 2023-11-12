@@ -4,7 +4,8 @@ import { ResourcesBox } from './ResourcesBox';
 import { UpgradeBox } from './UpgradeBox';
 
 export const DomikiPage = () => {
-    const [domiks, setDomiks] = useState([]);
+/*    const [hint, setHint] = useState(1);*/
+    const [domiks, setDomiks] = useState({});
     const [domikTypes, setDomikTypes] = useState([]);
     const [resources, setResources] = useState([]);
     const [resourceTypes, setResourceTypes] = useState([]);
@@ -26,11 +27,93 @@ export const DomikiPage = () => {
         }
 
         myFunc();
+
     }, []);
+
+
+    useEffect(() => {
+        const interval = setInterval(function () {
+            var result = IntervalTick(domiks.items);
+            if (result) {
+                setDomiks({ items: domiks.items });
+            }
+        }, 1000);
+
+        return () => {
+            if (interval != null) {
+                clearInterval(interval);
+            }
+        };
+
+    }, [domiks]);
+
+    async function IntervalTick(domikItems) {
+        console.log(domiks);
+        if (domikItems != null) {
+            domikItems.forEach(function (domik) {
+                if (domik.finishDate != null) {
+                    let date = new Date();
+                    let seconds = (new Date(domik.finishDate).getTime() - date.getTime()) / 1000;
+                    let time = getTimeFromSecond(seconds);
+                    domik.upgradeSeconds = time;
+                    if (seconds < 0) {
+                        getDomiks();
+                        return false;
+                    }
+                }
+            })
+        }
+        return true;
+    }
+
+    function getTimeFromSecond(totalSeconds) {
+        totalSeconds = Math.round(totalSeconds, 0);
+        var seconds = totalSeconds % 60;
+        var minuts = parseInt(totalSeconds / 60);
+        var hours = 0;
+        var days = 0;
+        if (minuts > 0) {
+            hours = parseInt(minuts / 60);
+            minuts = minuts % 60;
+        }
+        if (hours > 0) {
+            days = parseInt(hours / 24);
+            hours = hours % 24;
+        }
+        var showInfo = "";
+        if (days > 0) {
+            if (days < 10) {
+                days = '0' + days;
+            }
+            showInfo += days + "д ";
+        }
+        if (hours > 0 || days > 0) {
+            if (hours < 10) {
+                hours = '0' + hours;
+            }
+            showInfo += hours + "ч ";
+        }
+        if (minuts > 0 || days > 0 || hours > 0) {
+            if (minuts < 10) {
+                minuts = '0' + minuts;
+            }
+            showInfo += minuts + "м ";
+        }
+        if (days === 0) {
+            if (seconds < 10) {
+                seconds = '0' + seconds;
+            }
+            showInfo += seconds + "с ";
+        }
+        return showInfo;
+
+    }
+
 
     async function getDomiks() {
         sendRequest('GET', 'Domiki/GetDomiks', function (data) {
-            setDomiks(data);
+            IntervalTick(data)
+            setDomiks({ items: data });
         });
     }
 
@@ -96,6 +179,7 @@ export const DomikiPage = () => {
     return (
         <div className="App">
             <div className="resources">
+              {/*  {hint}*/}
                 {resourceTypes != null && resourceTypes.length > 0 &&
                     resources.map((resource, index) => {
                         let resourceType = resourceTypes.filter(x => x.id === resource.typeId)[0];
@@ -109,15 +193,15 @@ export const DomikiPage = () => {
                     })
                 }</div>
             <div className="domiks">
-                {domikTypes != null && domikTypes.length > 0 &&
-                    domiks.map((domik, index) => {
+                {domikTypes != null && domikTypes.length > 0 && domiks.items != null &&
+                    domiks.items.map((domik, index) => {
                         let domikType = domikTypes.filter(x => x.id === domik.typeId)[0];
                         let image = "/images/domikTypes/" + domikType.logicName + ".png";
                         return (
                             <div key={index} className="domik-box">
                                 <img src={image} alt={domikType.name} />
                                 <div className="break" />
-                                <UpgradeBox finishDate={domik.finishDate} level={domik.level} />
+                                <UpgradeBox upgradeSeconds={domik.upgradeSeconds} level={domik.level} />
                                 <div className="break" />
                                 {domik.level < domikType.maxLevel &&
                                     <button onClick={() => upgrade(domik.id)}>улучшить</button>
