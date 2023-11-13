@@ -47,8 +47,7 @@ export const DomikiPage = () => {
 
     }, [domiks]);
 
-    async function IntervalTick(domikItems) {
-        console.log(domiks);
+    function IntervalTick(domikItems) {
         if (domikItems != null) {
             domikItems.forEach(function (domik) {
                 if (domik.finishDate != null) {
@@ -56,7 +55,7 @@ export const DomikiPage = () => {
                     let seconds = (new Date(domik.finishDate).getTime() - date.getTime()) / 1000;
                     let time = getTimeFromSecond(seconds);
                     domik.upgradeSeconds = time;
-                    if (seconds < 0) {
+                    if (seconds <= 0) {
                         getDomiks();
                         return false;
                     }

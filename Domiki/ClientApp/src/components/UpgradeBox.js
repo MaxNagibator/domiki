@@ -1,7 +1,6 @@
 ﻿import React from 'react';
 
 export const UpgradeBox = ({ upgradeSeconds, level }) => {
-    console.log(upgradeSeconds);
     let levelText = upgradeSeconds == null ? level : level + " -> " + (level * 1 + 1);
 
     return (
