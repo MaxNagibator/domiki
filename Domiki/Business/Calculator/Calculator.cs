@@ -4,24 +4,7 @@ using System.Timers;
 
 namespace Domiki.Web.Business
 {
-    public class CalculateInfo
-    {
-        public int PlayerId { get; set; }
-        public int ObjectId { get; set; }
-
-        /// <summary>
-        /// дата когда событие должно выполнится
-        /// </summary>
-        public DateTime Date { get; set; }
-        public CalculateTypes Type { get; set; }
-    }
-
-    public enum CalculateTypes
-    {
-        Domiks = 1,
-    }
-
-    public class Calculator
+    public class Calculator : ICalculator
     {
         private IServiceProvider _serviceProvider;
         private ILogger<Calculator> _logger;
@@ -93,7 +76,6 @@ namespace Domiki.Web.Business
         private void Init()
         {
             _datas = GetCalculateDates();
-            LastOrderDate = DateTime.Now;
 
             var th = new Thread(Execute);
             th.Start();
@@ -106,7 +88,6 @@ namespace Domiki.Web.Business
             t.Elapsed += Tick;
             t.Start();
         }
-        private DateTime LastOrderDate;
 
         private void Tick(object sender, ElapsedEventArgs e)
         {
@@ -122,9 +103,9 @@ namespace Domiki.Web.Business
                         var startDate = DateTime.Now;
                         using (IServiceScope scope = _serviceProvider.CreateScope())
                         {
-                            CalculatorTick vasv = scope.ServiceProvider.GetRequiredService<CalculatorTick>();
+                            CalculatorTick calculatorTick = scope.ServiceProvider.GetRequiredService<CalculatorTick>();
                             UnitOfWork uow = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                            var result = vasv.Calculate(date, calcDate);
+                            var result = calculatorTick.Calculate(date, calcDate);
                             uow.Context.SaveChanges();
                             uow.Commit();
 
@@ -155,7 +136,7 @@ namespace Domiki.Web.Business
         }
 
 
-        public List<CalculateInfo> GetCalculateDates()
+        private List<CalculateInfo> GetCalculateDates()
         {
             using (IServiceScope scope = _serviceProvider.CreateScope())
             {

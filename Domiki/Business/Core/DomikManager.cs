@@ -5,10 +5,10 @@ namespace Domiki.Web.Business.Core
     public class DomikManager
     {
         private Data.ApplicationDbContext _context;
-        private Calculator _calculator;
+        private ICalculator _calculator;
         private Data.UnitOfWork _uow;
 
-        public DomikManager(Data.UnitOfWork uow, Data.ApplicationDbContext context, Calculator calculator)
+        public DomikManager(Data.UnitOfWork uow, Data.ApplicationDbContext context, ICalculator calculator)
         {
             _context = context;
             _calculator = calculator;

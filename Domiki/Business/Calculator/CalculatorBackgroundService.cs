@@ -6,9 +6,9 @@ namespace Domiki.Web.Business
     public class CalculatorBackgroundService : BackgroundService
     {
         private IServiceProvider _serviceProvider;
-        private Calculator _calculator;
+        private ICalculator _calculator;
 
-        public CalculatorBackgroundService(IServiceProvider serviceProvider, Calculator calculator)
+        public CalculatorBackgroundService(IServiceProvider serviceProvider, ICalculator calculator)
         {
             _serviceProvider = serviceProvider;
             _calculator = calculator;

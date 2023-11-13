@@ -1,4 +1,6 @@
-﻿using Domiki.Web.Data;
+﻿using Domiki.Web.Business;
+using Domiki.Web.Business.Core;
+using Domiki.Web.Data;
 using Duende.IdentityServer.EntityFramework.Options;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,6 +25,18 @@ namespace Domiki.Web.Tests
             var context = new ApplicationDbContext(optionsBuilder.Options, new MyOperationalStoreOptions());
             var uow = new UnitOfWork(context);
             return uow;
+        }
+
+        public DomikManager GetDomikManager(UnitOfWork uow)
+        {
+            var domikManager = new DomikManager(uow, uow.Context, GetCalculator());
+            return domikManager;
+        }
+
+        private ICalculator GetCalculator()
+        {
+            var uow = GetUow();
+            return new TestCalculator(() => uow, () => { return new CalculatorTick(GetDomikManager(uow)); });
         }
 
         public static IConfiguration InitConfiguration()
