@@ -35,8 +35,7 @@ namespace Domiki.Web.Tests
 
         private ICalculator GetCalculator()
         {
-            var uow = GetUow();
-            return new TestCalculator(() => uow, () => { return new CalculatorTick(GetDomikManager(uow)); });
+            return new TestCalculator(() => GetUow(), (UnitOfWork uow) => { return new CalculatorTick(GetDomikManager(uow)); });
         }
 
         public static IConfiguration InitConfiguration()

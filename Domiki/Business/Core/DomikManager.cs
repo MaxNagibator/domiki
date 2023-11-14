@@ -121,7 +121,6 @@ namespace Domiki.Web.Business.Core
             var nextLevel = dbDomik.Level + 1;
             var domikLevel = domikType.Levels.First(x => x.Value == nextLevel);
             WriteOffResources(playerId, domikLevel.Resources);
-            dbDomik.Level = nextLevel;
             dbDomik.UpgradeSeconds = domikLevel.UpgradeSeconds;
             dbDomik.UpgradeCalculateDate = date;
 

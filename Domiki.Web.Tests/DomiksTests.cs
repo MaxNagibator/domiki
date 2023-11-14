@@ -143,14 +143,18 @@ namespace Domiki.Web.Tests
                 domikManager.BuyDomik(playerId, buyType.Id);
                 uow.Commit();
             }
+            IEnumerable<Business.Models.Resource> beforeResources;
+            using (var uow = GetUow())
+            {
+                var domikManager = GetDomikManager(uow);
+                beforeResources = domikManager.GetResources(playerId);
+                domikManager.UpgradeDomik(playerId, 1);
+                uow.Commit();
+            }
 
             using (var uow = GetUow())
             {
                 var domikManager = GetDomikManager(uow);
-                var beforeResources = domikManager.GetResources(playerId);
-                domikManager.UpgradeDomik(playerId, 1);
-                uow.Commit();
-
                 var domiks = domikManager.GetDomiks(playerId);
                 var level = domiks.First().Level;
                 Assert.That(level, Is.EqualTo(2));

@@ -7,9 +7,9 @@ namespace Domiki.Web.Tests
     public class TestCalculator : ICalculator
     {
         private Func<UnitOfWork> _uowFactory;
-        private Func<CalculatorTick> _calculatorTickFactory;
+        private Func<UnitOfWork, CalculatorTick> _calculatorTickFactory;
 
-        public TestCalculator(Func<UnitOfWork> uowFactory, Func<CalculatorTick> calculatorTickFactory)
+        public TestCalculator(Func<UnitOfWork> uowFactory, Func<UnitOfWork, CalculatorTick> calculatorTickFactory)
         {
             _uowFactory = uowFactory;
             _calculatorTickFactory = calculatorTickFactory;
@@ -17,11 +17,13 @@ namespace Domiki.Web.Tests
 
         public void Insert(CalculateInfo calcDate)
         {
-            CalculatorTick calculatorTick = _calculatorTickFactory();
-            UnitOfWork uow = _uowFactory();
-            calculatorTick.Calculate(DateTime.Now.AddYears(217), calcDate);
-            uow.Context.SaveChanges();
-            uow.Commit();
+            using (var uow = _uowFactory())
+            {
+                CalculatorTick calculatorTick = _calculatorTickFactory(uow);
+                calculatorTick.Calculate(DateTime.Now.AddYears(217), calcDate);
+                uow.Context.SaveChanges();
+                uow.Commit();
+            }
         }
 
         public void Remove(int playerId, long objectId, CalculateTypes type)
