@@ -14,6 +14,13 @@ namespace Domiki.Web.Business
         public static Dictionary<int, ResourceType> ResourceTypesDict = ResourceTypes.ToDictionary(x => x.Id, x => x);
 
 
+        public static List<ModificatorType> ModificatorTypes = new List<ModificatorType>
+            {
+                new ModificatorType { Id = 1, Name = "Работяга", LogicName = "plodder" },
+            };
+
+        public static Dictionary<int, ModificatorType> ModificatorTypesDict = ModificatorTypes.ToDictionary(x => x.Id, x => x);
+
         public static List<DomikType> DomikTypes = new List<DomikType>
             {
                 new DomikType { Id = 1, Name = "Кузница", LogicName = "forge", MaxCount = 1,
@@ -26,6 +33,10 @@ namespace Domiki.Web.Business
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[1], Value = 1 }
+                            },
+                            Modificators = new Modificator[]
+                            {
+                                new Modificator {Type = ModificatorTypesDict[1], Value = 1 }
                             }
                         },
                         new UpgradeLevel
@@ -35,6 +46,10 @@ namespace Domiki.Web.Business
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[1], Value = 2 }
+                            },
+                            Modificators = new Modificator[]
+                            {
+                                new Modificator {Type = ModificatorTypesDict[1], Value=2 }
                             }
                         },
                         new UpgradeLevel
@@ -44,6 +59,10 @@ namespace Domiki.Web.Business
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[1], Value = 4 }
+                            },
+                            Modificators = new Modificator[]
+                            {
+                                new Modificator {Type = ModificatorTypesDict[1], Value=3 }
                             }
                         },
                         new UpgradeLevel
@@ -53,6 +72,10 @@ namespace Domiki.Web.Business
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[1], Value = 8 }
+                            },
+                            Modificators = new Modificator[]
+                            {
+                                new Modificator {Type = ModificatorTypesDict[1], Value=4 }
                             }
                         },
                         new UpgradeLevel
@@ -62,6 +85,10 @@ namespace Domiki.Web.Business
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[1], Value = 16 }
+                            },
+                            Modificators = new Modificator[]
+                            {
+                                new Modificator {Type = ModificatorTypesDict[1], Value=5 }
                             }
                         },
                     } },
@@ -75,7 +102,8 @@ namespace Domiki.Web.Business
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[3], Value = 1 }
-                            }
+                            },
+                            Modificators = new Modificator[0],
                         },
                         new UpgradeLevel
                         {
@@ -84,7 +112,8 @@ namespace Domiki.Web.Business
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[3], Value = 2 }
-                            }
+                            },
+                            Modificators = new Modificator[0],
                         },
                     } },
                 new DomikType { Id = 3,
@@ -100,7 +129,8 @@ namespace Domiki.Web.Business
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[2], Value = 1 }
-                            }
+                            },
+                            Modificators = new Modificator[0],
                         },
                         new UpgradeLevel
                         {
@@ -109,7 +139,8 @@ namespace Domiki.Web.Business
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[2], Value = 2 }
-                            }
+                            },
+                            Modificators = new Modificator[0],
                         },
                         new UpgradeLevel
                         {
@@ -118,7 +149,8 @@ namespace Domiki.Web.Business
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[2], Value = 4 }
-                            }
+                            },
+                            Modificators = new Modificator[0],
                         },
                         new UpgradeLevel
                         {
@@ -127,11 +159,17 @@ namespace Domiki.Web.Business
                             Resources = new Resource[]
                             {
                                 new Resource { Type = ResourceTypesDict[2], Value = 5 }
-                            }
+                            },
+                            Modificators = new Modificator[0],
                         },
                     }
                 },
-                new DomikType { Id = 4, Name = "Золотой рудник", LogicName = "gold_mine", MaxCount = 2,
+                new DomikType
+                {
+                    Id = 4,
+                    Name = "Золотой рудник",
+                    LogicName = "gold_mine",
+                    MaxCount = 2,
                     Levels = new UpgradeLevel[]
                     {
                         new UpgradeLevel
@@ -142,7 +180,8 @@ namespace Domiki.Web.Business
                             {
                                 new Resource { Type = ResourceTypesDict[1], Value = 1 },
                                 new Resource { Type = ResourceTypesDict[2], Value = 1 },
-                            }
+                            },
+                            Modificators = new Modificator[0],
                         },
                         new UpgradeLevel
                         {
@@ -152,9 +191,75 @@ namespace Domiki.Web.Business
                             {
                                 new Resource { Type = ResourceTypesDict[1], Value = 2 },
                                 new Resource { Type = ResourceTypesDict[2], Value = 2 },
-                            }
+                            },
+                            Modificators = new Modificator[0],
                         },
-                    } },
+                    }
+                },
+                new DomikType
+                {
+                    Id = 5,
+                    Name = "Глиняный карьер",
+                    LogicName = "clay_mine",
+                    MaxCount = 2,
+                    Levels = new UpgradeLevel[]
+                    {
+                        new UpgradeLevel
+                        {
+                            Value = 1,
+                            UpgradeSeconds = 3000,
+                            Resources = new Resource[]
+                            {
+                                new Resource { Type = ResourceTypesDict[1], Value = 1 },
+                                new Resource { Type = ResourceTypesDict[2], Value = 1 },
+                            },
+                            Modificators = new Modificator[0],
+                        },
+                        new UpgradeLevel
+                        {
+                            Value = 2,
+                            UpgradeSeconds = 3000,
+                            Resources = new Resource[]
+                            {
+                                new Resource { Type = ResourceTypesDict[1], Value = 2 },
+                                new Resource { Type = ResourceTypesDict[2], Value = 2 },
+                            },
+                            Modificators = new Modificator[0],
+                        },
+                    }
+                },
+                new DomikType
+                {
+                    Id = 6,
+                    Name = "Лесопилка",
+                    LogicName = "lumber_mill",
+                    MaxCount = 2,
+                    Levels = new UpgradeLevel[]
+                    {
+                        new UpgradeLevel
+                        {
+                            Value = 1,
+                            UpgradeSeconds = 3000,
+                            Resources = new Resource[]
+                            {
+                                new Resource { Type = ResourceTypesDict[1], Value = 1 },
+                                new Resource { Type = ResourceTypesDict[2], Value = 1 },
+                            },
+                            Modificators = new Modificator[0],
+                        },
+                        new UpgradeLevel
+                        {
+                            Value = 2,
+                            UpgradeSeconds = 3000,
+                            Resources = new Resource[]
+                            {
+                                new Resource { Type = ResourceTypesDict[1], Value = 2 },
+                                new Resource { Type = ResourceTypesDict[2], Value = 2 },
+                            },
+                            Modificators = new Modificator[0],
+                        },
+                    }
+                },
             };
     }
 }

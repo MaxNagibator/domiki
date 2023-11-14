@@ -10,6 +10,7 @@ namespace Domiki.Web.Models
             { 
                 Value = t.Value,
                 Resources = t.Resources.Select(x=>x.ToDto()).ToArray(),
+                Modificators = t.Modificators.Select(x => x.ToDto()).ToArray(),
             };
         }
     }

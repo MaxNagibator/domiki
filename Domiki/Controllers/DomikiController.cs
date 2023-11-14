@@ -29,6 +29,14 @@ namespace Domiki.Controllers
         }
 
         [HttpGet]
+        [Route("/Domiki/GetModificatorTypes")] // todo объеденить системные методы в один GetData, где возвращать системную инфу о домиках ресурсах и прочем
+        public Response<ModificatorTypeDto[]> GetModificatorTypes()
+        {
+            var content = _domikManager.GetModificatorTypes().Select(x => x.ToDto()).ToArray();
+            return new Response<ModificatorTypeDto[]>(content);
+        }
+
+        [HttpGet]
         [Route("/Domiki/GetDomiks")]
         public Response<DomikDto[]> GetDomiks()
         {

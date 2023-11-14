@@ -16,5 +16,10 @@
         /// Сколько нужно ресурсов для перехода на этот уровень.
         /// </summary>
         public Resource[] Resources { get; set; }
+
+        /// <summary>
+        /// Что нам даёт данная постройка.
+        /// </summary>
+        public Modificator[] Modificators { get; set; }
     }
 }

@@ -11,5 +11,10 @@
         /// Сколько нужно ресурсов для перехода на этот уровень.
         /// </summary>
         public ResourceDto[] Resources { get; set; }
+
+        /// <summary>
+        /// Что нам даёт этот уровень.
+        /// </summary>
+        public ModificatorDto[] Modificators { get; set; }
     }
 }

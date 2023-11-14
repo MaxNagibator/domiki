@@ -4,13 +4,14 @@ import { ResourcesBox } from './ResourcesBox';
 import { UpgradeBox } from './UpgradeBox';
 
 export const DomikiPage = () => {
-/*    const [hint, setHint] = useState(1);*/
     const [domiks, setDomiks] = useState({});
     const [domikTypes, setDomikTypes] = useState([]);
     const [resources, setResources] = useState([]);
     const [resourceTypes, setResourceTypes] = useState([]);
     const [purchaseDomikTypes, setPurchaseDomikTypes] = useState([]);
     const [purchaseDomikTypesVisible, setPurchaseDomikTypesVisible] = useState([]);
+    const [modificatorTypes, setModificatorTypes] = useState([]);
+    const [plodderCount, setPlodderCount] = useState(null);
 
     useEffect(() => {
         setPurchaseDomikTypes(null);
@@ -21,6 +22,9 @@ export const DomikiPage = () => {
             });
             sendRequest('GET', 'Domiki/GetResourceTypes', function (data) {
                 setResourceTypes(data);
+            });
+            sendRequest('GET', 'Domiki/GetModificatorTypes', function (data) {
+                setModificatorTypes(data);
             });
             getDomiks();
             getResources();
@@ -113,6 +117,23 @@ export const DomikiPage = () => {
         sendRequest('GET', 'Domiki/GetDomiks', function (data) {
             IntervalTick(data)
             setDomiks({ items: data });
+
+            let plodderCount = 0;
+            // todo а если типов домиков ещё не получили, то сосём бибу
+            if (domikTypes != null && domikTypes.length > 0 && data != null) {
+                data.forEach(function (domik) {
+                    let domikType = domikTypes.filter(x => x.id === domik.typeId)[0];
+                    if (domik.level > 0) {
+                        let domiklevel = domikType.levels.filter(x => x.value === domik.level)[0];
+                        let plodderTypeId = 1;
+                        let modificators = domiklevel.modificators.filter(x => x.typeId === plodderTypeId);
+                        if (modificators.length > 0) {
+                            plodderCount += modificators[0].value;
+                        }
+                    }
+                });
+            }
+            setPlodderCount(plodderCount);
         });
     }
 
@@ -177,8 +198,15 @@ export const DomikiPage = () => {
 
     return (
         <div className="App">
+            <div>
+                {plodderCount != null &&
+                    <div>
+                        <img src="/images/modificatorTypes/plodder.png" alt="Трудяги"></img>
+                        <label>{plodderCount}</label>
+                    </div>
+                }
+            </div>
             <div className="resources">
-              {/*  {hint}*/}
                 {resourceTypes != null && resourceTypes.length > 0 &&
                     resources.map((resource, index) => {
                         let resourceType = resourceTypes.filter(x => x.id === resource.typeId)[0];

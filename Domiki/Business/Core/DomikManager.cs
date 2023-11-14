@@ -67,6 +67,11 @@ namespace Domiki.Web.Business.Core
             return StaticEntities.DomikTypes;
         }
 
+        public IEnumerable<ModificatorType> GetModificatorTypes()
+        {
+            return StaticEntities.ModificatorTypes;
+        }
+
         public void BuyDomik(int playerId, int typeId)
         {
             // todo покупать домики за ресурсики
