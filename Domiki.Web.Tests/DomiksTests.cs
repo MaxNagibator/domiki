@@ -154,6 +154,23 @@ namespace Domiki.Web.Tests
             }
         }
 
+        /// <summary>
+        /// Добудем ресурс.
+        /// </summary>
+        [Test]
+        public void ManufactureTest()
+        {
+            var playerId = GetPlayerId();
+            var types = GetDomikTypes();
+            var buyType = types.First();
+            BuyDomik(playerId, buyType.Id);
+            var resourceTypeId = 1;
+            var beforeResourceValue = GetResources(playerId).First(x => x.Type.Id == resourceTypeId).Value;
+            StartManufacture(playerId, 1, resourceTypeId);
+            var afterResourceValue = GetResources(playerId).First(x => x.Type.Id == resourceTypeId).Value;
+            Assert.That(afterResourceValue, Is.EqualTo(beforeResourceValue + 1));
+        }
+
         private int GetPlayerId()
         {
             using (var uow = GetUow())
@@ -211,6 +228,15 @@ namespace Domiki.Web.Tests
             {
                 var domikManager = GetDomikManager(uow);
                 domikManager.BuyDomik(playerId, domikTypeId);
+                uow.Commit();
+            }
+        }
+        private void StartManufacture(int playerId, int domikId, int resourceTypeId)
+        {
+            using (var uow = GetUow())
+            {
+                var domikManager = GetDomikManager(uow);
+                domikManager.StartManufacture(playerId, domikId, resourceTypeId);
                 uow.Commit();
             }
         }

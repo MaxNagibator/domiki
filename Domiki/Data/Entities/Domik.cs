@@ -21,5 +21,7 @@ namespace Domiki.Web.Data
         public double? UpgradeSeconds { get; set; }
 
         public DateTime? UpgradeCalculateDate { get; set; }
+
+        public ICollection<Manufacture> Manufactures { get; set; }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Domiki.Web.Business.Core;
 using Domiki.Web.Data;
+using Microsoft.EntityFrameworkCore;
 using System.Timers;
 
 namespace Domiki.Web.Business
@@ -153,6 +154,18 @@ namespace Domiki.Web.Business
                         ObjectId = dbStorage.Id,
                         Date = compliteDate,
                         Type = CalculateTypes.Domiks,
+                    });
+                }
+
+                var dbManufactures = uow.Context.Manufactures.Include(x => x.Domik).ToList();
+                foreach (var dbManufacture in dbManufactures)
+                {
+                    dates.Add(new CalculateInfo
+                    {
+                        PlayerId = dbManufacture.Domik.PlayerId,
+                        ObjectId = dbManufacture.Id,
+                        Date = dbManufacture.FinishDate,
+                        Type = CalculateTypes.Manufacture,
                     });
                 }
 

@@ -3,5 +3,6 @@
     public enum CalculateTypes
     {
         Domiks = 1,
+        Manufacture = 2,
     }
 }

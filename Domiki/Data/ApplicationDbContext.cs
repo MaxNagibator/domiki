@@ -3,6 +3,7 @@ using Duende.IdentityServer.EntityFramework.Options;
 using Microsoft.AspNetCore.ApiAuthorization.IdentityServer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domiki.Web.Data
 {
@@ -15,6 +16,7 @@ namespace Domiki.Web.Data
         }
 
         public DbSet<Domik> Domiks { get; set; }
+        public DbSet<Manufacture> Manufactures { get; set; }
         public DbSet<Player> Players { get; set; }
         public DbSet<Resource> Resources { get; set; }
 
@@ -47,6 +49,14 @@ namespace Domiki.Web.Data
 
             modelBuilder.Entity<Resource>()
                 .Navigation(e => e.Player)
+                .UsePropertyAccessMode(PropertyAccessMode.Property);
+
+            modelBuilder.Entity<Domik>()
+                .Navigation(e => e.Manufactures)
+                .UsePropertyAccessMode(PropertyAccessMode.Property);
+
+            modelBuilder.Entity<Manufacture>()
+                .Navigation(e => e.Domik)
                 .UsePropertyAccessMode(PropertyAccessMode.Property);
         }
     }

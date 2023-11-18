@@ -182,6 +182,8 @@ namespace Domiki.Web.Business.Core
 
         public bool FinishDomik(DateTime date, CalculateInfo calcInfo)
         {
+            LockDbPlayerRow(calcInfo.PlayerId);
+
             var dbDomik = _context.Domiks.Single(x => x.Id == calcInfo.ObjectId && x.PlayerId == calcInfo.PlayerId);
             if (dbDomik.UpgradeSeconds != null)
             {
@@ -198,6 +200,63 @@ namespace Domiki.Web.Business.Core
                 return false;
             }
             return true;
+        }
+
+        public void StartManufacture(int playerId, int domikId, int resourceTypeId)
+        {
+            var date = DateTimeHelper.GetNowDate();
+
+            LockDbPlayerRow(playerId);
+
+            // todo проверка что есть нужное количество рабочих
+            // todo проверка что тут можно добывать данный ресурс
+            // todo сколько добывать ресурс
+            // todo что в домик влезет столько рабочих
+            // todo количество добываемого ресурса
+            var needPlodderCount = 1;
+            var dbDomik = _context.Domiks.First(x => x.PlayerId == playerId && x.Id == domikId);
+
+            var manufacture = new Data.Manufacture
+            {
+                DomikId = domikId,
+                ResourceTypeId = resourceTypeId,
+                ResourceCount = 1,
+                FinishDate = date.AddSeconds(5),
+                PlodderCount = needPlodderCount,
+            };
+            _context.Manufactures.Add(manufacture);
+
+            _uow.AfterEventAction = () =>
+            {
+                _calculator.Insert(new CalculateInfo
+                {
+                    PlayerId = playerId,
+                    ObjectId = dbDomik.Id,
+                    Type = CalculateTypes.Manufacture,
+                    Date = manufacture.FinishDate,
+                });
+            };
+        }
+
+        public bool FinishManufacture(DateTime date, CalculateInfo calcInfo)
+        {
+            LockDbPlayerRow(calcInfo.PlayerId);
+
+            var dbManufacture = _context.Manufactures.Single(x => x.Id == calcInfo.ObjectId);
+            if (date >= dbManufacture.FinishDate)
+            {
+                var dbResource = _context.Resources.FirstOrDefault(x => x.PlayerId == calcInfo.PlayerId && x.TypeId == dbManufacture.ResourceTypeId);
+                if (dbResource == null)
+                {
+                    dbResource = new Data.Resource { PlayerId = calcInfo.PlayerId, TypeId = dbManufacture.ResourceTypeId };
+                    _context.Resources.Add(dbResource);
+                }
+
+                dbResource.Value += dbManufacture.ResourceCount;
+                _context.Manufactures.Remove(dbManufacture);
+                return true;
+            }
+            return false;
         }
     }
 }

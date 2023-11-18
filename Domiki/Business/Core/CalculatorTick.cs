@@ -1,9 +1,4 @@
-﻿using Domiki.Web.Data;
-using Microsoft.Data.SqlClient;
-using System.Data;
-using System.Threading;
-
-namespace Domiki.Web.Business.Core
+﻿namespace Domiki.Web.Business.Core
 {
     public class CalculatorTick
     {
@@ -20,6 +15,8 @@ namespace Domiki.Web.Business.Core
             {
                 case CalculateTypes.Domiks:
                     return _domikManager.FinishDomik(date, calcInfo);
+                case CalculateTypes.Manufacture:
+                    return _domikManager.FinishManufacture(date, calcInfo);
             }
             return false;
         }
