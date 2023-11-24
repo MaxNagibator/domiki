@@ -91,6 +91,15 @@ namespace Domiki.Controllers
             return new Response<ResourceDto[]>(content);
         }
 
+        [HttpPost]
+        [Route("/Domiki/StartManufacture/{domikId}/{receiptId}")]
+        public Response StartManufacture(int domikId, int receiptId)
+        {
+            int playerId = GetPlayerId();
+            _domikManager.StartManufacture(playerId, domikId, receiptId);
+            return new Response { Type = ResponseType.Success };
+        }
+
         private int GetPlayerId()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

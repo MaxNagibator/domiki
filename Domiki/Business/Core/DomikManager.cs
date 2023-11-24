@@ -202,7 +202,7 @@ namespace Domiki.Web.Business.Core
             return true;
         }
 
-        public void StartManufacture(int playerId, int domikId, int resourceTypeId)
+        public void StartManufacture(int playerId, int domikId, int receiptId)
         {
             var date = DateTimeHelper.GetNowDate();
 
@@ -220,7 +220,7 @@ namespace Domiki.Web.Business.Core
             {
                 DomikId = domikId,
                 DomikPlayerId = playerId,
-                ResourceTypeId = resourceTypeId,
+                ResourceTypeId = 4,
                 ResourceCount = 1,
                 FinishDate = date.AddSeconds(5),
                 PlodderCount = needPlodderCount,

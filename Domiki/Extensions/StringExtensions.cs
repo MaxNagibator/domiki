@@ -1,6 +1,6 @@
 ﻿namespace Domiki.Web.Extentions
 {
-    public static class StringExtentions
+    public static class StringExtensions
     {
         public static double ToDouble(this string str)
         {

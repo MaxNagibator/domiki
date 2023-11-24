@@ -18,16 +18,28 @@ code {
     height: 0;
 }
 
+.workspace {
+    display: flex;
+    flex-direction: row;
+}
 
+.actions {
+    display: flex;
+    width: 30%;
+    flex-wrap: wrap;
+}
 
 .domiks {
     display: flex;
+    width: 70%;
+    flex-wrap: wrap;
 }
 
     .domiks .domik-box {
         display: flex;
         flex-wrap: wrap;
         width: 100px;
+        cursor: pointer;
     }
 
         .domiks .domik-box .domik-level {

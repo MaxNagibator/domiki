@@ -6,9 +6,11 @@ namespace Domiki.Web.Business
     {
         public static List<ResourceType> ResourceTypes = new List<ResourceType>
             {
-                new ResourceType { Id = 1, Name = "Золото", LogicName = "gold" },
+                new ResourceType { Id = 1, Name = "Деньга", LogicName = "coin" },
                 new ResourceType { Id = 2, Name = "Камень", LogicName = "stone" },
                 new ResourceType { Id = 3, Name = "Дерево", LogicName = "wood" },
+                new ResourceType { Id = 4, Name = "Глина", LogicName = "clay" },
+                new ResourceType { Id = 5, Name = "Золото", LogicName = "gold" },
             };
 
         public static Dictionary<int, ResourceType> ResourceTypesDict = ResourceTypes.ToDictionary(x => x.Id, x => x);

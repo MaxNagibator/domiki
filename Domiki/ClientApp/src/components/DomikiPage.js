@@ -5,6 +5,7 @@ import { UpgradeBox } from './UpgradeBox';
 
 export const DomikiPage = () => {
     const [domiks, setDomiks] = useState({});
+    const [selectedDomik, setSelectedDomik] = useState(null);
     const [domikTypes, setDomikTypes] = useState([]);
     const [resources, setResources] = useState([]);
     const [resourceTypes, setResourceTypes] = useState([]);
@@ -152,6 +153,20 @@ export const DomikiPage = () => {
         });
     }
 
+    async function selectDomik(id) {
+        domiks.items.forEach(function (domik) {
+            if (domik.id === id) {
+                setSelectedDomik(domik);
+                return;
+            }
+        });
+    }
+
+    async function startManufacture(domikId, receiptId) {
+        sendRequest('POST', 'Domiki/StartManufacture/' + domikId + '/' + receiptId, function (data) {
+        });
+    }
+
     async function showPurchaseDomikWindow() {
         if (purchaseDomikTypesVisible === true) {
             setPurchaseDomikTypesVisible(false);
@@ -221,26 +236,38 @@ export const DomikiPage = () => {
                         );
                     })
                 }</div>
-            <div className="domiks">
-                {domikTypes != null && domikTypes.length > 0 && domiks.items != null &&
-                    domiks.items.map((domik, index) => {
-                        let domikType = domikTypes.filter(x => x.id === domik.typeId)[0];
-                        let image = "/images/domikTypes/" + domikType.logicName + ".png";
-                        return (
-                            <div key={index} className="domik-box">
-                                <img src={image} alt={domikType.name} />
-                                <div className="break" />
-                                <UpgradeBox upgradeSeconds={domik.upgradeSeconds} level={domik.level} />
-                                <div className="break" />
-                                {domik.level < domikType.maxLevel &&
-                                    <button onClick={() => upgrade(domik.id)}>улучшить</button>
-                                    /* todo после улучшения не показывается время, нужно жмакать Ф5 */
-                                    /* todo если домик улучшается, то прятать кнопочку */
-                                }
-                            </div>
-                        );
-                    })
-                }
+            <div className="workspace">
+                <div className="domiks">
+                    {domikTypes != null && domikTypes.length > 0 && domiks.items != null &&
+                        domiks.items.map((domik, index) => {
+                            let domikType = domikTypes.filter(x => x.id === domik.typeId)[0];
+                            let image = "/images/domikTypes/" + domikType.logicName + ".png";
+                            return (
+                                <div key={index} className="domik-box" onClick={()=> selectDomik(domik.id)}>
+                                    <img src={image} alt={domikType.name} />
+                                    <div className="break" />
+                                    <UpgradeBox upgradeSeconds={domik.upgradeSeconds} level={domik.level} />
+                                    <div className="break" />
+                                    {domik.level < domikType.maxLevel &&
+                                        <button onClick={() => upgrade(domik.id)}>улучшить</button>
+                                        /* todo после улучшения не показывается время, нужно жмакать Ф5 */
+                                        /* todo если домик улучшается, то прятать кнопочку */
+                                    }
+                                </div>
+                            );
+                        })
+                    }
+                </div>
+                <div className="actions">
+                    {selectedDomik != null &&
+                        <div>
+                            {selectedDomik.id}
+                            <label>Производство:</label>
+                            <button onClick={()=>startManufacture(selectedDomik.id, 1)}>Замесить глину</button>
+                        </div>
+                        
+                    }
+                </div>
             </div>
             {purchaseDomikTypes != null && purchaseDomikTypes.length > 0 &&
                 <div className="purchase-box">

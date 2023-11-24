@@ -157,12 +157,12 @@ namespace Domiki.Web.Business
                     });
                 }
 
-                var dbManufactures = uow.Context.Manufactures.Include(x => x.Domik).ToList();
+                var dbManufactures = uow.Context.Manufactures.ToList();
                 foreach (var dbManufacture in dbManufactures)
                 {
                     dates.Add(new CalculateInfo
                     {
-                        PlayerId = dbManufacture.Domik.PlayerId,
+                        PlayerId = dbManufacture.DomikPlayerId,
                         ObjectId = dbManufacture.Id,
                         Date = dbManufacture.FinishDate,
                         Type = CalculateTypes.Manufacture,
