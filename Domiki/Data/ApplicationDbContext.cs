@@ -51,13 +51,10 @@ namespace Domiki.Web.Data
                 .Navigation(e => e.Player)
                 .UsePropertyAccessMode(PropertyAccessMode.Property);
 
-            modelBuilder.Entity<Domik>()
-                .Navigation(e => e.Manufactures)
-                .UsePropertyAccessMode(PropertyAccessMode.Property);
-
             modelBuilder.Entity<Manufacture>()
-                .Navigation(e => e.Domik)
-                .UsePropertyAccessMode(PropertyAccessMode.Property);
+                .HasOne(s => s.Domik)
+                .WithMany(x => x.Manufactures)
+                .HasForeignKey(e => new { e.DomikPlayerId, e.DomikId});
         }
     }
 }

@@ -219,19 +219,21 @@ namespace Domiki.Web.Business.Core
             var manufacture = new Data.Manufacture
             {
                 DomikId = domikId,
+                DomikPlayerId = playerId,
                 ResourceTypeId = resourceTypeId,
                 ResourceCount = 1,
                 FinishDate = date.AddSeconds(5),
                 PlodderCount = needPlodderCount,
             };
             _context.Manufactures.Add(manufacture);
+            _context.SaveChanges();
 
             _uow.AfterEventAction = () =>
             {
                 _calculator.Insert(new CalculateInfo
                 {
                     PlayerId = playerId,
-                    ObjectId = dbDomik.Id,
+                    ObjectId = manufacture.Id,
                     Type = CalculateTypes.Manufacture,
                     Date = manufacture.FinishDate,
                 });
