@@ -14,9 +14,7 @@ namespace Domiki.Web.Data
 
         public int DomikPlayerId { get; set; }
 
-        public int ResourceTypeId { get; set; }
-
-        public int ResourceCount { get; set; }
+        public int ReceiptId { get; set; }
 
         public int PlodderCount { get; set; }
 

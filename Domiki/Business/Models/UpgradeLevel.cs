@@ -21,5 +21,10 @@
         /// Что нам даёт данная постройка.
         /// </summary>
         public Modificator[] Modificators { get; set; }
+
+        /// <summary>
+        /// Что можно производить в постройке.
+        /// </summary>
+        public Receipt[] Receipts { get; set; }
     }
 }

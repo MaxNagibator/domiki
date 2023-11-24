@@ -156,6 +156,11 @@ namespace Domiki.Web.Business.Core
             return StaticEntities.ResourceTypes;
         }
 
+        public IEnumerable<Receipt> GetReceipts()
+        {
+            return StaticEntities.Receipts;
+        }
+
         // пессимистичная блокировка строки в БД, для борьбы с конкурентными потоками
         private void LockDbPlayerRow(int playerId)
         {
@@ -209,20 +214,19 @@ namespace Domiki.Web.Business.Core
             LockDbPlayerRow(playerId);
 
             // todo проверка что есть нужное количество рабочих
-            // todo проверка что тут можно добывать данный ресурс
-            // todo сколько добывать ресурс
             // todo что в домик влезет столько рабочих
-            // todo количество добываемого ресурса
+
             var needPlodderCount = 1;
             var dbDomik = _context.Domiks.First(x => x.PlayerId == playerId && x.Id == domikId);
+            var domikLevel = GetDomikTypes().First(x => x.Id == dbDomik.TypeId).Levels.First(x=>x.Value == dbDomik.Level);
+            var receipt = domikLevel.Receipts.First(x => x.Id == receiptId);
 
             var manufacture = new Data.Manufacture
             {
                 DomikId = domikId,
                 DomikPlayerId = playerId,
-                ResourceTypeId = 4,
-                ResourceCount = 1,
-                FinishDate = date.AddSeconds(5),
+                ReceiptId = receiptId,
+                FinishDate = date.AddSeconds(receipt.DurationsSeconds),
                 PlodderCount = needPlodderCount,
             };
             _context.Manufactures.Add(manufacture);
@@ -247,14 +251,18 @@ namespace Domiki.Web.Business.Core
             var dbManufacture = _context.Manufactures.Single(x => x.Id == calcInfo.ObjectId);
             if (date >= dbManufacture.FinishDate)
             {
-                var dbResource = _context.Resources.FirstOrDefault(x => x.PlayerId == calcInfo.PlayerId && x.TypeId == dbManufacture.ResourceTypeId);
-                if (dbResource == null)
+                var recept = GetReceipts().First(x => x.Id == dbManufacture.ReceiptId);
+                foreach (var resource in recept.OutputResources)
                 {
-                    dbResource = new Data.Resource { PlayerId = calcInfo.PlayerId, TypeId = dbManufacture.ResourceTypeId };
-                    _context.Resources.Add(dbResource);
-                }
+                    var dbResource = _context.Resources.FirstOrDefault(x => x.PlayerId == calcInfo.PlayerId && x.TypeId == resource.Type.Id);
+                    if (dbResource == null)
+                    {
+                        dbResource = new Data.Resource { PlayerId = calcInfo.PlayerId, TypeId = resource.Type.Id };
+                        _context.Resources.Add(dbResource);
+                    }
 
-                dbResource.Value += dbManufacture.ResourceCount;
+                    dbResource.Value += resource.Value;
+                }
                 _context.Manufactures.Remove(dbManufacture);
                 return true;
             }

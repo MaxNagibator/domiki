@@ -23,6 +23,33 @@ namespace Domiki.Web.Business
 
         public static Dictionary<int, ModificatorType> ModificatorTypesDict = ModificatorTypes.ToDictionary(x => x.Id, x => x);
 
+
+        public static List<Receipt> Receipts = new List<Receipt>
+            {
+                new Receipt
+                {
+                    Id = 1,
+                    Name = "Копать глину",
+                    LogicName = "clay_dig",
+                    InputResources = new Resource[] { new Resource { Type = ResourceTypesDict[1], Value = 1, } },
+                    DurationsSeconds = 3600,
+                    PlodderCount = 1,
+                    OutputResources = new Resource[] { new Resource { Type = ResourceTypesDict[4], Value = 1, } },
+                },
+                new Receipt
+                {
+                    Id = 2,
+                    Name = "Толпой копать глину",
+                    LogicName = "clay_dig_together",
+                    InputResources = new Resource[] { new Resource { Type = ResourceTypesDict[1], Value = 5, } },
+                    DurationsSeconds = 3600,
+                    PlodderCount = 5,
+                    OutputResources = new Resource[] { new Resource { Type = ResourceTypesDict[4], Value = 10, } },
+                },
+            };
+
+        public static Dictionary<int, Receipt> ReceiptDict = Receipts.ToDictionary(x => x.Id, x => x);
+
         public static List<DomikType> DomikTypes = new List<DomikType>
             {
                 new DomikType { Id = 1, Name = "Кузница", LogicName = "forge", MaxCount = 1,
@@ -216,6 +243,7 @@ namespace Domiki.Web.Business
                                 new Resource { Type = ResourceTypesDict[2], Value = 1 },
                             },
                             Modificators = new Modificator[0],
+                            Receipts = new Receipt[]{ ReceiptDict[1], }
                         },
                         new UpgradeLevel
                         {
@@ -227,6 +255,7 @@ namespace Domiki.Web.Business
                                 new Resource { Type = ResourceTypesDict[2], Value = 2 },
                             },
                             Modificators = new Modificator[0],
+                            Receipts = new Receipt[] { ReceiptDict[1], ReceiptDict[2] }
                         },
                     }
                 },
