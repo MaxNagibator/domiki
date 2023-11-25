@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 
-export const UpgradeBox = ({ upgradeSeconds, level }) => {
-    let levelText = upgradeSeconds == null ? level : level + " -> " + (level * 1 + 1);
+export const UpgradeBox = ({ durationSeconds, level }) => {
+    let levelText = durationSeconds == null ? level : level + " -> " + (level * 1 + 1);
 
     return (
         <div className="upgrade-box">
@@ -9,9 +9,9 @@ export const UpgradeBox = ({ upgradeSeconds, level }) => {
                 <label className="domik-level">{levelText}</label>
             </div>
             <div className="break" />
-            {upgradeSeconds != null &&
+            {durationSeconds != null &&
                 <div>
-                    <label>{upgradeSeconds}</label>
+                    <label>{durationSeconds}</label>
                     <div className="break" />
                 </div>
             }

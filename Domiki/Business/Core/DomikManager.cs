@@ -52,13 +52,22 @@ namespace Domiki.Web.Business.Core
 
         public IEnumerable<Domik> GetDomiks(int playerId)
         {
-            return _context.Domiks.Where(x => x.PlayerId == playerId).ToArray().Select(x =>
+            var manufactureGroups = _context.Manufactures.Where(x => x.DomikPlayerId == playerId)
+                .ToArray().GroupBy(x => x.DomikId);
+            return _context.Domiks.Where(x => x.PlayerId == playerId).ToArray().Select(domik =>
                 new Domik
                 {
-                    Id = x.Id,
-                    Type = StaticEntities.DomikTypes.First(y => y.Id == x.TypeId),
-                    Level = x.Level,
-                    FinishDate = x.UpgradeSeconds == null ? null : (x.UpgradeCalculateDate.Value.AddSeconds((int)x.UpgradeSeconds))
+                    Id = domik.Id,
+                    Type = StaticEntities.DomikTypes.First(y => y.Id == domik.TypeId),
+                    Level = domik.Level,
+                    FinishDate = domik.UpgradeSeconds == null ? null : (domik.UpgradeCalculateDate.Value.AddSeconds((int)domik.UpgradeSeconds)),
+                    Manufactures = manufactureGroups.FirstOrDefault(m=>m.Key == domik.Id)?.Select(x=> new Manufacture
+                    {
+                        Id = x.Id,
+                        FinishDate = x.FinishDate,
+                        PlodderCount = x.PlodderCount,
+                        ReceiptId = x.ReceiptId,
+                    }).ToArray(),
                 }).ToList();
         }
 

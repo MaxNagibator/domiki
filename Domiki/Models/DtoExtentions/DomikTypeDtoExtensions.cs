@@ -2,7 +2,7 @@
 
 namespace Domiki.Web.Models
 {
-    public static class DomikTypeDtoExtentions
+    public static class DomikTypeDtoExtensions
     {
         public static DomikTypeDto ToDto(this DomikType t)
         {

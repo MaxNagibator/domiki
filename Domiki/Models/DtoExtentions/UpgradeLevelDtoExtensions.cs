@@ -2,7 +2,7 @@
 
 namespace Domiki.Web.Models
 {
-    public static class UpgradeLevelDtoExtentions
+    public static class UpgradeLevelDtoExtensions
     {
         public static UpgradeLevelDto ToDto(this UpgradeLevel t)
         {

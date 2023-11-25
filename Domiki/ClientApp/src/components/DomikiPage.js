@@ -7,7 +7,7 @@ export const DomikiPage = () => {
     const [domiks, setDomiks] = useState({});
     const [selectedDomik, setSelectedDomik] = useState(null);
     const [selectedDomikReceipts, setSelectedDomikReceipts] = useState(null);
-    
+
     const [domikTypes, setDomikTypes] = useState([]);
     const [resources, setResources] = useState([]);
     const [resourceTypes, setResourceTypes] = useState([]);
@@ -80,7 +80,6 @@ export const DomikiPage = () => {
     useEffect(() => {
         let selectedDomikReceipts = [];
         if (selectedDomik != null && receipts.length > 0) {
-            debugger
             let domikType = domikTypes.filter(x => x.id === selectedDomik.typeId)[0];
             let domikLevel = domikType.levels.filter(x => x.value === selectedDomik.level)[0];
             domikLevel.receiptIds.forEach(function (receiptId) {
@@ -98,11 +97,23 @@ export const DomikiPage = () => {
                     let date = new Date();
                     let seconds = (new Date(domik.finishDate).getTime() - date.getTime()) / 1000;
                     let time = getTimeFromSecond(seconds);
-                    domik.upgradeSeconds = time;
+                    domik.durationSeconds = time;
                     if (seconds <= 0) {
                         getDomiks();
                         return false;
                     }
+                }
+                if (domik.manufactures != null) {
+                    domik.manufactures.forEach(function (manufacture) {
+                        let date = new Date();
+                        let seconds = (new Date(manufacture.finishDate).getTime() - date.getTime()) / 1000;
+                        let time = getTimeFromSecond(seconds);
+                        manufacture.durationSeconds = time;
+                        if (seconds <= 0) {
+                            getDomiks();
+                            return false;
+                        }
+                    });
                 }
             })
         }
@@ -263,10 +274,10 @@ export const DomikiPage = () => {
                             let domikType = domikTypes.filter(x => x.id === domik.typeId)[0];
                             let image = "/images/domikTypes/" + domikType.logicName + ".png";
                             return (
-                                <div key={index} className="domik-box" onClick={()=> selectDomik(domik.id)}>
+                                <div key={index} className="domik-box" onClick={() => selectDomik(domik.id)}>
                                     <img src={image} alt={domikType.name} />
                                     <div className="break" />
-                                    <UpgradeBox upgradeSeconds={domik.upgradeSeconds} level={domik.level} />
+                                    <UpgradeBox durationSeconds={domik.durationSeconds} level={domik.level} />
                                     <div className="break" />
                                     {domik.level < domikType.maxLevel &&
                                         <button onClick={() => upgrade(domik.id)}>улучшить</button>
@@ -279,15 +290,31 @@ export const DomikiPage = () => {
                     }
                 </div>
                 <div className="actions">
-                    {selectedDomik != null && selectedDomik.receipts != null &&
-                        selectedDomik.receipts.map((receipt) => {
-                            return (
-                                <div>
-                                    <button onClick={() => startManufacture(selectedDomik.id, receipt.id)}>{receipt.name}</button>
-                                </div>
-                            );
-                        })
-                    }
+                    <div>
+                        <label>Добавить производство:</label>
+                        {selectedDomik != null && selectedDomik.receipts != null &&
+                            selectedDomik.receipts.map((receipt, index) => {
+                                return (
+                                    <div key={index}>
+                                        <button onClick={() => startManufacture(selectedDomik.id, receipt.id)}>{receipt.name}</button>
+                                    </div>
+                                );
+                            })
+                        }
+                    </div>
+                    <div>
+                        <label>Текущие производство:</label>
+                        {selectedDomik != null && selectedDomik.manufactures != null && receipts != null &&
+                            selectedDomik.manufactures.map((manufacture, index) => {
+                                let receipt = receipts.filter(x => x.id === manufacture.receiptId)[0];
+                                return (
+                                    <div key={index}>
+                                        <label>{receipt.name} {manufacture.plodderCount} {manufacture.durationSeconds}</label>
+                                    </div>
+                                );
+                            })
+                        }
+                    </div>
                 </div>
             </div>
             {purchaseDomikTypes != null && purchaseDomikTypes.length > 0 &&
