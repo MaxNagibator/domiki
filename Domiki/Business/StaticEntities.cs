@@ -46,6 +46,16 @@ namespace Domiki.Web.Business
                     PlodderCount = 5,
                     OutputResources = new Resource[] { new Resource { Type = ResourceTypesDict[4], Value = 10, } },
                 },
+                new Receipt
+                {
+                    Id = 3,
+                    Name = "Надоблить золотишка",
+                    LogicName = "gold_dig",
+                    InputResources = new Resource[] { new Resource { Type = ResourceTypesDict[1], Value = 1, } },
+                    DurationsSeconds = 3600,
+                    PlodderCount = 1,
+                    OutputResources = new Resource[] { new Resource { Type = ResourceTypesDict[5], Value = 1, } },
+                },
             };
 
         public static Dictionary<int, Receipt> ReceiptDict = Receipts.ToDictionary(x => x.Id, x => x);
@@ -211,6 +221,7 @@ namespace Domiki.Web.Business
                                 new Resource { Type = ResourceTypesDict[2], Value = 1 },
                             },
                             Modificators = new Modificator[0],
+                            Receipts = new Receipt[]{ ReceiptDict[3], },
                         },
                         new UpgradeLevel
                         {
@@ -222,6 +233,7 @@ namespace Domiki.Web.Business
                                 new Resource { Type = ResourceTypesDict[2], Value = 2 },
                             },
                             Modificators = new Modificator[0],
+                            Receipts = new Receipt[]{ ReceiptDict[3], },
                         },
                     }
                 },

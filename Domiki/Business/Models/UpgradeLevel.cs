@@ -25,6 +25,6 @@
         /// <summary>
         /// Что можно производить в постройке.
         /// </summary>
-        public Receipt[] Receipts { get; set; }
+        public Receipt[] Receipts { get; set; } = new Receipt[0];
     }
 }

@@ -6,12 +6,15 @@ import { UpgradeBox } from './UpgradeBox';
 export const DomikiPage = () => {
     const [domiks, setDomiks] = useState({});
     const [selectedDomik, setSelectedDomik] = useState(null);
+    const [selectedDomikReceipts, setSelectedDomikReceipts] = useState(null);
+    
     const [domikTypes, setDomikTypes] = useState([]);
     const [resources, setResources] = useState([]);
     const [resourceTypes, setResourceTypes] = useState([]);
     const [purchaseDomikTypes, setPurchaseDomikTypes] = useState([]);
     const [purchaseDomikTypesVisible, setPurchaseDomikTypesVisible] = useState([]);
     const [modificatorTypes, setModificatorTypes] = useState([]);
+    const [receipts, setReceipts] = useState([]);
     const [plodderCount, setPlodderCount] = useState(null);
 
     useEffect(() => {
@@ -26,6 +29,9 @@ export const DomikiPage = () => {
             });
             sendRequest('GET', 'Domiki/GetModificatorTypes', function (data) {
                 setModificatorTypes(data);
+            });
+            sendRequest('GET', 'Domiki/GetReceipts', function (data) {
+                setReceipts(data);
             });
             getDomiks();
             getResources();
@@ -70,6 +76,20 @@ export const DomikiPage = () => {
         setPlodderCount(plodderCount);
 
     }, [domiks, domikTypes]);
+
+    useEffect(() => {
+        let selectedDomikReceipts = [];
+        if (selectedDomik != null && receipts.length > 0) {
+            debugger
+            let domikType = domikTypes.filter(x => x.id === selectedDomik.typeId)[0];
+            let domikLevel = domikType.levels.filter(x => x.value === selectedDomik.level)[0];
+            domikLevel.receiptIds.forEach(function (receiptId) {
+                let receipt = receipts.filter(x => x.id === receiptId)[0];
+                selectedDomikReceipts.push(receipt);
+            });
+            selectedDomik.receipts = selectedDomikReceipts;
+        }
+    }, [selectedDomik, receipts]);
 
     function IntervalTick(domikItems) {
         if (domikItems != null) {
@@ -259,13 +279,14 @@ export const DomikiPage = () => {
                     }
                 </div>
                 <div className="actions">
-                    {selectedDomik != null &&
-                        <div>
-                            {selectedDomik.id}
-                            <label>Производство:</label>
-                            <button onClick={()=>startManufacture(selectedDomik.id, 1)}>Замесить глину</button>
-                        </div>
-                        
+                    {selectedDomik != null && selectedDomik.receipts != null &&
+                        selectedDomik.receipts.map((receipt) => {
+                            return (
+                                <div>
+                                    <button onClick={() => startManufacture(selectedDomik.id, receipt.id)}>{receipt.name}</button>
+                                </div>
+                            );
+                        })
                     }
                 </div>
             </div>

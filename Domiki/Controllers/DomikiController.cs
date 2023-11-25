@@ -100,6 +100,14 @@ namespace Domiki.Controllers
             return new Response { Type = ResponseType.Success };
         }
 
+        [HttpGet]
+        [Route("/Domiki/GetReceipts")]
+        public Response<ReceiptDto[]> GetReceipts()
+        {
+            var content = _domikManager.GetReceipts().Select(x => x.ToDto()).ToArray();
+            return new Response<ReceiptDto[]>(content);
+        }
+
         private int GetPlayerId()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

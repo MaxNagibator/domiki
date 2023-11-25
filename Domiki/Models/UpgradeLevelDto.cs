@@ -1,4 +1,6 @@
-﻿namespace Domiki.Web.Models
+﻿using Domiki.Web.Business.Models;
+
+namespace Domiki.Web.Models
 {
     public class UpgradeLevelDto
     {
@@ -16,5 +18,10 @@
         /// Что нам даёт этот уровень.
         /// </summary>
         public ModificatorDto[] Modificators { get; set; }
+
+        /// <summary>
+        /// Что можно производить в постройке.
+        /// </summary>
+        public int[] ReceiptIds { get; set; }
     }
 }
