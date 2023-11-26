@@ -21,11 +21,15 @@ namespace Domiki.Web.Data
         public DbSet<Resource> Resources { get; set; }
         public DbSet<ResourceType> ResourceTypes { get; set; }
         public DbSet<ModificatorType> ModificatorTypes { get; set; }
+
+        public DbSet<Receipt> Receipts { get; set; }
+        public DbSet<ReceiptResource> ReceiptResources { get; set; }
+
         public DbSet<DomikType> DomikTypes { get; set; }
         public DbSet<DomikTypeLevel> DomikTypeLevels { get; set; }
+        public DbSet<DomikTypeLevelResource> DomikTypeLevelResources { get; set; }
         public DbSet<DomikTypeLevelModificator> DomikTypeLevelModificators { get; set; }
-        //public DbSet<DomikTypeLevelRecept> DomikTypeLevelRecepts { get; set; }
-        public DbSet<Receipt> Receipts { get; set; }
+        public DbSet<DomikTypeLevelReceipt> DomikTypeLevelRecepts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -91,21 +95,55 @@ namespace Domiki.Web.Data
                 .Navigation(e => e.ModificatorType)
                 .UsePropertyAccessMode(PropertyAccessMode.Property);
 
-            //modelBuilder.Entity<DomikTypeLevelRecept>()
-            //    .HasKey(p => new
-            //    {
-            //        p.DomikTypeLevelDomikTypeId,
-            //        p.DomikTypeLevelValue,
-            //        p.ReceptId,
-            //    });
+            modelBuilder.Entity<DomikTypeLevelReceipt>()
+                .HasKey(p => new
+                {
+                    p.DomikTypeLevelDomikTypeId,
+                    p.DomikTypeLevelValue,
+                    p.ReceiptId,
+                });
 
-            //modelBuilder.Entity<DomikTypeLevelRecept>()
-            //    .Navigation(e => e.DomikTypeLevel)
-            //    .UsePropertyAccessMode(PropertyAccessMode.Property);
+            modelBuilder.Entity<DomikTypeLevelReceipt>()
+                .Navigation(e => e.DomikTypeLevel)
+                .UsePropertyAccessMode(PropertyAccessMode.Property);
 
-            //modelBuilder.Entity<DomikTypeLevelRecept>()
-            //    .Navigation(e => e.ModificatorType)
-            //    .UsePropertyAccessMode(PropertyAccessMode.Property);
+            modelBuilder.Entity<DomikTypeLevelReceipt>()
+                .Navigation(e => e.Receipt)
+                .UsePropertyAccessMode(PropertyAccessMode.Property);
+
+
+            modelBuilder.Entity<DomikTypeLevelResource>()
+                .HasKey(p => new
+                {
+                    p.DomikTypeLevelDomikTypeId,
+                    p.DomikTypeLevelValue,
+                    p.ResourceTypeId,
+                });
+
+            modelBuilder.Entity<DomikTypeLevelResource>()
+                .Navigation(e => e.DomikTypeLevel)
+                .UsePropertyAccessMode(PropertyAccessMode.Property);
+
+            modelBuilder.Entity<DomikTypeLevelResource>()
+                .Navigation(e => e.ResourceType)
+                .UsePropertyAccessMode(PropertyAccessMode.Property);
+
+
+            modelBuilder.Entity<ReceiptResource>()
+                .HasKey(p => new
+                {
+                    p.ReceiptId,
+                    p.ResourceTypeId,
+                    p.IsInput,
+                });
+
+            modelBuilder.Entity<ReceiptResource>()
+                .Navigation(e => e.Receipt)
+                .UsePropertyAccessMode(PropertyAccessMode.Property);
+
+            modelBuilder.Entity<ReceiptResource>()
+                .Navigation(e => e.ResourceType)
+                .UsePropertyAccessMode(PropertyAccessMode.Property);
         }
     }
 }

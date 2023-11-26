@@ -4,6 +4,7 @@ using Domiki.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Domiki.Web.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231126142120_CreateDomikTypeLevelReceiptTable")]
+    partial class CreateDomikTypeLevelReceiptTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -199,30 +201,6 @@ namespace Domiki.Web.Data.Migrations
                     b.ToTable("DomikTypeLevelReceipts");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevelResource", b =>
-                {
-                    b.Property<int>("DomikTypeLevelDomikTypeId")
-                        .HasColumnType("int")
-                        .HasColumnOrder(1);
-
-                    b.Property<int>("DomikTypeLevelValue")
-                        .HasColumnType("int")
-                        .HasColumnOrder(2);
-
-                    b.Property<int>("ResourceTypeId")
-                        .HasColumnType("int")
-                        .HasColumnOrder(3);
-
-                    b.Property<int>("Value")
-                        .HasColumnType("int");
-
-                    b.HasKey("DomikTypeLevelDomikTypeId", "DomikTypeLevelValue", "ResourceTypeId");
-
-                    b.HasIndex("ResourceTypeId");
-
-                    b.ToTable("DomikTypeLevelResources");
-                });
-
             modelBuilder.Entity("Domiki.Web.Data.Manufacture", b =>
                 {
                     b.Property<int>("Id")
@@ -325,30 +303,6 @@ namespace Domiki.Web.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Receipts");
-                });
-
-            modelBuilder.Entity("Domiki.Web.Data.ReceiptResource", b =>
-                {
-                    b.Property<int>("ReceiptId")
-                        .HasColumnType("int")
-                        .HasColumnOrder(1);
-
-                    b.Property<int>("ResourceTypeId")
-                        .HasColumnType("int")
-                        .HasColumnOrder(2);
-
-                    b.Property<bool>("IsInput")
-                        .HasColumnType("bit")
-                        .HasColumnOrder(3);
-
-                    b.Property<int>("Value")
-                        .HasColumnType("int");
-
-                    b.HasKey("ReceiptId", "ResourceTypeId", "IsInput");
-
-                    b.HasIndex("ResourceTypeId");
-
-                    b.ToTable("ReceiptResources");
                 });
 
             modelBuilder.Entity("Domiki.Web.Data.Resource", b =>
@@ -715,25 +669,6 @@ namespace Domiki.Web.Data.Migrations
                     b.Navigation("Receipt");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevelResource", b =>
-                {
-                    b.HasOne("Domiki.Web.Data.ResourceType", "ResourceType")
-                        .WithMany()
-                        .HasForeignKey("ResourceTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Domiki.Web.Data.DomikTypeLevel", "DomikTypeLevel")
-                        .WithMany()
-                        .HasForeignKey("DomikTypeLevelDomikTypeId", "DomikTypeLevelValue")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DomikTypeLevel");
-
-                    b.Navigation("ResourceType");
-                });
-
             modelBuilder.Entity("Domiki.Web.Data.Manufacture", b =>
                 {
                     b.HasOne("Domiki.Web.Data.Domik", "Domik")
@@ -743,25 +678,6 @@ namespace Domiki.Web.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Domik");
-                });
-
-            modelBuilder.Entity("Domiki.Web.Data.ReceiptResource", b =>
-                {
-                    b.HasOne("Domiki.Web.Data.Receipt", "Receipt")
-                        .WithMany()
-                        .HasForeignKey("ReceiptId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Domiki.Web.Data.ResourceType", "ResourceType")
-                        .WithMany()
-                        .HasForeignKey("ResourceTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Receipt");
-
-                    b.Navigation("ResourceType");
                 });
 
             modelBuilder.Entity("Domiki.Web.Data.Resource", b =>
