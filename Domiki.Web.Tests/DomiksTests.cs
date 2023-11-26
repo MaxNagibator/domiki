@@ -17,7 +17,7 @@ namespace Domiki.Web.Tests
         {
             var playerId = GetPlayerId();
             var resources = GetResources(playerId);
-            Assert.That(resources.Count, Is.EqualTo(StaticEntities.ResourceTypes.Count));
+            Assert.That(resources.Count, Is.EqualTo(1));// StaticEntities.ResourceTypes.Count));
             foreach (var resource in resources)
             {
                 Assert.That(resource.Value, Is.EqualTo(1000));

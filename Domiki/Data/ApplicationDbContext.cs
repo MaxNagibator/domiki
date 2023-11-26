@@ -19,7 +19,13 @@ namespace Domiki.Web.Data
         public DbSet<Manufacture> Manufactures { get; set; }
         public DbSet<Player> Players { get; set; }
         public DbSet<Resource> Resources { get; set; }
-
+        public DbSet<ResourceType> ResourceTypes { get; set; }
+        public DbSet<ModificatorType> ModificatorTypes { get; set; }
+        public DbSet<DomikType> DomikTypes { get; set; }
+        public DbSet<DomikTypeLevel> DomikTypeLevels { get; set; }
+        public DbSet<DomikTypeLevelModificator> DomikTypeLevelModificators { get; set; }
+        //public DbSet<DomikTypeLevelRecept> DomikTypeLevelRecepts { get; set; }
+        public DbSet<Receipt> Receipts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -55,6 +61,51 @@ namespace Domiki.Web.Data
                 .HasOne(s => s.Domik)
                 .WithMany(x => x.Manufactures)
                 .HasForeignKey(e => new { e.DomikPlayerId, e.DomikId});
+
+
+            modelBuilder.Entity<DomikTypeLevel>()
+                .HasKey(p => new
+                {
+                    p.DomikTypeId,
+                    p.Value,
+                });
+
+            modelBuilder.Entity<DomikTypeLevel>()
+                .HasOne(s => s.DomikType)
+                .WithMany(x => x.Levels)
+                .HasForeignKey(e => e.DomikTypeId);
+
+            modelBuilder.Entity<DomikTypeLevelModificator>()
+                .HasKey(p => new
+                {
+                    p.DomikTypeLevelDomikTypeId,
+                    p.DomikTypeLevelValue,
+                    p.ModificatorTypeId,
+                });
+
+            modelBuilder.Entity<DomikTypeLevelModificator>()
+                .Navigation(e => e.DomikTypeLevel)
+                .UsePropertyAccessMode(PropertyAccessMode.Property);
+
+            modelBuilder.Entity<DomikTypeLevelModificator>()
+                .Navigation(e => e.ModificatorType)
+                .UsePropertyAccessMode(PropertyAccessMode.Property);
+
+            //modelBuilder.Entity<DomikTypeLevelRecept>()
+            //    .HasKey(p => new
+            //    {
+            //        p.DomikTypeLevelDomikTypeId,
+            //        p.DomikTypeLevelValue,
+            //        p.ReceptId,
+            //    });
+
+            //modelBuilder.Entity<DomikTypeLevelRecept>()
+            //    .Navigation(e => e.DomikTypeLevel)
+            //    .UsePropertyAccessMode(PropertyAccessMode.Property);
+
+            //modelBuilder.Entity<DomikTypeLevelRecept>()
+            //    .Navigation(e => e.ModificatorType)
+            //    .UsePropertyAccessMode(PropertyAccessMode.Property);
         }
     }
 }

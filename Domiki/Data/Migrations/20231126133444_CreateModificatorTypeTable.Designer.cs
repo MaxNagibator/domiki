@@ -4,6 +4,7 @@ using Domiki.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Domiki.Web.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231126133444_CreateModificatorTypeTable")]
+    partial class CreateModificatorTypeTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -114,70 +116,6 @@ namespace Domiki.Web.Data.Migrations
                     b.ToTable("Domiks");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DomikType", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<string>("LogicName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("MaxCount")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("DomikTypes");
-                });
-
-            modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevel", b =>
-                {
-                    b.Property<int>("DomikTypeId")
-                        .HasColumnType("int")
-                        .HasColumnOrder(1);
-
-                    b.Property<int>("Value")
-                        .HasColumnType("int")
-                        .HasColumnOrder(2);
-
-                    b.Property<int>("UpgradeSeconds")
-                        .HasColumnType("int");
-
-                    b.HasKey("DomikTypeId", "Value");
-
-                    b.ToTable("DomikTypeLevels");
-                });
-
-            modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevelModificator", b =>
-                {
-                    b.Property<int>("DomikTypeLevelDomikTypeId")
-                        .HasColumnType("int")
-                        .HasColumnOrder(1);
-
-                    b.Property<int>("DomikTypeLevelValue")
-                        .HasColumnType("int")
-                        .HasColumnOrder(2);
-
-                    b.Property<int>("ModificatorTypeId")
-                        .HasColumnType("int")
-                        .HasColumnOrder(3);
-
-                    b.Property<int>("Value")
-                        .HasColumnType("int");
-
-                    b.HasKey("DomikTypeLevelDomikTypeId", "DomikTypeLevelValue", "ModificatorTypeId");
-
-                    b.HasIndex("ModificatorTypeId");
-
-                    b.ToTable("DomikTypeLevelModificators");
-                });
-
             modelBuilder.Entity("Domiki.Web.Data.Manufacture", b =>
                 {
                     b.Property<int>("Id")
@@ -255,31 +193,6 @@ namespace Domiki.Web.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Players");
-                });
-
-            modelBuilder.Entity("Domiki.Web.Data.Receipt", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<int>("DurationsSeconds")
-                        .HasColumnType("int");
-
-                    b.Property<string>("LogicName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("PlodderCount")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Receipts");
                 });
 
             modelBuilder.Entity("Domiki.Web.Data.Resource", b =>
@@ -597,36 +510,6 @@ namespace Domiki.Web.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevel", b =>
-                {
-                    b.HasOne("Domiki.Web.Data.DomikType", "DomikType")
-                        .WithMany("Levels")
-                        .HasForeignKey("DomikTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DomikType");
-                });
-
-            modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevelModificator", b =>
-                {
-                    b.HasOne("Domiki.Web.Data.ModificatorType", "ModificatorType")
-                        .WithMany()
-                        .HasForeignKey("ModificatorTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Domiki.Web.Data.DomikTypeLevel", "DomikTypeLevel")
-                        .WithMany()
-                        .HasForeignKey("DomikTypeLevelDomikTypeId", "DomikTypeLevelValue")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DomikTypeLevel");
-
-                    b.Navigation("ModificatorType");
-                });
-
             modelBuilder.Entity("Domiki.Web.Data.Manufacture", b =>
                 {
                     b.HasOne("Domiki.Web.Data.Domik", "Domik")
@@ -703,11 +586,6 @@ namespace Domiki.Web.Data.Migrations
             modelBuilder.Entity("Domiki.Web.Data.Domik", b =>
                 {
                     b.Navigation("Manufactures");
-                });
-
-            modelBuilder.Entity("Domiki.Web.Data.DomikType", b =>
-                {
-                    b.Navigation("Levels");
                 });
 
             modelBuilder.Entity("Domiki.Web.Data.Player", b =>
