@@ -29,8 +29,14 @@ namespace Domiki.Web.Tests
 
         public DomikManager GetDomikManager(UnitOfWork uow)
         {
-            var domikManager = new DomikManager(uow, uow.Context, GetCalculator());
+            var domikManager = new DomikManager(uow, uow.Context, GetCalculator(), new ResourceManager(uow.Context));
             return domikManager;
+        }
+
+        public ResourceManager GetResourceManager(UnitOfWork uow)
+        {
+            var manager = new ResourceManager(uow.Context);
+            return manager;
         }
 
         private ICalculator GetCalculator()

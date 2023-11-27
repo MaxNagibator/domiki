@@ -13,18 +13,20 @@ namespace Domiki.Controllers
     {
         private readonly ILogger<DomikiController> _logger;
         private readonly DomikManager _domikManager;
+        private readonly ResourceManager _resourceManager;
 
-        public DomikiController(ILogger<DomikiController> logger, DomikManager holder)
+        public DomikiController(ILogger<DomikiController> logger, DomikManager domikManager, ResourceManager resourceManager)
         {
             _logger = logger;
-            _domikManager = holder;
+            _domikManager = domikManager;
+            _resourceManager = resourceManager;
         }
 
         [HttpGet]
         [Route("/Domiki/GetDomikTypes")] // todo разобраться с роут префиксом
         public Response<DomikTypeDto[]> GetDomikTypes()
         {
-            var content = _domikManager.GetDomikTypes().Select(x => x.ToDto()).ToArray();
+            var content = _resourceManager.GetDomikTypes().Select(x => x.ToDto()).ToArray();
             return new Response<DomikTypeDto[]>(content);
         }
 
@@ -32,7 +34,7 @@ namespace Domiki.Controllers
         [Route("/Domiki/GetModificatorTypes")] // todo объеденить системные методы в один GetData, где возвращать системную инфу о домиках ресурсах и прочем
         public Response<ModificatorTypeDto[]> GetModificatorTypes()
         {
-            var content = _domikManager.GetModificatorTypes().Select(x => x.ToDto()).ToArray();
+            var content = _resourceManager.GetModificatorTypes().Select(x => x.ToDto()).ToArray();
             return new Response<ModificatorTypeDto[]>(content);
         }
 
@@ -77,7 +79,7 @@ namespace Domiki.Controllers
         [Route("/Domiki/GetResourceTypes")]
         public Response<ResourceTypeDto[]> GetResourceTypes()
         {
-            var content = _domikManager.GetResourceTypes().Select(x => x.ToDto()).ToArray();
+            var content = _resourceManager.GetResourceTypes().Select(x => x.ToDto()).ToArray();
             return new Response<ResourceTypeDto[]>(content);
         }
 
@@ -104,7 +106,7 @@ namespace Domiki.Controllers
         [Route("/Domiki/GetReceipts")]
         public Response<ReceiptDto[]> GetReceipts()
         {
-            var content = _domikManager.GetReceipts().Select(x => x.ToDto()).ToArray();
+            var content = _resourceManager.GetReceipts().Select(x => x.ToDto()).ToArray();
             return new Response<ReceiptDto[]>(content);
         }
 

@@ -39,6 +39,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 builder.Services.AddScoped<UnitOfWork>();
 builder.Services.AddScoped<DomikManager>();
+builder.Services.AddScoped<ResourceManager>();
 builder.Services.AddSingleton<ICalculator, Calculator>();
 builder.Services.AddScoped<CalculatorTick>();
 builder.Services.AddHostedService<CalculatorBackgroundService>();

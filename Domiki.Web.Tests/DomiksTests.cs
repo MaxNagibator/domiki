@@ -203,7 +203,7 @@ namespace Domiki.Web.Tests
         {
             using (var uow = GetUow())
             {
-                var domikManager = GetDomikManager(uow);
+                var domikManager = GetResourceManager(uow);
                 var types = domikManager.GetDomikTypes();
                 return types;
             }
