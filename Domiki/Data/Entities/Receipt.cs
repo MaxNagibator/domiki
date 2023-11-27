@@ -17,5 +17,7 @@ namespace Domiki.Web.Data
         public int DurationsSeconds { get; set; }
 
         public int PlodderCount { get; set; }
+
+        public ICollection<ReceiptResource> Resources { get; set; }
     }
 }

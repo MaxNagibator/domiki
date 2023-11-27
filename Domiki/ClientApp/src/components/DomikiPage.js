@@ -6,6 +6,7 @@ import { UpgradeBox } from './UpgradeBox';
 export const DomikiPage = () => {
     const [domiks, setDomiks] = useState({});
     const [selectedDomik, setSelectedDomik] = useState(null);
+    const [selectedDomikId, setSelectedDomikId] = useState(null);
     const [selectedDomikReceipts, setSelectedDomikReceipts] = useState(null);
 
     const [domikTypes, setDomikTypes] = useState([]);
@@ -74,6 +75,7 @@ export const DomikiPage = () => {
             });
         }
         setPlodderCount(plodderCount);
+        selectDomik(selectedDomikId);
 
     }, [domiks, domikTypes]);
 
@@ -185,16 +187,20 @@ export const DomikiPage = () => {
     }
 
     async function selectDomik(id) {
-        domiks.items.forEach(function (domik) {
-            if (domik.id === id) {
-                setSelectedDomik(domik);
-                return;
-            }
-        });
+        if (domiks.items != null) {
+            domiks.items.forEach(function (domik) {
+                if (domik.id === id) {
+                    setSelectedDomik(domik);
+                    setSelectedDomikId(id);
+                    return;
+                }
+            });
+        }
     }
 
     async function startManufacture(domikId, receiptId) {
         sendRequest('POST', 'Domiki/StartManufacture/' + domikId + '/' + receiptId, function (data) {
+            getDomiks();
         });
     }
 

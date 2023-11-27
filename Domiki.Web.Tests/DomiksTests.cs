@@ -17,11 +17,9 @@ namespace Domiki.Web.Tests
         {
             var playerId = GetPlayerId();
             var resources = GetResources(playerId);
-            Assert.That(resources.Count, Is.EqualTo(1));// StaticEntities.ResourceTypes.Count));
-            foreach (var resource in resources)
-            {
-                Assert.That(resource.Value, Is.EqualTo(1000));
-            }
+            Assert.That(resources.Count, Is.EqualTo(1));
+            Assert.That(resources.First().Type.Id, Is.EqualTo(1));
+            Assert.That(resources.First().Value, Is.EqualTo(1000));
         }
 
         /// <summary>
@@ -155,20 +153,19 @@ namespace Domiki.Web.Tests
         }
 
         /// <summary>
-        /// Добудем ресурс.
+        /// Добудем одну глину в глиняном карьере.
         /// </summary>
         [Test]
         public void ManufactureTest()
         {
             var playerId = GetPlayerId();
-            var types = GetDomikTypes();
-            var buyType = types.First();
-            BuyDomik(playerId, buyType.Id);
-            var resourceTypeId = 1;
-            var beforeResourceValue = GetResources(playerId).First(x => x.Type.Id == resourceTypeId).Value;
-            StartManufacture(playerId, 1, resourceTypeId);
-            var afterResourceValue = GetResources(playerId).First(x => x.Type.Id == resourceTypeId).Value;
-            Assert.That(afterResourceValue, Is.EqualTo(beforeResourceValue + 1));
+            var clayMineId = 5;
+            BuyDomik(playerId, clayMineId);
+            var clayResourceTypeId = 4;
+            var clayDigReceiptId = 1;
+            StartManufacture(playerId, 1, clayDigReceiptId);
+            var afterResourceValue = GetResources(playerId).First(x => x.Type.Id == clayResourceTypeId).Value;
+            Assert.That(afterResourceValue, Is.EqualTo(1));
         }
 
         private int GetPlayerId()
@@ -231,12 +228,12 @@ namespace Domiki.Web.Tests
                 uow.Commit();
             }
         }
-        private void StartManufacture(int playerId, int domikId, int resourceTypeId)
+        private void StartManufacture(int playerId, int domikId, int receiptId)
         {
             using (var uow = GetUow())
             {
                 var domikManager = GetDomikManager(uow);
-                domikManager.StartManufacture(playerId, domikId, resourceTypeId);
+                domikManager.StartManufacture(playerId, domikId, receiptId);
                 uow.Commit();
             }
         }

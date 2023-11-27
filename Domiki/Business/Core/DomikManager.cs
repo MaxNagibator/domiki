@@ -1,4 +1,5 @@
 ﻿using Domiki.Web.Business.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Domiki.Web.Business.Core
 {
@@ -24,11 +25,7 @@ namespace Domiki.Web.Business.Core
                 dbPlayer.AspNetUserId = aspNetUserId;
                 dbPlayer.Name = "Держатель домиков";
                 _context.Players.Add(dbPlayer);
-
-                foreach (var resourceType in GetResourceTypes())
-                {
-                    _context.Resources.Add(new Data.Resource { TypeId = resourceType.Id, Player = dbPlayer, Value = 1000 });
-                }
+                 _context.Resources.Add(new Data.Resource { TypeId = 1, Player = dbPlayer, Value = 1000 });
 
                 _context.SaveChanges();
             }
@@ -54,11 +51,12 @@ namespace Domiki.Web.Business.Core
         {
             var manufactureGroups = _context.Manufactures.Where(x => x.DomikPlayerId == playerId)
                 .ToArray().GroupBy(x => x.DomikId);
+            var domikTypes = GetDomikTypes();
             return _context.Domiks.Where(x => x.PlayerId == playerId).ToArray().Select(domik =>
                 new Domik
                 {
                     Id = domik.Id,
-                    Type = GetDomikTypes().First(y => y.Id == domik.TypeId),
+                    Type = domikTypes.First(y => y.Id == domik.TypeId),
                     Level = domik.Level,
                     FinishDate = domik.UpgradeSeconds == null ? null : (domik.UpgradeCalculateDate.Value.AddSeconds((int)domik.UpgradeSeconds)),
                     Manufactures = manufactureGroups.FirstOrDefault(m => m.Key == domik.Id)?.Select(x => new Manufacture
@@ -73,14 +71,45 @@ namespace Domiki.Web.Business.Core
 
         public IEnumerable<DomikType> GetDomikTypes()
         {
-            return null;
-            //return StaticEntities.DomikTypes;
+            var modificators = _context.DomikTypeLevelModificators.ToArray();
+            var recepts = _context.DomikTypeLevelRecepts.ToArray();
+            var resources = _context.DomikTypeLevelResources.ToArray();
+            var domikTypes = _context.DomikTypes.Include(x => x.Levels).ToArray().Select(domikType => new DomikType
+            {
+                Id = domikType.Id,
+                LogicName = domikType.LogicName,
+                Name = domikType.Name,
+                MaxCount = domikType.MaxCount,
+                Levels = domikType.Levels.Select(level => new UpgradeLevel
+                {
+                    Value = level.Value,
+                    UpgradeSeconds = level.UpgradeSeconds,
+                    Modificators = modificators
+                        .Where(m => m.DomikTypeLevelDomikTypeId == domikType.Id
+                            && m.DomikTypeLevelValue == level.Value)
+                        .Select(x => new Modificator { Type = new ModificatorType { Id = x.ModificatorTypeId } }).ToArray(),
+                    Receipts = recepts
+                        .Where(m => m.DomikTypeLevelDomikTypeId == domikType.Id
+                            && m.DomikTypeLevelValue == level.Value)
+                        .Select(x => new Receipt { Id = x.ReceiptId }).ToArray(),
+                    Resources = resources
+                        .Where(m => m.DomikTypeLevelDomikTypeId == domikType.Id
+                            && m.DomikTypeLevelValue == level.Value)
+                        .Select(x => new Resource { Type = new ResourceType { Id = x.ResourceTypeId }, Value = x.Value }).ToArray(),
+                }).ToArray(),
+            }).ToArray();
+            return domikTypes;
         }
 
         public IEnumerable<ModificatorType> GetModificatorTypes()
         {
-            return null;
-            //return StaticEntities.ModificatorTypes;
+            var modificatorTypes = _context.ModificatorTypes.Select(x => new ModificatorType
+            {
+                Id = x.Id,
+                LogicName = x.LogicName,
+                Name = x.Name,
+            }).ToArray();
+            return modificatorTypes;
         }
 
         public void BuyDomik(int playerId, int typeId)
@@ -170,8 +199,27 @@ namespace Domiki.Web.Business.Core
 
         public IEnumerable<Receipt> GetReceipts()
         {
-            return null;
-            //return StaticEntities.Receipts;
+            var receipts = _context.Receipts.Include(x => x.Resources).Select(x => new Receipt
+            {
+                Id = x.Id,
+                LogicName = x.LogicName,
+                Name = x.Name,
+                PlodderCount = x.PlodderCount,
+                DurationsSeconds = x.DurationsSeconds,
+                InputResources = x.Resources.Where(x => x.IsInput)
+                    .Select(x => new Resource
+                    {
+                        Type = new ResourceType { Id = x.ResourceTypeId },
+                        Value = x.Value
+                    }).ToArray(),
+                OutputResources = x.Resources.Where(x => !x.IsInput)
+                    .Select(x => new Resource
+                    {
+                        Type = new ResourceType { Id = x.ResourceTypeId },
+                        Value = x.Value
+                    }).ToArray(),
+            }).ToArray();
+            return receipts;
         }
 
         // пессимистичная блокировка строки в БД, для борьбы с конкурентными потоками
@@ -232,7 +280,8 @@ namespace Domiki.Web.Business.Core
             var needPlodderCount = 1;
             var dbDomik = _context.Domiks.First(x => x.PlayerId == playerId && x.Id == domikId);
             var domikLevel = GetDomikTypes().First(x => x.Id == dbDomik.TypeId).Levels.First(x => x.Value == dbDomik.Level);
-            var receipt = domikLevel.Receipts.First(x => x.Id == receiptId);
+            var levelReceipt = domikLevel.Receipts.First(x => x.Id == receiptId);
+            var receipt = GetReceipts().First(x => x.Id == levelReceipt.Id);
 
             var manufacture = new Data.Manufacture
             {
