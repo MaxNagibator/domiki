@@ -1,4 +1,5 @@
 ﻿using Domiki.Web.Business.Models;
+using System.Linq;
 
 namespace Domiki.Web.Business.Core
 {
@@ -53,7 +54,7 @@ namespace Domiki.Web.Business.Core
             var manufactureGroups = _context.Manufactures.Where(x => x.DomikPlayerId == playerId)
                 .ToArray().GroupBy(x => x.DomikId);
             var domikTypes = _resourceManager.GetDomikTypes();
-            return _context.Domiks.Where(x => x.PlayerId == playerId).ToArray().Select(domik =>
+            return _context.Domiks.Where(x => x.PlayerId == playerId).OrderBy(x => x.Id).ToArray().Select(domik =>
                 new Domik
                 {
                     Id = domik.Id,
@@ -72,7 +73,6 @@ namespace Domiki.Web.Business.Core
 
         public void BuyDomik(int playerId, int typeId)
         {
-            // todo покупать домики за ресурсики
             _context.Players.First(x => x.Id == playerId).Version = Guid.NewGuid();
             var available = GetPurchaseAvailableDomiks(playerId);
             if (available.Any(x => x.Id == typeId))
@@ -203,14 +203,15 @@ namespace Domiki.Web.Business.Core
 
             LockDbPlayerRow(playerId);
 
-            // todo что в домик влезет столько рабочих
+            var dbManufactures = _context.Manufactures.Where(x => x.DomikPlayerId == playerId);
+            var currentPlodderCount = dbManufactures.Sum(x => x.PlodderCount);
+            var currentManufactureCount = dbManufactures.Where(x => x.DomikId == domikId).Count();
 
-            var currentPlodderCount = _context.Manufactures.Where(x => x.DomikPlayerId == playerId).Sum(x => x.PlodderCount);
             var needPlodderCount = 1;
             var domiks = _context.Domiks.ToArray();
             var domikTypes = _resourceManager.GetDomikTypes();
             var maxPlodderCount = 0;
-            foreach ( var domik in domiks)
+            foreach (var domik in domiks)
             {
                 var domikType = domikTypes.First(x => x.Id == domik.TypeId);
                 var level = domikType.Levels.First(x => x.Value == domik.Level);
@@ -219,13 +220,17 @@ namespace Domiki.Web.Business.Core
                 maxPlodderCount += modificatorValue;
             }
 
-            var dbDomik = _context.Domiks.First(x => x.PlayerId == playerId && x.Id == domikId);
+            var dbDomik = domiks.First(x => x.PlayerId == playerId && x.Id == domikId);
             var domikLevel = domikTypes.First(x => x.Id == dbDomik.TypeId).Levels.First(x => x.Value == dbDomik.Level);
             var levelReceipt = domikLevel.Receipts.First(x => x.Id == receiptId);
             var receipt = _resourceManager.GetReceipts().First(x => x.Id == levelReceipt.Id);
-            if(currentPlodderCount + needPlodderCount > maxPlodderCount)
+            if (currentPlodderCount + needPlodderCount > maxPlodderCount)
             {
                 throw new BusinessException("Недостаточно трудяг");
+            }
+            if (domikLevel.MaxManufactureCount < currentManufactureCount + 1)
+            {
+                throw new BusinessException("Максимальное количество одновременных производств");
             }
 
             var manufacture = new Data.Manufacture

@@ -16,9 +16,8 @@ namespace Domiki.Web.Data
 
         public int UpgradeSeconds { get; set; }
 
-        public DomikType DomikType { get; set; }
+        public int MaxManufactureCount { get; set; }
 
-        //                    Resources = new Resource[]
-        //                    Modificators = new Modificator[]
+        public DomikType DomikType { get; set; }
     }
 }

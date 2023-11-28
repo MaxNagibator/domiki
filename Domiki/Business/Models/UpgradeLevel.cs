@@ -26,5 +26,10 @@
         /// Что можно производить в постройке.
         /// </summary>
         public Receipt[] Receipts { get; set; } = new Receipt[0];
+
+        /// <summary>
+        /// Сколько одновременно производств можно запустить в постройке.
+        /// </summary>
+        public int MaxManufactureCount { get; set; }
     }
 }

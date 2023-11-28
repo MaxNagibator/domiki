@@ -89,6 +89,7 @@ namespace Domiki.Web.Business.Core
                     {
                         Value = level.Value,
                         UpgradeSeconds = level.UpgradeSeconds,
+                        MaxManufactureCount = level.MaxManufactureCount,
                         Modificators = modificators
                             .Where(m => m.DomikTypeLevelDomikTypeId == domikType.Id
                                 && m.DomikTypeLevelValue == level.Value)
