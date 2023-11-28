@@ -203,14 +203,30 @@ namespace Domiki.Web.Business.Core
 
             LockDbPlayerRow(playerId);
 
-            // todo проверка что есть нужное количество рабочих
             // todo что в домик влезет столько рабочих
 
+            var currentPlodderCount = _context.Manufactures.Where(x => x.DomikPlayerId == playerId).Sum(x => x.PlodderCount);
             var needPlodderCount = 1;
+            var domiks = _context.Domiks.ToArray();
+            var domikTypes = _resourceManager.GetDomikTypes();
+            var maxPlodderCount = 0;
+            foreach ( var domik in domiks)
+            {
+                var domikType = domikTypes.First(x => x.Id == domik.TypeId);
+                var level = domikType.Levels.First(x => x.Value == domik.Level);
+                var plodderModificatorId = 1;
+                var modificatorValue = level.Modificators.FirstOrDefault(x => x.Type.Id == plodderModificatorId)?.Value ?? 0;
+                maxPlodderCount += modificatorValue;
+            }
+
             var dbDomik = _context.Domiks.First(x => x.PlayerId == playerId && x.Id == domikId);
-            var domikLevel = _resourceManager.GetDomikTypes().First(x => x.Id == dbDomik.TypeId).Levels.First(x => x.Value == dbDomik.Level);
+            var domikLevel = domikTypes.First(x => x.Id == dbDomik.TypeId).Levels.First(x => x.Value == dbDomik.Level);
             var levelReceipt = domikLevel.Receipts.First(x => x.Id == receiptId);
             var receipt = _resourceManager.GetReceipts().First(x => x.Id == levelReceipt.Id);
+            if(currentPlodderCount + needPlodderCount > maxPlodderCount)
+            {
+                throw new BusinessException("Недостаточно трудяг");
+            }
 
             var manufacture = new Data.Manufacture
             {

@@ -92,7 +92,7 @@ namespace Domiki.Web.Business.Core
                         Modificators = modificators
                             .Where(m => m.DomikTypeLevelDomikTypeId == domikType.Id
                                 && m.DomikTypeLevelValue == level.Value)
-                            .Select(x => new Modificator { Type = new ModificatorType { Id = x.ModificatorTypeId } }).ToArray(),
+                            .Select(x => new Modificator { Type = new ModificatorType { Id = x.ModificatorTypeId }, Value = x.Value }).ToArray(),
                         Receipts = recepts
                             .Where(m => m.DomikTypeLevelDomikTypeId == domikType.Id
                                 && m.DomikTypeLevelValue == level.Value)

@@ -60,7 +60,8 @@ export const DomikiPage = () => {
     }, [domiks]);
 
     useEffect(() => {
-        let plodderCount = 0;
+        let maxPlodderCount = 0;
+        let workingPlodderCount = 0;
         if (domikTypes != null && domikTypes.length > 0 && domiks != null && domiks.items != null) {
             domiks.items.forEach(function (domik) {
                 let domikType = domikTypes.filter(x => x.id === domik.typeId)[0];
@@ -69,12 +70,18 @@ export const DomikiPage = () => {
                     let plodderTypeId = 1;
                     let modificators = domiklevel.modificators.filter(x => x.typeId === plodderTypeId);
                     if (modificators.length > 0) {
-                        plodderCount += modificators[0].value;
+                        maxPlodderCount += modificators[0].value;
                     }
+                }
+                if (domik.manufactures != null) {
+                    domik.manufactures.forEach(function (manufacture) {
+                        workingPlodderCount += manufacture.plodderCount;
+                    });
                 }
             });
         }
-        setPlodderCount(plodderCount);
+
+        setPlodderCount({ max: maxPlodderCount, free: maxPlodderCount - workingPlodderCount });
         selectDomik(selectedDomikId);
 
     }, [domiks, domikTypes]);
@@ -256,7 +263,7 @@ export const DomikiPage = () => {
                 {plodderCount != null &&
                     <div>
                         <img src="/images/modificatorTypes/plodder.png" alt="Трудяги"></img>
-                        <label>{plodderCount}</label>
+                        <label>{plodderCount.free}/{plodderCount.max}</label>
                     </div>
                 }
             </div>
