@@ -54,7 +54,7 @@ namespace Domiki.Web.Business.Core
             var manufactureGroups = _context.Manufactures.Where(x => x.DomikPlayerId == playerId)
                 .ToArray().GroupBy(x => x.DomikId);
             var domikTypes = _resourceManager.GetDomikTypes();
-            return _context.Domiks.Where(x => x.PlayerId == playerId).OrderBy(x => x.Id).ToArray().Select(domik =>
+            return _context.Domiks.Where(x => x.PlayerId == playerId).OrderBy(x => x.TypeId).ThenBy(x => x.Id).ToArray().Select(domik =>
                 new Domik
                 {
                     Id = domik.Id,
