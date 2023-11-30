@@ -7,7 +7,7 @@
         public string LogicName { get; set; }
 
         public Resource[] InputResources { get; set; }
-        public int DurationsSeconds { get; set; }
+        public int DurationSeconds { get; set; }
         public Resource[] OutputResources { get; set; }
         public int PlodderCount { get; set; }
     }

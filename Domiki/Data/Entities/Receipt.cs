@@ -14,7 +14,7 @@ namespace Domiki.Web.Data
 
         public string LogicName { get; set; }
 
-        public int DurationsSeconds { get; set; }
+        public int DurationSeconds { get; set; }
 
         public int PlodderCount { get; set; }
 

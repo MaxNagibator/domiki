@@ -12,7 +12,7 @@ namespace Domiki.Web.Models
                 Name = res.Name,
                 LogicName = res.LogicName,
                 InputResources = res.InputResources.Select(x=> x.ToDto()).ToArray(),
-                DurationsSeconds = res.DurationsSeconds,
+                DurationSeconds = res.DurationSeconds,
                 OutputResources = res.OutputResources.Select(x => x.ToDto()).ToArray(),
                 PlodderCount = res.PlodderCount,
             };

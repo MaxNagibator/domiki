@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import authService from './api-authorization/AuthorizeService'
 import { ResourcesBox } from './ResourcesBox';
 import { UpgradeBox } from './UpgradeBox';
+import { ManufactureBox } from './ManufactureBox';
 
 export const DomikiPage = () => {
     const [domiks, setDomiks] = useState({});
@@ -106,7 +107,8 @@ export const DomikiPage = () => {
                     let date = new Date();
                     let seconds = (new Date(domik.finishDate).getTime() - date.getTime()) / 1000;
                     let time = getTimeFromSecond(seconds);
-                    domik.durationSeconds = time;
+                    domik.durationSecondsText = time;
+                    domik.durationSeconds = seconds;
                     if (seconds <= 0) {
                         getDomiks();
                         return false;
@@ -117,7 +119,8 @@ export const DomikiPage = () => {
                         let date = new Date();
                         let seconds = (new Date(manufacture.finishDate).getTime() - date.getTime()) / 1000;
                         let time = getTimeFromSecond(seconds);
-                        manufacture.durationSeconds = time;
+                        manufacture.durationSecondsText = time;
+                        manufacture.durationSeconds = seconds;
                         if (seconds <= 0) {
                             getDomiks();
                             return false;
@@ -290,7 +293,7 @@ export const DomikiPage = () => {
                                 <div key={index} className="domik-box" onClick={() => selectDomik(domik.id)}>
                                     <img src={image} alt={domikType.name} />
                                     <div className="break" />
-                                    <UpgradeBox durationSeconds={domik.durationSeconds} level={domik.level} />
+                                    <UpgradeBox durationSeconds={domik.durationSecondsText} level={domik.level} />
                                     <div className="break" />
                                     {domik.level < domikType.maxLevel &&
                                         <button onClick={() => upgrade(domik.id)}>улучшить</button>
@@ -319,10 +322,9 @@ export const DomikiPage = () => {
                         <label>Текущие производство:</label>
                         {selectedDomik != null && selectedDomik.manufactures != null && receipts != null &&
                             selectedDomik.manufactures.map((manufacture, index) => {
-                                let receipt = receipts.filter(x => x.id === manufacture.receiptId)[0];
                                 return (
                                     <div key={index}>
-                                        <label>{receipt.name} {manufacture.plodderCount} {manufacture.durationSeconds}</label>
+                                        <ManufactureBox manufacture={manufacture} receipts={receipts}></ManufactureBox>
                                     </div>
                                 );
                             })

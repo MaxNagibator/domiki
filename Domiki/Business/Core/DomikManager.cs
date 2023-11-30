@@ -238,7 +238,7 @@ namespace Domiki.Web.Business.Core
                 DomikId = domikId,
                 DomikPlayerId = playerId,
                 ReceiptId = receiptId,
-                FinishDate = date.AddSeconds(receipt.DurationsSeconds),
+                FinishDate = date.AddSeconds(receipt.DurationSeconds),
                 PlodderCount = needPlodderCount,
             };
             _context.Manufactures.Add(manufacture);

@@ -54,7 +54,7 @@ namespace Domiki.Web.Business.Core
                     LogicName = x.LogicName,
                     Name = x.Name,
                     PlodderCount = x.PlodderCount,
-                    DurationsSeconds = x.DurationsSeconds,
+                    DurationSeconds = x.DurationSeconds,
                     InputResources = x.Resources.Where(x => x.IsInput)
                         .Select(x => new Resource
                         {
