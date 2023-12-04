@@ -161,11 +161,18 @@ namespace Domiki.Web.Tests
             var playerId = GetPlayerId();
             var clayMineId = 5;
             BuyDomik(playerId, clayMineId);
+            var coinResourceTypeId = 1;
             var clayResourceTypeId = 4;
             var clayDigReceiptId = 1;
+            var beforeResources = GetResources(playerId);
+            var beforeCointResourceValue = beforeResources.First(x => x.Type.Id == coinResourceTypeId).Value;
             StartManufacture(playerId, 1, clayDigReceiptId);
-            var afterResourceValue = GetResources(playerId).First(x => x.Type.Id == clayResourceTypeId).Value;
-            Assert.That(afterResourceValue, Is.EqualTo(1));
+            var afterResources = GetResources(playerId);
+            var afterClayResourceValue = afterResources.First(x => x.Type.Id == clayResourceTypeId).Value;
+            var afterCointResourceValue = afterResources.First(x => x.Type.Id == coinResourceTypeId).Value;
+            var coinDiff = afterCointResourceValue - beforeCointResourceValue;
+            Assert.That(afterClayResourceValue, Is.EqualTo(1));
+            Assert.That(coinDiff, Is.EqualTo(-1));
         }
 
         private int GetPlayerId()

@@ -165,12 +165,12 @@ namespace Domiki.Web.Business.Core
                 var dbResource = dbResources.FirstOrDefault(x => x.TypeId == domikNeedResource.Type.Id);
                 if (dbResource == null)
                 {
-                    throw new BusinessException("Недостаточно " + domikNeedResource.Type);
+                    throw new BusinessException("Недостаточно " + domikNeedResource.Type.Name);
                 }
                 dbResource.Value -= domikNeedResource.Value;
                 if (dbResource.Value < 0)
                 {
-                    throw new BusinessException("Недостаточно " + domikNeedResource.Type);
+                    throw new BusinessException("Недостаточно " + domikNeedResource.Type.Name);
                 }
             }
         }
@@ -232,6 +232,8 @@ namespace Domiki.Web.Business.Core
             {
                 throw new BusinessException("Максимальное количество одновременных производств");
             }
+
+            WriteOffResources(playerId, receipt.InputResources);
 
             var manufacture = new Data.Manufacture
             {
