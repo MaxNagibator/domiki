@@ -54,9 +54,19 @@ code {
             max-height: 64px;
         }
 
+        .domiks .domik-box .manufacture-icon {
+            width: 32px;
+            height: 32px;
+        }
+
 .purchase-box {
-    margin-top: 40px;
+    display: flex;
 }
+    .purchase-box .domik-box {
+        width: 100px;
+        display: flex;
+        flex-wrap: wrap;
+    }
 
 .resources {
     display: flex;
@@ -116,3 +126,7 @@ progress {
     progress::-moz-progress-bar {
         background-color: #7cc4ff;
     }
+
+.hidden {
+    display: none;
+}
