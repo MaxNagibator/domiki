@@ -89,7 +89,7 @@ export const DomikiPage = () => {
 
     useEffect(() => {
         let selectedDomikReceipts = [];
-        if (selectedDomik != null && receipts.length > 0) {
+        if (selectedDomik != null && receipts.length > 0 && selectedDomik.level > 0) {
             let domikType = domikTypes.filter(x => x.id === selectedDomik.typeId)[0];
             let domikLevel = domikType.levels.filter(x => x.value === selectedDomik.level)[0];
             domikLevel.receiptIds.forEach(function (receiptId) {
