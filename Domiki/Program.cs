@@ -33,7 +33,7 @@ builder.Services.AddIdentityServer()
 
 builder.Services.AddAuthentication()
     .AddIdentityServerJwt();
-builder.Services.Configure<JwtBearerOptions>("IdentityServerJwtBearer", o => o.Authority = "https://localhost:44444");
+//builder.Services.Configure<JwtBearerOptions>("IdentityServerJwtBearer", o => o.Authority = "https://localhost:44444"/*"https://domiki.bob217.ru"*/);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
@@ -71,9 +71,9 @@ app.MapControllerRoute(
 app.MapRazorPages();
 
 app.MapFallbackToFile("index.html");
-app.UseCors(
-    options => options.WithOrigins("https://localhost:44444").AllowAnyHeader().AllowAnyMethod().AllowCredentials()
-);
+//app.UseCors(
+//    options => options.WithOrigins("https://localhost:44444"/*"https://domiki.bob217.ru"*/).AllowAnyHeader().AllowAnyMethod().AllowCredentials()
+//);
 
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<UnitOfWorkMiddleware>();

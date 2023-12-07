@@ -263,7 +263,7 @@ export const DomikiPage = () => {
             method: method,
             headers: !token ? {} : { 'Authorization': `Bearer ${token}` }
         };
-        fetch('https://localhost:7146/' + url, requestOptions)
+        fetch(url, requestOptions)
             .then((res) => res.json())
             .then((data) => {
                 if (data.type === 2) {
