@@ -139,6 +139,7 @@ export const DomikiPage = () => {
                         manufacture.durationSeconds = seconds;
                         if (seconds <= 0) {
                             getDomiks();
+                            getResources();
                             return false;
                         }
                     });
