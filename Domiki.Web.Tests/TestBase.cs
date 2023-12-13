@@ -27,9 +27,9 @@ namespace Domiki.Web.Tests
             return uow;
         }
 
-        public DomikManager GetDomikManager(UnitOfWork uow)
+        public DomikManager GetDomikManager(UnitOfWork uow, bool calculatorJustFinishMode = true)
         {
-            var domikManager = new DomikManager(uow, uow.Context, GetCalculator(), new ResourceManager(uow.Context));
+            var domikManager = new DomikManager(uow, uow.Context, GetCalculator(calculatorJustFinishMode), new ResourceManager(uow.Context));
             return domikManager;
         }
 
@@ -39,9 +39,9 @@ namespace Domiki.Web.Tests
             return manager;
         }
 
-        private ICalculator GetCalculator()
+        private ICalculator GetCalculator(bool justFinishMode = true)
         {
-            return new TestCalculator(() => GetUow(), (UnitOfWork uow) => { return new CalculatorTick(GetDomikManager(uow)); });
+            return new TestCalculator(() => GetUow(), (UnitOfWork uow) => { return new CalculatorTick(GetDomikManager(uow)); }, justFinishMode);
         }
 
         public static IConfiguration InitConfiguration()

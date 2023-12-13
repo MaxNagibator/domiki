@@ -1,4 +1,5 @@
 using Domiki.Web.Business;
+using Domiki.Web.Business.Core;
 using Domiki.Web.Business.Models;
 
 namespace Domiki.Web.Tests
@@ -160,7 +161,9 @@ namespace Domiki.Web.Tests
         {
             var playerId = GetPlayerId();
             var clayMineId = 5;
+            var barakTypeId = 2;
             BuyDomik(playerId, clayMineId);
+            BuyDomik(playerId, barakTypeId);
             var coinResourceTypeId = 1;
             var clayResourceTypeId = 4;
             var clayDigReceiptId = 1;
@@ -173,6 +176,25 @@ namespace Domiki.Web.Tests
             var coinDiff = afterCointResourceValue - beforeCointResourceValue;
             Assert.That(afterClayResourceValue, Is.EqualTo(1));
             Assert.That(coinDiff, Is.EqualTo(-1));
+        }
+
+        /// <summary>
+        /// Один барак даёт место одному рабочему, нельзя запустить два производства с одним рабочим.
+        /// </summary>
+        [Test]
+        public void MaxWorkerCountTest()
+        {
+            var playerId = GetPlayerId();
+            var clayMineTypeId = 5;
+            var barakTypeId = 2;
+            BuyDomik(playerId, barakTypeId);
+            BuyDomik(playerId, clayMineTypeId);
+            BuyDomik(playerId, clayMineTypeId);
+            var clayDigReceiptId = 1;
+            var clayMineId3 = 2;
+            var clayMineId2 = 3;
+            StartManufacture(playerId, clayMineId2, clayDigReceiptId, false);
+            Assert.Throws<BusinessException>(() => StartManufacture(playerId, clayMineId3, clayDigReceiptId, false), "Exception not throw");
         }
 
         private int GetPlayerId()
@@ -235,11 +257,11 @@ namespace Domiki.Web.Tests
                 uow.Commit();
             }
         }
-        private void StartManufacture(int playerId, int domikId, int receiptId)
+        private void StartManufacture(int playerId, int domikId, int receiptId, bool calculatorJustFinishMod = true)
         {
             using (var uow = GetUow())
             {
-                var domikManager = GetDomikManager(uow);
+                var domikManager = GetDomikManager(uow, calculatorJustFinishMod);
                 domikManager.StartManufacture(playerId, domikId, receiptId);
                 uow.Commit();
             }

@@ -208,7 +208,7 @@ namespace Domiki.Web.Business.Core
             var currentManufactureCount = dbManufactures.Where(x => x.DomikId == domikId).Count();
 
             var needPlodderCount = 1;
-            var domiks = _context.Domiks.ToArray();
+            var domiks = _context.Domiks.Where(x=>x.PlayerId == playerId).ToArray();
             var domikTypes = _resourceManager.GetDomikTypes();
             var maxPlodderCount = 0;
             foreach (var domik in domiks)

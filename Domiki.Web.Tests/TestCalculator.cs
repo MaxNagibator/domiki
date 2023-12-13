@@ -8,15 +8,25 @@ namespace Domiki.Web.Tests
     {
         private Func<UnitOfWork> _uowFactory;
         private Func<UnitOfWork, CalculatorTick> _calculatorTickFactory;
+        /// <summary>
+        /// Все события обсчитываются моментально.
+        /// </summary>
+        private bool _justFinishMode;
 
-        public TestCalculator(Func<UnitOfWork> uowFactory, Func<UnitOfWork, CalculatorTick> calculatorTickFactory)
+        public TestCalculator(Func<UnitOfWork> uowFactory, Func<UnitOfWork, CalculatorTick> calculatorTickFactory, bool justFinishMode = true)
         {
             _uowFactory = uowFactory;
             _calculatorTickFactory = calculatorTickFactory;
+            _justFinishMode = justFinishMode;
         }
 
         public void Insert(CalculateInfo calcDate)
         {
+            if (!_justFinishMode)
+            {
+                return;
+            }
+
             using (var uow = _uowFactory())
             {
                 CalculatorTick calculatorTick = _calculatorTickFactory(uow);
