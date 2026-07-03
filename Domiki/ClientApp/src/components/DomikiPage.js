@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import authService from './api-authorization/AuthorizeService'
 import { ResourcesBox } from './ResourcesBox';
 import { UpgradeBox } from './UpgradeBox';
@@ -379,16 +379,20 @@ export const DomikiPage = () => {
                     </div>
                 </div>
             </div>
-            {purchaseDomikTypes != null && purchaseDomikTypes.length > 0 &&
+            {purchaseDomikTypes != null &&
                 <div style={{ marginTop:"10px"}} >
                     <button onClick={() => showPurchaseDomikWindow()}>Магазин</button>
                     <div className="purchase-box">
+                        {purchaseDomikTypesVisible === true && purchaseDomikTypes.length === 0 &&
+                            <span>Магазин пуст</span>
+                        }
                         {purchaseDomikTypesVisible === true &&
                             purchaseDomikTypes.map((purchaseDomikType, index) => {
                                 let image = "/images/domikTypes/" + purchaseDomikType.logicName + ".png";
                                 return (
                                     <div key={index} className="domik-box">
                                         <img src={image} alt={purchaseDomikType.name} />
+                                        <span>Доступно: {purchaseDomikType.availableCount}/{purchaseDomikType.maxCount}</span>
                                         <ResourcesBox resources={purchaseDomikType.levels[0].resources} resourceTypes={resourceTypes} />
                                         <button onClick={() => buy(purchaseDomikType.id)}>купить</button>
                                     </div>
