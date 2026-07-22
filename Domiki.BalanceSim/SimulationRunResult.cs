@@ -19,4 +19,7 @@ public sealed class SimulationRunResult
     public int ActionsFirst15Min { get; set; }
     public int InfeasibleOrdersDay1 { get; set; }
     public int GoalsCompleted48h { get; set; }
+    public long TotalWorkerSeconds { get; set; }
+    public int ManufactureStartCount { get; set; }
+    public int ClampFireCount { get; set; }
 }

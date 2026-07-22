@@ -21,6 +21,7 @@ using SickType = Domiki.Web.Village.Models.SickType;
 using TolokaType = Domiki.Web.Activities.Models.TolokaType;
 using TolokaTypePosition = Domiki.Web.Activities.Models.TolokaTypePosition;
 using Trait = Domiki.Web.Workers.Models.Trait;
+using VillageProfileEffect = Domiki.Web.Village.Models.VillageProfileEffect;
 using WeatherType = Domiki.Web.Village.Models.WeatherType;
 using WeatherTypeEffect = Domiki.Web.Village.Models.WeatherTypeEffect;
 
@@ -54,6 +55,7 @@ public class ResourceManager
         public required DomikType[] DomikTypes { get; init; }
         public required DomikTypeCountGate[] DomikTypeCountGates { get; init; }
         public required Neighbor[] Neighbors { get; init; }
+        public required VillageProfileEffect[] VillageProfileEffects { get; init; }
         public required Trait[] Traits { get; init; }
         public required WeatherType[] WeatherTypes { get; init; }
         public required SickType[] SickTypes { get; init; }
@@ -129,6 +131,7 @@ public class ResourceManager
             DomikTypes = LoadDomikTypes(context),
             DomikTypeCountGates = LoadDomikTypeCountGates(context),
             Neighbors = LoadNeighbors(context),
+            VillageProfileEffects = LoadVillageProfileEffects(context),
             Traits = LoadTraits(context),
             WeatherTypes = LoadWeatherTypes(context),
             SickTypes = LoadSickTypes(context),
@@ -172,6 +175,12 @@ public class ResourceManager
     public Receipt[] GetReceipts() => Data.Receipts;
 
     public Neighbor[] GetNeighbors() => Data.Neighbors;
+
+    /// <summary>
+    /// Возвращает справочник уклада деревни.
+    /// </summary>
+    /// <returns>Все строки эффекта уклада по соседям и типам построек их специализации.</returns>
+    public VillageProfileEffect[] GetVillageProfileEffects() => Data.VillageProfileEffects;
 
     public Blueprint[] GetBlueprints() => Data.Blueprints;
 
@@ -295,6 +304,17 @@ public class ResourceManager
                 DomikTypeId = x.DomikTypeId,
                 NeighborId = x.NeighborId,
                 ReputationThreshold = x.ReputationThreshold,
+            })
+            .ToArray();
+    }
+
+    private static VillageProfileEffect[] LoadVillageProfileEffects(ApplicationDbContext context)
+    {
+        return context.VillageProfileEffects.Select(x => new VillageProfileEffect
+            {
+                NeighborId = x.NeighborId,
+                DomikTypeId = x.DomikTypeId,
+                DurationPercent = x.DurationPercent,
             })
             .ToArray();
     }

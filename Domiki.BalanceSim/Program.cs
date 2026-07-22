@@ -28,6 +28,14 @@ if (args.Contains("--ftue", StringComparer.OrdinalIgnoreCase))
 {
     Console.WriteLine(new FtueReport(simulator.RunFtue()).Render());
 }
+else if (args.Contains("--profiles", StringComparer.OrdinalIgnoreCase))
+{
+    var configs = new (string Label, int? NeighborId)[] { ("Без уклада", null) }
+        .Concat(data.Neighbors.Select(n => (Label: n.Name, NeighborId: (int?)n.Id)))
+        .Select(config => (config.Label, config.NeighborId, Report: simulator.Run(config.NeighborId)))
+        .ToArray();
+    Console.WriteLine(new ProfileComparisonReport(data, configs).Render());
+}
 else
 {
     var report = simulator.Run();

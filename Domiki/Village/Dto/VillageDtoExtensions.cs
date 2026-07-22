@@ -11,6 +11,7 @@ public static class VillageDtoExtensions
             VillageName = village.VillageName,
             CrestIcon = village.CrestIcon,
             CrestColor = village.CrestColor,
+            ProfileNeighborId = village.ProfileNeighborId,
         };
     }
 }

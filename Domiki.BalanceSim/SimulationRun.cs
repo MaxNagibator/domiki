@@ -34,6 +34,7 @@ internal sealed class SimulationRun
     private readonly SimulationData _data;
     private readonly ScenarioKind _scenario;
     private readonly bool _ftue;
+    private readonly int? _profileNeighborId;
     private readonly int _horizonSeconds;
     private readonly Random _random;
     private readonly PriorityQueue<SimulationEvent, EventPriority> _events = new();
@@ -44,11 +45,12 @@ internal sealed class SimulationRun
     private int _lastActionTime;
     private bool _finished;
 
-    public SimulationRun(SimulationData data, ScenarioKind scenario, int seed, bool ftue = false)
+    public SimulationRun(SimulationData data, ScenarioKind scenario, int seed, bool ftue = false, int? profileNeighborId = null)
     {
         _data = data;
         _scenario = scenario;
         _ftue = ftue;
+        _profileNeighborId = profileNeighborId;
         _horizonSeconds = ftue ? FtueHorizonSeconds : DefaultHorizonSeconds;
         _random = new Random(seed);
         _result = new SimulationRunResult
@@ -774,7 +776,20 @@ internal sealed class SimulationRun
         duration = (int)Math.Ceiling(duration * (100 - averageTraitSpeedup) / 100);
         var averageSkillSpeedup = workers.Average(x => WorkerSkillCalculator.GetBonusPercent(x.Skills.GetValueOrDefault(domikTypeId)));
         duration = (int)Math.Ceiling(duration * (100 - averageSkillSpeedup) / 100);
-        return Math.Max(duration, (int)Math.Ceiling(receipt.DurationSeconds * 0.6));
+
+        var profilePercent = _profileNeighborId is int neighborId && IsProfileActive(neighborId)
+            ? _data.VillageProfileDurationPercentByKey.GetValueOrDefault((neighborId, domikTypeId), 100)
+            : 100;
+        duration = (int)Math.Ceiling(duration * profilePercent / 100.0);
+
+        var flooredDuration = (int)Math.Ceiling(receipt.DurationSeconds * 0.6);
+        _result.ManufactureStartCount++;
+        if (duration < flooredDuration)
+        {
+            _result.ClampFireCount++;
+        }
+
+        return Math.Max(duration, flooredDuration);
     }
 
     private void FinishManufacture(SimManufacture manufacture)
@@ -1090,6 +1105,12 @@ internal sealed class SimulationRun
         return VillageLevelCalculator.ComputeLevel(buildings, residents, reputationMilestones, 0);
     }
 
+    private bool IsProfileActive(int neighborId)
+    {
+        return GetVillageLevel() >= VillageProfileManager.VillageLevelRequirement
+               && GetReputation(neighborId) >= VillageProfileManager.ReputationRequirement;
+    }
+
     private int GetCapacity()
     {
         return _state.Domiks.Where(x => x.Level > 0).Sum(x => GetCapacity(x.Type, GetDomikLevel(x)));
@@ -1173,6 +1194,8 @@ internal sealed class SimulationRun
             _result.IdleShare = _state.FreeWorkerSeconds / (double)_state.TotalWorkerSeconds;
             _result.RestShare = _state.RestWorkerSeconds / (double)_state.TotalWorkerSeconds;
         }
+
+        _result.TotalWorkerSeconds = _state.TotalWorkerSeconds;
     }
 
     private bool RequiresBlueprint(DomikType type)

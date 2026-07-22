@@ -19,6 +19,14 @@ public sealed record VillageDto
     /// Индекс цвета герба из готового набора.
     /// </summary>
     public required int CrestColor { get; init; }
+
+    /// <summary>
+    /// Сосед, чей уклад деревни принят игроком.
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – уклад не принят.
+    /// </remarks>
+    public required int? ProfileNeighborId { get; init; }
 }
 /// <summary>
 /// Запрос на смену имени и герба деревни.

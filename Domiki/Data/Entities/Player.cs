@@ -114,6 +114,26 @@ public class Player
     public int? FriendNeighborId { get; set; }
 
     /// <summary>
+    /// Сосед, чей уклад деревни принят игроком.
+    /// </summary>
+    /// <remarks>
+    /// Ссылка на справочник соседей (см. <see cref="Reference.ResourceManager.GetNeighbors"/>): ускоряет производство в
+    /// постройках его специализации (см. <see cref="Village.VillageProfileManager.SetVillageProfile"/>).
+    /// <see langword="null"/> – уклад не принят.
+    /// </remarks>
+    public int? ProfileNeighborId { get; set; }
+
+    /// <summary>
+    /// Момент последней смены уклада деревни.
+    /// </summary>
+    /// <value>Момент в UTC.</value>
+    /// <remarks>
+    /// Ограничивает частоту смены кулдауном <see cref="Village.VillageProfileManager.ProfileChangeCooldownDays"/>.
+    /// <see langword="null"/> – уклад ещё ни разу не принимался.
+    /// </remarks>
+    public DateTime? ProfileChangedDate { get; set; }
+
+    /// <summary>
     /// Сколько золота уже добыто прямой добычей (рудником) за текущие календарные сутки UTC.
     /// </summary>
     /// <value>Золото.</value>

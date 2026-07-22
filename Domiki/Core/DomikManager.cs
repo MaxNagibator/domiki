@@ -156,6 +156,7 @@ public class DomikManager
             VillageName = dbPlayer.VillageName,
             CrestIcon = dbPlayer.CrestIcon,
             CrestColor = dbPlayer.CrestColor,
+            ProfileNeighborId = dbPlayer.ProfileNeighborId,
         };
     }
 
@@ -550,12 +551,18 @@ public class DomikManager
         duration = (int)Math.Ceiling(duration * (100 - avgSpeedup) / 100);
         var avgSkill = selectedWorkers.Average(x => WorkerSkillCalculator.GetBonusPercent(skillByWorkerId.GetValueOrDefault(x.Id)));
         duration = (int)Math.Ceiling(duration * (100 - avgSkill) / 100);
+
+        var dbPlayer = _context.Players.First(x => x.Id == playerId);
+        var profilePercent = dbPlayer.ProfileNeighborId is int profileNeighborId
+            ? _resourceManager.GetVillageProfileEffects().FirstOrDefault(x => x.NeighborId == profileNeighborId && x.DomikTypeId == domikType.Id)?.DurationPercent ?? 100
+            : 100;
+        duration = (int)Math.Ceiling(duration * profilePercent / 100.0);
+
         duration = Math.Max(duration, (int)Math.Ceiling(receipt.DurationSeconds * 0.6));
 
         var marketDomikTypeId = _resourceManager.GetDomikTypes().First(x => x.LogicName == "market").Id;
         if (receipt.DurationSeconds <= ZealMaxRecipeSeconds && dbDomik.TypeId != marketDomikTypeId)
         {
-            var dbPlayer = _context.Players.First(x => x.Id == playerId);
             if (dbPlayer.ZealCharges > 0)
             {
                 var mult = dbPlayer.ZealCharges > ZealX4Threshold ? 4 : 2;

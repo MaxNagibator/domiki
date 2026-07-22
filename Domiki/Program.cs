@@ -145,6 +145,7 @@ try
     builder.Services.AddScoped<WorldManager>();
     builder.Services.AddScoped<SeasonManager>();
     builder.Services.AddScoped<VillageLevelCalculator>();
+    builder.Services.AddScoped<VillageProfileManager>();
     builder.Services.AddScoped<GuestbookManager>();
     builder.Services.AddScoped<HelpManager>();
     builder.Services.AddScoped<PlayerEventManager>();
