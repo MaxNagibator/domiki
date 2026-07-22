@@ -7,13 +7,15 @@ import { domikLore } from '../utils/domikLore';
 import { unlockLore } from '../utils/unlockLore';
 import { resourceLore } from '../utils/resourceLore';
 import { strongestWeatherEffect } from '../utils/game';
-import type { ConvoyDto, DecorStateDto, DomikTypeDto, ReceiptDto, ResourceDto, ResourceTypeDto, VillageLevelDto, WeatherStateDto } from '../types/api';
+import { profileGenitiveName, profileLore } from '../utils/profileLore';
+import type { ConvoyDto, DecorStateDto, DomikTypeDto, NeighborReputationDto, ReceiptDto, ResourceDto, ResourceTypeDto, VillageDto, VillageLevelDto, VillageProfileDto, WeatherStateDto } from '../types/api';
 import { AbstractSprite, DecorSprite, DomikSprite, MechanicSprite, NeighborSprite, ResourceSprite, WeatherSprite } from './sprites';
 import { AnimatedDomikSprite } from './AnimatedDomikSprite';
 import { ConvoyTally } from './ConvoyTally';
 import { PixelLoader } from './PixelLoader';
 import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
 import CheckIcon from 'pixelarticons/svg/check.svg?react';
+import HomeIcon from 'pixelarticons/svg/home.svg?react';
 import LockIcon from 'pixelarticons/svg/lock.svg?react';
 
 interface Catalog {
@@ -24,6 +26,9 @@ interface Catalog {
     decor: DecorStateDto;
     villageLevel: VillageLevelDto;
     convoys: ConvoyDto[];
+    village: VillageDto;
+    villageProfiles: VillageProfileDto[];
+    reputation: NeighborReputationDto[];
 }
 
 interface Mechanic {
@@ -55,6 +60,13 @@ const MECHANICS: Mechanic[] = [
         name: 'Дружба с соседями',
         teaser: 'куда копится доброе имя',
         description: 'Доброе имя копится у каждого соседа отдельно, и заказы приходят вразнобой – чем больше выселок вокруг открыто, тем реже весточка от нужной. Чтобы не ждать милости случая, деревня выбирает, с кем нынче водить дружбу: заказы этого соседа заглядывают на доску втрое чаще. Дружить можно с одним, передумать – в любой день, и на уже висящие весточки это не влияет.\n\nВсю доску друг не занимает: хотя бы одна ячейка всегда остаётся другим выселкам, чтобы остальные не забывались вовсе.\n\nДружба ничего не стоит и сама по себе ничего не даёт – это прицел, а не подарок: заслуга по-прежнему зарабатывается заказами. У каждого соседа на доске видно, какая веха доброго имени ближе и что она откроет – обоз, чертёж или украшение. С теми, до кого дорога ещё не протоптана, дружбу не заведёшь: сперва обжитость.',
+    },
+    {
+        key: 'profile',
+        logic: 'obzhitost',
+        name: 'Уклад деревни',
+        teaser: 'сноровка, перенятая у соседа',
+        description: 'У каждого выселка своё ремесло, и деревня может перенять уклад одного соседа: две постройки его толка набираются чужой сноровки, и смены в них короче на 15 %. Заречье делится выучкой кузницы и каменоломни, Боровое – лесопилки и мастерской, Каменка – каменоломни и каменотёса, Глинищи – глиняного карьера и гончарни, Дубрава – лесопилки и пекарни.\n\nПеренять уклад можно с обжитости 20, и сосед должен деревне доверять – нужна репутация 10 у него. Платы нет, штрафов тоже: уклад – чистый прибыток, и в обжитость он не входит. Одно условие – сменить уклад можно не чаще раза в 7 суток, так что выбирай под своё ремесло; заодно сподручно добрать и чертёж того же соседа.\n\nСкорость смены складывается из всего разом: черта трудяги, набитая рука (до −15 % ко времени) и уклад (−15 %) множатся друг на друга, но короче 60 % от исходной длительности смена не станет – это твёрдый предел. Потому на самом ловком дворе – Работящий (−20 %) да набитая рука – предел срабатывает, и уклад даёт −11,8 % вместо −15: чем больше ускорений собрано в одной постройке, тем меньше добавляет каждое новое. Выгоднее разводить источники скорости по разным дворам, чем громоздить их в один.',
     },
     {
         key: 'errands',
@@ -368,9 +380,12 @@ interface WikiMechanicsSectionProps {
     domikTypes: DomikTypeDto[];
     convoys: ConvoyDto[];
     resourceTypes: ResourceTypeDto[];
+    village: VillageDto;
+    villageProfiles: VillageProfileDto[];
+    reputation: NeighborReputationDto[];
 }
 
-const WikiMechanicsSection = ({ villageLevel, weather, decor, domikTypes, convoys, resourceTypes }: WikiMechanicsSectionProps) => {
+const WikiMechanicsSection = ({ villageLevel, weather, decor, domikTypes, convoys, resourceTypes, village, villageProfiles, reputation }: WikiMechanicsSectionProps) => {
     const [openMechanics, setOpenMechanics] = useState<ReadonlySet<string>>(new Set());
     const unlocks = villageLevel.unlocks;
     const unlocked = unlocks.filter(unlock => unlock.unlocked);
@@ -392,7 +407,9 @@ const WikiMechanicsSection = ({ villageLevel, weather, decor, domikTypes, convoy
         }
 
         if (unlock.kind === 'feature') {
-            return <AbstractSprite logicName="smart_artel" size={24} className="unlock-ico" aria-hidden="true" />;
+            return unlock.logicName === 'smart_artel'
+                ? <AbstractSprite logicName="smart_artel" size={24} className="unlock-ico" aria-hidden="true" />
+                : <HomeIcon className="unlock-ico" aria-hidden="true" />;
         }
 
         return null;
@@ -592,6 +609,63 @@ const WikiMechanicsSection = ({ villageLevel, weather, decor, domikTypes, convoy
                                             )}
                                         </div>
                                     )}
+                                    {m.key === 'profile' && (
+                                        <div className="wiki-mechanic-live">
+                                            {village.profileNeighborId != null ? (() => {
+                                                const activeReputation = reputation.find(r => r.neighborId === village.profileNeighborId);
+                                                if (activeReputation == null) {
+                                                    return null;
+                                                }
+                                                const buildings = villageProfiles
+                                                    .filter(effect => effect.neighborId === village.profileNeighborId)
+                                                    .map(effect => domikTypes.find(type => type.id === effect.domikTypeId))
+                                                    .filter((type): type is DomikTypeDto => type != null);
+                                                const genitiveName = profileGenitiveName[activeReputation.neighborLogicName] ?? activeReputation.neighborName;
+                                                return (
+                                                    <>
+                                                        <span className="wiki-mechanic-live-label">
+                                                            <NeighborSprite logicName={activeReputation.neighborLogicName} size={24} className="weather-chip-ico" aria-hidden="true" />
+                                                            Деревня живёт по укладу {genitiveName}
+                                                        </span>
+                                                        <div className="weather-effects">
+                                                            {buildings.map(type => (
+                                                                <span key={type.id} className="weather-effect weather-effect-buff" title={type.name}>
+                                                                    <DomikSprite className="weather-effect-ico" logicName={type.logicName} />
+                                                                    {type.name} −15%
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </>
+                                                );
+                                            })() : (
+                                                <>
+                                                    <span className="wiki-mechanic-live-label">Уклады соседей</span>
+                                                    <ul className="unlock-list">
+                                                        {[...new Set(villageProfiles.map(effect => effect.neighborId))].map(neighborId => {
+                                                            const neighborReputation = reputation.find(r => r.neighborId === neighborId);
+                                                            if (neighborReputation == null) {
+                                                                return null;
+                                                            }
+                                                            const buildings = villageProfiles
+                                                                .filter(effect => effect.neighborId === neighborId)
+                                                                .map(effect => domikTypes.find(type => type.id === effect.domikTypeId))
+                                                                .filter((type): type is DomikTypeDto => type != null);
+                                                            const lore = profileLore[neighborReputation.neighborLogicName];
+                                                            return (
+                                                                <li key={neighborId} className="unlock-row">
+                                                                    <NeighborSprite logicName={neighborReputation.neighborLogicName} size={24} className="unlock-ico" aria-hidden="true" />
+                                                                    <span className="unlock-body">
+                                                                        <span className="unlock-name">{neighborReputation.neighborName}: {buildings.map(b => b.name).join(' и ')}</span>
+                                                                        {lore != null && <span className="unlock-description">{lore}</span>}
+                                                                    </span>
+                                                                </li>
+                                                            );
+                                                        })}
+                                                    </ul>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
                                     {m.key === 'decor' && decor.types.length > 0 && (
                                         <div className="wiki-res-grid">
                                             {decor.types.map(type => {
@@ -632,6 +706,9 @@ export const Wiki = () => {
                     decor: state.decor,
                     villageLevel: state.villageLevel,
                     convoys: state.convoys,
+                    village: state.village,
+                    villageProfiles: state.villageProfiles,
+                    reputation: state.reputation,
                 });
             } catch (err) {
                 if (err instanceof DOMException && err.name === 'AbortError') {
@@ -650,7 +727,7 @@ export const Wiki = () => {
         return <div className="wiki"><PixelLoader label="Загрузка справочника…" /></div>;
     }
 
-    const { domikTypes, resourceTypes, receipts, weather, decor, villageLevel, convoys } = catalog;
+    const { domikTypes, resourceTypes, receipts, weather, decor, villageLevel, convoys, village, villageProfiles, reputation } = catalog;
 
     return (
         <div className="wiki">
@@ -683,7 +760,8 @@ export const Wiki = () => {
                 </div>
             </section>
 
-            <WikiMechanicsSection villageLevel={villageLevel} weather={weather} decor={decor} domikTypes={domikTypes} convoys={convoys} resourceTypes={resourceTypes} />
+            <WikiMechanicsSection villageLevel={villageLevel} weather={weather} decor={decor} domikTypes={domikTypes} convoys={convoys} resourceTypes={resourceTypes}
+                village={village} villageProfiles={villageProfiles} reputation={reputation} />
         </div>
     );
 };

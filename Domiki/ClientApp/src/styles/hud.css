@@ -98,6 +98,26 @@
     pointer-events: none;
 }
 
+.village-profile-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-muted);
+    background: transparent;
+    border: 2px dashed rgba(51, 41, 26, .3);
+    clip-path: var(--cut);
+}
+
+.village-profile-chip-ico {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    image-rendering: pixelated;
+}
+
 .vlf-stats {
     display: grid;
     grid-template-columns: 1fr 1fr;

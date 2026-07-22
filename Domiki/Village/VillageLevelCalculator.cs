@@ -124,6 +124,19 @@ public class VillageLevelCalculator
             },
         };
 
+        var villageProfile = new[]
+        {
+            new VillageLevelUnlock
+            {
+                Level = VillageProfileManager.VillageLevelRequirement,
+                Label = "Уклад деревни",
+                Requirement = null,
+                Unlocked = level >= VillageProfileManager.VillageLevelRequirement,
+                Kind = "feature",
+                LogicName = "village_profile",
+            },
+        };
+
         var owned = _context.PlayerBlueprints.Where(x => x.PlayerId == playerId).Select(x => x.BlueprintId).ToArray();
         var reputations = _context.NeighborReputations.Where(x => x.PlayerId == playerId).ToArray();
         var neighbors = _resourceManager.GetNeighbors();
@@ -145,6 +158,7 @@ public class VillageLevelCalculator
         return domikUnlocks
             .Concat(neighborUnlocks)
             .Concat(smartArtel)
+            .Concat(villageProfile)
             .OrderBy(x => x.Level)
             .ThenBy(x => x.Label)
             .Concat(blueprintUnlocks.OrderBy(x => x.Requirement).ThenBy(x => x.Label))

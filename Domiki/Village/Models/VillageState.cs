@@ -30,4 +30,14 @@ public class VillageState
     /// Ссылка на справочник соседей (см. <see cref="Reference.ResourceManager.GetNeighbors"/>). <see langword="null"/> – уклад не принят.
     /// </remarks>
     public int? ProfileNeighborId { get; set; }
+
+    /// <summary>
+    /// Момент, с которого уклад деревни можно сменить снова.
+    /// </summary>
+    /// <value>Момент в UTC.</value>
+    /// <remarks>
+    /// <see cref="Data.Entities.Player.ProfileChangedDate"/> плюс <see cref="VillageProfileManager.ProfileChangeCooldownDays"/> суток.
+    /// <see langword="null"/> – уклад ещё ни разу не принимался.
+    /// </remarks>
+    public DateTime? ProfileChangeAvailableDate { get; set; }
 }

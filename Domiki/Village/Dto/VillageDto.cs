@@ -27,6 +27,15 @@ public sealed record VillageDto
     /// <see langword="null"/> – уклад не принят.
     /// </remarks>
     public required int? ProfileNeighborId { get; init; }
+
+    /// <summary>
+    /// Момент, с которого уклад деревни можно сменить снова.
+    /// </summary>
+    /// <value>Момент в UTC.</value>
+    /// <remarks>
+    /// <see langword="null"/> – уклад ещё ни разу не принимался.
+    /// </remarks>
+    public DateTime? ProfileChangeAvailableDate { get; init; }
 }
 /// <summary>
 /// Запрос на смену имени и герба деревни.

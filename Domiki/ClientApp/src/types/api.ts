@@ -189,6 +189,8 @@ export const villageSchema = z.object({
     villageName: z.string().nullable(),
     crestIcon: z.number(),
     crestColor: z.number(),
+    profileNeighborId: z.number().nullable(),
+    profileChangeAvailableDate: z.string().nullable(),
 });
 export type VillageDto = z.infer<typeof villageSchema>;
 
@@ -541,6 +543,13 @@ export const activeGoalSchema = z.object({
 });
 export type ActiveGoalDto = z.infer<typeof activeGoalSchema>;
 
+export const villageProfileSchema = z.object({
+    neighborId: z.number(),
+    domikTypeId: z.number(),
+    durationPercent: z.number(),
+});
+export type VillageProfileDto = z.infer<typeof villageProfileSchema>;
+
 export const goalsStateSchema = z.object({
     active: activeGoalSchema.nullable(),
     completedCount: z.number(),
@@ -574,6 +583,7 @@ export const gameStateSchema = z.object({
     market: marketStateSchema.nullable(),
     convoys: z.array(convoySchema),
     goals: goalsStateSchema,
+    villageProfiles: z.array(villageProfileSchema),
     recap: recapSchema.nullish(),
     events: z.array(z.unknown()).transform(items => items.flatMap(item => {
         const parsed = recapEventSchema.safeParse(item);

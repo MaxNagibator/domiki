@@ -180,6 +180,9 @@ export const buyFromConvoy = (neighborId: number, resourceTypeId: number, count:
 export const setFriendNeighbor = (neighborId: number | null, signal?: AbortSignal): Promise<void> =>
     request('POST', 'Domiki/SetFriendNeighbor', null, signal, { neighborId });
 
+export const setVillageProfile = (neighborId: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/SetVillageProfile?neighborId=${neighborId}`, signal);
+
 export const getPushPublicKey = (signal?: AbortSignal): Promise<string> =>
     apiGet('Push/PublicKey', z.string(), signal);
 

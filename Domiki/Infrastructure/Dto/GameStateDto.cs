@@ -181,4 +181,12 @@ public sealed record GameStateDto
     /// Состояние текущих целей игрока.
     /// </summary>
     public required GoalsStateDto Goals { get; init; }
+
+    /// <summary>
+    /// Справочник уклада деревни: соседи и постройки их специализации.
+    /// </summary>
+    /// <remarks>
+    /// См. <see cref="Reference.ResourceManager.GetVillageProfileEffects"/>.
+    /// </remarks>
+    public required VillageProfileDto[] VillageProfiles { get; init; }
 }

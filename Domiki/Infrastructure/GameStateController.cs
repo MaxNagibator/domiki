@@ -98,6 +98,7 @@ public class GameStateController : GameControllerBase
             Recap = _playerEventManager.TakeRecap(playerId, DateTimeHelper.GetNowDate()).ToDto(),
             Events = _playerEventManager.GetRecentEvents(playerId).Select(x => x.ToDto()).ToArray(),
             Goals = goals.ToDto(),
+            VillageProfiles = _resourceManager.GetVillageProfileEffects().Select(x => x.ToDto()).ToArray(),
         };
 
         return content;

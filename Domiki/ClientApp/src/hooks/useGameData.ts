@@ -28,6 +28,7 @@ import {
     type TolokaStateDto,
     type VillageDto,
     type VillageLevelDto,
+    type VillageProfileDto,
     type WeatherStateDto,
     type WorkerDto,
 } from '../types/api';
@@ -50,6 +51,7 @@ export interface GameData {
     loading: boolean;
     village: VillageDto | null;
     villageLevel: VillageLevelDto | null;
+    villageProfiles: VillageProfileDto[];
     weather: WeatherStateDto | null;
     expeditions: ExpeditionStateDto | null;
     decor: DecorStateDto | null;
@@ -112,6 +114,7 @@ export function useGameData(): GameData {
     const [blueprints, setBlueprints] = useState<BlueprintDto[]>([]);
     const [village, setVillageState] = useState<VillageDto | null>(null);
     const [villageLevel, setVillageLevel] = useState<VillageLevelDto | null>(null);
+    const [villageProfiles, setVillageProfiles] = useState<VillageProfileDto[]>([]);
     const [weather, setWeather] = useState<WeatherStateDto | null>(null);
     const [expeditions, setExpeditions] = useState<ExpeditionStateDto | null>(null);
     const [decor, setDecor] = useState<DecorStateDto | null>(null);
@@ -226,6 +229,7 @@ export function useGameData(): GameData {
         setBlueprints(state.blueprints);
         setVillageState(state.village);
         setVillageLevel(state.villageLevel);
+        setVillageProfiles(state.villageProfiles);
         setWorkers(state.workers);
         setCloaks(state.cloaks);
         setSickTypes(state.sickTypes);
@@ -384,6 +388,7 @@ export function useGameData(): GameData {
                 setBlueprints(state.blueprints);
                 setVillageState(state.village);
                 setVillageLevel(state.villageLevel);
+                setVillageProfiles(state.villageProfiles);
                 setWorkers(state.workers);
                 setPurchaseDomikTypes(state.purchaseAvailableDomiks);
                 setWeather(state.weather);
@@ -578,6 +583,7 @@ export function useGameData(): GameData {
         blueprints,
         village,
         villageLevel,
+        villageProfiles,
         weather,
         expeditions,
         decor,

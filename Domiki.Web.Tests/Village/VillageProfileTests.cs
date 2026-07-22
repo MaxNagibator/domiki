@@ -142,6 +142,41 @@ public sealed class VillageProfileTests
     }
 
     /// <summary>
+    /// После принятия уклада деревня сможет сменить его снова ровно через <see cref="VillageProfileManager.ProfileChangeCooldownDays"/> суток.
+    /// </summary>
+    [Test]
+    public void SetVillageProfileSetsProfileChangeAvailableDateAfterCooldownTest()
+    {
+        var player = TestPlayer.Create()
+            .RaiseVillageLevel(VillageProfileManager.VillageLevelRequirement)
+            .WithReputation(NeighborIds.Zarechye, VillageProfileManager.ReputationRequirement);
+
+        var date = DateTimeHelper.GetNowDate();
+        player.SetVillageProfile(NeighborIds.Zarechye);
+
+        var expectedAvailableDate = date.AddDays(VillageProfileManager.ProfileChangeCooldownDays);
+        Assert.That(player.Village().ProfileChangeAvailableDate, Is.EqualTo(expectedAvailableDate).Within(TimeSpan.FromSeconds(2)));
+    }
+
+    /// <summary>
+    /// Уклад деревни появляется в дорожной карте обжитости как открытие механики на пороге <see cref="VillageProfileManager.VillageLevelRequirement"/>.
+    /// </summary>
+    [Test]
+    public void UnlockRoadmapContainsVillageProfileAtRequiredLevelTest()
+    {
+        var player = TestPlayer.Create();
+
+        var unlock = player.GetVillageLevel().Unlocks.Single(x => x.LogicName == "village_profile");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(unlock.Label, Is.EqualTo("Уклад деревни"));
+            Assert.That(unlock.Level, Is.EqualTo(VillageProfileManager.VillageLevelRequirement));
+            Assert.That(unlock.Kind, Is.EqualTo("feature"));
+        }
+    }
+
+    /// <summary>
     /// Уклад сокращает длительность производства в постройке своей специализации на 15 процентов.
     /// </summary>
     [Test]

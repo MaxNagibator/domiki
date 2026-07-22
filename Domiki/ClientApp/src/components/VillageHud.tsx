@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
 import ChevronUpIcon from 'pixelarticons/svg/chevron-up.svg?react';
+import HomeIcon from 'pixelarticons/svg/home.svg?react';
 import LockIcon from 'pixelarticons/svg/lock.svg?react';
 import type { DomikTypeDto, PlodderCount, ResourceDto, ResourceTypeDto, VillageLevelDto, WeatherStateDto } from '../types/api';
 import { COIN_RESOURCE_TYPE_ID, strongestWeatherEffect } from '../utils/game';
@@ -21,9 +22,10 @@ interface VillageHudProps {
     weather: WeatherStateDto | null;
     now: number;
     onStickyOffsetChange: (offset: number) => void;
+    villageProfile?: { logicName: string; name: string; buildings: string[] } | null;
 }
 
-export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, villageLevel, weather, now, onStickyOffsetChange }: VillageHudProps) => {
+export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, villageLevel, weather, now, onStickyOffsetChange, villageProfile }: VillageHudProps) => {
     const hudSentinelRef = useRef<HTMLDivElement>(null);
     const hudRef = useRef<HTMLElement>(null);
     const [hudAway, setHudAway] = useState(false);
@@ -78,6 +80,7 @@ export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, vill
     const currentWeather = weather?.current ?? null;
     const nextGoal = villageLevel?.unlocks.find((unlock): unlock is typeof unlock & { level: number } => !unlock.unlocked && unlock.level != null);
     const effectChips = currentWeather?.effects.filter(effect => effect.outputPercent !== 100) ?? [];
+    const villageProfileBuildingsText = villageProfile == null ? '' : villageProfile.buildings.join(' и ');
 
     return (
         <>
@@ -154,7 +157,9 @@ export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, vill
                                                             ? <DomikSprite logicName={unlock.logicName ?? ''} className="vlf-ico" aria-hidden="true" />
                                                             : unlock.kind === 'neighbor'
                                                                 ? <NeighborSprite logicName={unlock.logicName ?? ''} size={24} className="vlf-ico" aria-hidden="true" />
-                                                                : <AbstractSprite logicName="smart_artel" size={24} className="vlf-ico" aria-hidden="true" />}
+                                                                : unlock.logicName === 'smart_artel'
+                                                                    ? <AbstractSprite logicName="smart_artel" size={24} className="vlf-ico" aria-hidden="true" />
+                                                                    : <HomeIcon className="vlf-ico" aria-hidden="true" />}
                                                         <span className="vlf-body">
                                                             <span className="vlf-name">{unlock.label}</span>
                                                             {unlock.level == null && unlock.requirement != null &&
@@ -170,6 +175,12 @@ export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, vill
                                 })()}
                             </div>,
                             document.body)}
+                        {villageProfile != null &&
+                            <div className="village-profile-chip"
+                                title={`Деревня живёт по укладу ${villageProfile.name}: ${villageProfileBuildingsText} управляются быстрее на 15 %.`}>
+                                <NeighborSprite logicName={villageProfile.logicName} size={24} className="village-profile-chip-ico" aria-hidden="true" />
+                                <span className="village-profile-chip-label">уклад {villageProfile.name}</span>
+                            </div>}
                         {villageLevel.visitsSinceBigGift > 0 &&
                             <div className="hud-gift-strip" role="img"
                                 aria-label={`До большого гостинца визитов: ${7 - villageLevel.visitsSinceBigGift}`}

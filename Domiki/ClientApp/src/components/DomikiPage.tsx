@@ -3,12 +3,13 @@ import type { ReactNode } from 'react';
 import type { NeighborReputationDto } from '../types/api';
 import { Link } from 'react-router-dom';
 import SettingsIcon from 'pixelarticons/svg/settings-cog.svg?react';
-import { acceptErrand as acceptErrandApi, apiPost, ApiError, cancelErrand as cancelErrandApi, cancelOrder as cancelOrderApi, completeOrder as completeOrderApi, setFriendNeighbor as setFriendNeighborApi, startIncidentSearch as startIncidentSearchApi } from '../services/api';
+import { acceptErrand as acceptErrandApi, apiPost, ApiError, cancelErrand as cancelErrandApi, cancelOrder as cancelOrderApi, completeOrder as completeOrderApi, setFriendNeighbor as setFriendNeighborApi, setVillageProfile as setVillageProfileApi, startIncidentSearch as startIncidentSearchApi } from '../services/api';
 import { useToast } from '../services/toastContext';
 import { useGameData } from '../hooks/useGameData';
 import { GOLD_RESOURCE_TYPE_ID, computeSelectedDomikView, isWorkerFree } from '../utils/game';
 import type { DomikSortMode } from '../utils/game';
 import { buildDomikNamer } from '../utils/domikNames';
+import { profileGenitiveName } from '../utils/profileLore';
 import { PushToggle } from './PushToggle';
 import { GameTabsNav } from './GameTabsNav';
 import { VillageIdentityModal } from './VillageIdentityModal';
@@ -54,7 +55,7 @@ interface GameTab {
 
 export const DomikiPage = () => {
     const toast = useToast();
-    const { domiks, domikTypes, resourceTypes, receipts, resources, orders, errand, incident, domikIncident, reputation, blueprints, village, villageLevel, weather, expeditions, decor, toloka, market, convoys, goals, workers, cloaks, sickTypes, purchaseDomikTypes, now, loading, scheduleReload, refreshPurchaseTypes, setVillage, hurryManufacture, setManufactureAutoRepeat, hurryDomik, startExpedition, buyDecor, contributeToloka, voteToloka, postLot, acceptLot, cancelLot, buyFromConvoy, recap, clearRecap, events } =
+    const { domiks, domikTypes, resourceTypes, receipts, resources, orders, errand, incident, domikIncident, reputation, blueprints, village, villageLevel, villageProfiles, weather, expeditions, decor, toloka, market, convoys, goals, workers, cloaks, sickTypes, purchaseDomikTypes, now, loading, scheduleReload, refreshPurchaseTypes, setVillage, hurryManufacture, setManufactureAutoRepeat, hurryDomik, startExpedition, buyDecor, contributeToloka, voteToloka, postLot, acceptLot, cancelLot, buyFromConvoy, recap, clearRecap, events } =
         useGameData();
 
     const [shopVisible, setShopVisible] = useState(false);
@@ -98,6 +99,24 @@ export const DomikiPage = () => {
             .reduce<NeighborReputationDto | null>((best, r) => best == null || r.points > best.points ? r : best, null);
         return top == null ? null : { logicName: top.neighborLogicName, name: top.neighborName };
     }, [blueprints, reputation]);
+    const villageProfile = useMemo(() => {
+        if (village?.profileNeighborId == null) {
+            return null;
+        }
+        const neighbor = reputation.find(r => r.neighborId === village.profileNeighborId);
+        if (neighbor == null) {
+            return null;
+        }
+        const buildings = villageProfiles
+            .filter(effect => effect.neighborId === village.profileNeighborId)
+            .map(effect => domikTypes.find(type => type.id === effect.domikTypeId)?.name)
+            .filter((name): name is string => name != null);
+        return {
+            logicName: neighbor.neighborLogicName,
+            name: profileGenitiveName[neighbor.neighborLogicName] ?? neighbor.neighborName,
+            buildings,
+        };
+    }, [village, reputation, villageProfiles, domikTypes]);
 
     const currentCrestIcon = village?.crestIcon ?? 0;
     const currentCrestColor = village?.crestColor ?? 0;
@@ -167,6 +186,17 @@ export const DomikiPage = () => {
                 : 'Теперь водим дружбу – её заказы будут заглядывать чаще.';
         return runAction(async () => {
             await setFriendNeighborApi(neighborId);
+            scheduleReload();
+        }, successMessage);
+    };
+
+    const setVillageProfileAction = (neighborId: number) => {
+        const neighbor = reputation.find(item => item.neighborId === neighborId);
+        const successMessage = neighbor == null
+            ? 'Уклад деревни принят'
+            : `Деревня переняла уклад «${profileGenitiveName[neighbor.neighborLogicName] ?? neighbor.neighborName}»`;
+        return runAction(async () => {
+            await setVillageProfileApi(neighborId);
             scheduleReload();
         }, successMessage);
     };
@@ -251,8 +281,9 @@ export const DomikiPage = () => {
         {
             key: 'orders', label: 'Заказы', icon: <MechanicSprite logicName="orders" size={24} className="game-tab-ico" aria-hidden="true" />, visible: true,
             node: <OrdersBox orders={orders} errand={errand} workers={workers} reputation={reputation} convoys={convoys} resourceTypes={resourceTypes} resources={resources} now={now}
+                domikTypes={domikTypes} villageProfiles={villageProfiles} village={village} villageLevel={villageLevel}
                 onComplete={completeOrder} onCancel={cancelOrder} onAcceptErrand={acceptErrandAction} onCancelErrand={cancelErrandAction}
-                onBuyFromConvoy={buyFromConvoyAction} onSetFriend={setFriendNeighborAction} />,
+                onBuyFromConvoy={buyFromConvoyAction} onSetFriend={setFriendNeighborAction} onSetVillageProfile={setVillageProfileAction} />,
         },
         {
             key: 'blueprints', label: 'Вехи соседей', icon: <MechanicSprite logicName="blueprints" size={24} className="game-tab-ico" aria-hidden="true" />, visible: blueprints.length > 0 || (decor?.types ?? []).some(x => x.neighborId != null),
@@ -307,7 +338,7 @@ export const DomikiPage = () => {
                 </div>
             }
             <VillageHud resources={resources} resourceTypes={resourceTypes} domikTypes={domikTypes} plodder={plodder}
-                villageLevel={villageLevel} weather={weather} now={now} onStickyOffsetChange={setHudStickyOffset} />
+                villageLevel={villageLevel} weather={weather} now={now} onStickyOffsetChange={setHudStickyOffset} villageProfile={villageProfile} />
             <GoalCard goals={goals} resourceTypes={resourceTypes} />
             {incident != null && <IncidentCard incident={incident} workers={workers} now={now} onStartSearch={startIncidentSearchAction} />}
             {domikIncident != null && <DomikIncidentCard incident={domikIncident} workers={workers} domikTypes={domikTypes} now={now} onStartSearch={startIncidentSearchAction} />}

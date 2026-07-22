@@ -64,6 +64,7 @@ const mappings: Record<string, ContractSchema> = {
     VillageDto: { schemaName: 'villageSchema', shape: api.villageSchema.shape },
     VillageLevelDto: { schemaName: 'villageLevelSchema', shape: api.villageLevelSchema.shape },
     VillageLevelUnlockDto: { schemaName: 'villageLevelUnlockSchema', shape: api.villageLevelUnlockSchema.shape },
+    VillageProfileDto: { schemaName: 'villageProfileSchema', shape: api.villageProfileSchema.shape },
     VillageVisitDto: { schemaName: 'villageVisitSchema', shape: api.villageVisitSchema.shape },
     VisitBuildingDto: { schemaName: 'visitBuildingSchema', shape: api.visitBuildingSchema.shape },
     WeatherEffectDto: { schemaName: 'weatherEffectSchema', shape: api.weatherEffectSchema.shape },

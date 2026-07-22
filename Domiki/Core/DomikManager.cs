@@ -157,6 +157,7 @@ public class DomikManager
             CrestIcon = dbPlayer.CrestIcon,
             CrestColor = dbPlayer.CrestColor,
             ProfileNeighborId = dbPlayer.ProfileNeighborId,
+            ProfileChangeAvailableDate = dbPlayer.ProfileChangedDate?.AddDays(VillageProfileManager.ProfileChangeCooldownDays),
         };
     }
 

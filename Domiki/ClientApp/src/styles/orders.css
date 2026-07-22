@@ -297,7 +297,7 @@
     gap: 8px;
     flex: 1 1 150px;
     min-width: 0;
-    padding: 7px 33px 8px 7px;
+    padding: 7px 61px 8px 7px;
     background: var(--plank-dark);
     border: 2px solid var(--ink);
     clip-path: var(--cut);
@@ -367,10 +367,19 @@
     color: #8a6a12;
 }
 
-.standing-friend-mark {
+.standing-marks {
     position: absolute;
     top: var(--px);
     right: var(--px);
+    display: flex;
+    gap: 4px;
+}
+
+.standing-marks .standing-friend-mark {
+    position: static;
+}
+
+.standing-friend-mark {
     display: grid;
     place-items: center;
     width: 24px;
