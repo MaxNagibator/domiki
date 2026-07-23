@@ -96,10 +96,15 @@ try
             options.Scope.Add("roles");
             options.Events.OnRemoteFailure = context =>
             {
-                Log.Warning(context.Failure, "OIDC remote failure on {Scheme}: {Message}", oidcScheme, context.Failure?.Message);
+                var failure = context.Failure;
+                var reason = failure?.Message is { } message
+                    ? new string(message.Select(c => char.IsControl(c) ? ' ' : c).ToArray())
+                    : "External sign-in failed.";
+
+                Log.Warning("OIDC remote failure on {Scheme}: {FailureType} {Reason}", oidcScheme, failure?.GetType().Name, reason);
 
                 context.HandleResponse();
-                context.Response.Redirect($"/Identity/Account/Login?remoteError={Uri.EscapeDataString(context.Failure?.Message ?? "External sign-in failed.")}");
+                context.Response.Redirect($"/Identity/Account/Login?remoteError={Uri.EscapeDataString(failure?.Message ?? "External sign-in failed.")}");
                 return Task.CompletedTask;
             };
         });
