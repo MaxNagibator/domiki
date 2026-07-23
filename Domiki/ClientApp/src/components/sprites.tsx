@@ -96,6 +96,10 @@ import MechWorldSprite from '../assets/mechanics/world.svg?react';
 import MechShopSprite from '../assets/mechanics/shop.svg?react';
 import MechVillageHelpSprite from '../assets/mechanics/village_help.svg?react';
 import MechSeasonSprite from '../assets/mechanics/season.svg?react';
+import MechIncidentSprite from '../assets/mechanics/incident.svg?react';
+import MechTavernSprite from '../assets/mechanics/tavern.svg?react';
+import MechUkladSprite from '../assets/mechanics/uklad.svg?react';
+import MechAilmentsSprite from '../assets/mechanics/ailments.svg?react';
 import ClayResSprite from '../assets/resourceTypes/clay.svg?react';
 import CoinResSprite from '../assets/resourceTypes/coin.svg?react';
 import GoldResSprite from '../assets/resourceTypes/gold.svg?react';
@@ -310,6 +314,10 @@ const mechanicSprites: Record<string, SpriteComponent> = {
     shop: MechShopSprite,
     village_help: MechVillageHelpSprite,
     season: MechSeasonSprite,
+    incident: MechIncidentSprite,
+    tavern: MechTavernSprite,
+    uklad: MechUkladSprite,
+    ailments: MechAilmentsSprite,
 };
 
 export const MechanicSprite = (props: IconSpriteProps) => <>{renderIconSprite('mechanic', mechanicSprites, undefined, props)}</>;
