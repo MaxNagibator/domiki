@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges" data-size="64" role="img" aria-labelledby="wood-title wood-desc" focusable="false" preserveAspectRatio="xMidYMid meet" color-interpolation="sRGB" data-active="true" data-state="idle" data-motion="on" data-animation-profile="material" style="--asset-phase:-0.04s">
-  <title id="wood-title">Древесина</title>
-  <desc id="wood-desc">Три сложенных бревна с явно видимыми круглыми спилами и продольной корой; силуэт отделён от досок.</desc>
+  <title id="wood-title">Дерево</title>
+  <desc id="wood-desc">Три сложенных бревна с круглыми спилами и продольной корой; читается отдельно от досок.</desc>
   <style>
     .micro { }
     .tiny { }

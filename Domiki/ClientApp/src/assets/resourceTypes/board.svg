@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges" data-size="64" role="img" aria-labelledby="board-title board-desc" focusable="false" preserveAspectRatio="xMidYMid meet" color-interpolation="sRGB" data-active="true" data-state="idle" data-motion="on" data-animation-profile="material" style="--asset-phase:-1.68s">
-  <title id="board-title">Доски</title>
-  <desc id="board-desc">Три длинные параллельные пилёные доски со смещёнными квадратными торцами и линиями древесины; без силуэта ящика или ограды.</desc>
+  <title id="board-title">Доска</title>
+  <desc id="board-desc">Три длинные параллельные пилёные доски со смещёнными квадратными торцами и линиями древесины.</desc>
   <style>
     .micro { }
     .tiny { }
