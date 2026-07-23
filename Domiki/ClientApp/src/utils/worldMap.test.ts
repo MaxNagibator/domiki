@@ -12,6 +12,7 @@ const village = (name: string, level: number, overrides?: Partial<WorldVillageDt
     isMe: false,
     npcResourceTypeId: null,
     npcLogicName: null,
+    profileLogicName: null,
     seasonOrders: 0,
     seasonToloka: 0,
     seasonExpeditions: 0,

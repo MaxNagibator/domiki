@@ -349,16 +349,3 @@ public sealed class VillageProfileTests
         scope.Commit();
     }
 }
-
-file static class VillageProfileTestsActs
-{
-    public static TestPlayer RaiseVillageLevel(this TestPlayer p, int target)
-    {
-        while (p.GetVillageLevel().Level < target)
-        {
-            p.WithDomik(DomikIds.Market);
-        }
-
-        return p;
-    }
-}

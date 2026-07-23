@@ -102,6 +102,16 @@ public class WorldVillage
     public string? NpcLogicName { get; set; }
 
     /// <summary>
+    /// Публичный идентификатор принятого деревней уклада – технический код соседа-источника (см.
+    /// <see cref="Economy.Models.Neighbor.LogicName"/>).
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – деревня уклад не приняла. Наружу отдаётся только этот код, а не внутренний
+    /// <see cref="Data.Entities.Player.ProfileNeighborId"/>; по коду клиент показывает бейдж уклада (см. GAMEDESIGN.md §3 Слой 4).
+    /// </remarks>
+    public string? ProfileLogicName { get; set; }
+
+    /// <summary>
     /// Число выполненных заказов за текущий сезон – счётчик номинации «Лучший поставщик».
     /// </summary>
     public int SeasonOrders { get; set; }
@@ -157,6 +167,16 @@ public class VillageVisit
     /// Постройки посещаемой деревни с их уровнями.
     /// </summary>
     public VisitBuilding[] Buildings { get; set; } = [];
+
+    /// <summary>
+    /// Публичный идентификатор принятого хозяином уклада – технический код соседа-источника (см.
+    /// <see cref="Economy.Models.Neighbor.LogicName"/>).
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – хозяин уклад не принял. При визите наружу отдаётся только этот код, а не внутренний
+    /// <see cref="Data.Entities.Player.ProfileNeighborId"/>.
+    /// </remarks>
+    public string? ProfileLogicName { get; set; }
 }
 
 /// <summary>

@@ -1,4 +1,5 @@
 ﻿using Domiki.Web.Infrastructure;
+using Domiki.Web.Village;
 using Domiki.Web.Village.Models;
 using System.Text.Json;
 
@@ -120,6 +121,78 @@ public sealed class WorldTests
             Assert.That(visit.CrestColor, Is.EqualTo(5));
             Assert.That(visit.Level.Level, Is.GreaterThan(0));
             Assert.That(visit.Buildings.Any(x => x.TypeName == "Артельная изба" && x.Level == 1), Is.True);
+        }
+    }
+
+    /// <summary>
+    /// Список мира отдаёт публичный код принятого деревней уклада, а деревне без уклада – <see langword="null"/>.
+    /// </summary>
+    [Test]
+    public void GetWorldExposesAdoptedProfileLogicNameTest()
+    {
+        var adopter = TestPlayer.Create()
+            .SetVillageIdentity("Мир Уклад-" + Guid.NewGuid().ToString("N")[..6], 2, 3)
+            .RaiseVillageLevel(VillageProfileManager.VillageLevelRequirement)
+            .WithReputation(NeighborIds.Zarechye, VillageProfileManager.ReputationRequirement)
+            .SetVillageProfile(NeighborIds.Zarechye);
+
+        var plain = TestPlayer.Create()
+            .SetVillageIdentity("Мир БезУклада-" + Guid.NewGuid().ToString("N")[..6], 3, 4);
+
+        var world = adopter.World();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(world.Villages.Single(x => x.PlayerId == adopter.Id).ProfileLogicName, Is.EqualTo("zarechye"));
+            Assert.That(world.Villages.Single(x => x.PlayerId == plain.Id).ProfileLogicName, Is.Null);
+        }
+    }
+
+    /// <summary>
+    /// Визит в чужую деревню отдаёт публичный код принятого хозяином уклада, а к деревне без уклада – <see langword="null"/>.
+    /// </summary>
+    [Test]
+    public void VisitVillageExposesAdoptedProfileLogicNameTest()
+    {
+        var adopter = TestPlayer.Create()
+            .SetVillageIdentity("Мир ВизитУклад-" + Guid.NewGuid().ToString("N")[..6], 2, 3)
+            .RaiseVillageLevel(VillageProfileManager.VillageLevelRequirement)
+            .WithReputation(NeighborIds.Borovoe, VillageProfileManager.ReputationRequirement)
+            .SetVillageProfile(NeighborIds.Borovoe);
+
+        var plain = TestPlayer.Create()
+            .SetVillageIdentity("Мир ВизитБез-" + Guid.NewGuid().ToString("N")[..6], 3, 4);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(adopter.Visit().ProfileLogicName, Is.EqualTo("borovoe"));
+            Assert.That(plain.Visit().ProfileLogicName, Is.Null);
+        }
+    }
+
+    /// <summary>
+    /// Наружу уходит только публичный код уклада: сериализованный DTO мира и визита содержит код соседа, но не внутренний
+    /// идентификатор соседа-источника.
+    /// </summary>
+    [Test]
+    public void ProfileIdentityExposesLogicNameButNotNeighborIdTest()
+    {
+        var player = TestPlayer.Create()
+            .SetVillageIdentity("Мир УкладJson-" + Guid.NewGuid().ToString("N")[..6], 5, 6)
+            .RaiseVillageLevel(VillageProfileManager.VillageLevelRequirement)
+            .WithReputation(NeighborIds.Zarechye, VillageProfileManager.ReputationRequirement)
+            .SetVillageProfile(NeighborIds.Zarechye)
+            .WithDomik(DomikIds.Barrack);
+
+        var worldVillageJson = JsonSerializer.Serialize(player.WorldDto().Villages.Single(x => x.PlayerId == player.Id));
+        var visitJson = JsonSerializer.Serialize(player.VisitDto());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(worldVillageJson, Does.Contain("zarechye"));
+            Assert.That(visitJson, Does.Contain("zarechye"));
+            Assert.That(worldVillageJson, Does.Not.Contain("NeighborId"));
+            Assert.That(visitJson, Does.Not.Contain("NeighborId"));
         }
     }
 

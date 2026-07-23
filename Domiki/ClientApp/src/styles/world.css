@@ -391,6 +391,45 @@
     clip-path: var(--cut);
 }
 
+.world-tag-profile {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px 2px 4px;
+    font-weight: 600;
+    color: var(--ink-muted);
+    background: transparent;
+    border: 2px dashed rgba(51, 41, 26, .3);
+}
+
+.world-tag-ico {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    image-rendering: pixelated;
+}
+
+.world-profile-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 4px 9px;
+    font-family: var(--pixel);
+    font-size: 11px;
+    color: var(--ink-muted);
+    background: transparent;
+    border: 2px dashed rgba(51, 41, 26, .3);
+    clip-path: var(--cut);
+}
+
+.world-profile-chip-ico {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    image-rendering: pixelated;
+}
+
 .world-artifacts {
     display: flex;
     flex-direction: column;

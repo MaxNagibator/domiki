@@ -14,7 +14,8 @@ import { WorldMap } from './WorldMap';
 import { Crest } from './Crest';
 import { GuestbookEntryRow } from './GuestbookEntryRow';
 import { villageKey } from '../utils/worldMap';
-import { MechanicSprite } from './sprites';
+import { profileGenitiveName, profileLore } from '../utils/profileLore';
+import { MechanicSprite, NeighborSprite } from './sprites';
 import type { VillageVisitDto, WorldDto, WorldVillageDto } from '../types/api';
 
 type SortKey = 'level' | 'seasonOrders' | 'seasonToloka' | 'seasonExpeditions' | 'comfort';
@@ -32,6 +33,13 @@ const SORT_META: Record<SortKey, { label: string; Icon: MetaIcon }> = {
 };
 
 const SORT_TABS = (Object.keys(SORT_META) as SortKey[]).map(key => ({ key, ...SORT_META[key] }));
+
+const ProfileTag = ({ logicName, className, iconClassName }: { logicName: string; className: string; iconClassName: string }) => (
+    <span className={className} title={profileLore[logicName]}>
+        <NeighborSprite logicName={logicName} size={24} className={iconClassName} aria-hidden="true" />
+        уклад {profileGenitiveName[logicName] ?? logicName}
+    </span>
+);
 
 const LevelBreakdown = ({ visit }: { visit: VillageVisitDto }) => (
     <div className="world-level-grid">
@@ -259,6 +267,8 @@ export const WorldPage = () => {
                                     {village.villageName}
                                     {village.isMe && <span className="world-tag">моя</span>}
                                     {village.isNpc && <span className="world-tag">NPC</span>}
+                                    {village.profileLogicName != null &&
+                                        <ProfileTag logicName={village.profileLogicName} className="world-tag world-tag-profile" iconClassName="world-tag-ico" />}
                                 </span>
                                 <span className="world-metric" title={activeMetric.label}>
                                     {sortKey !== 'level' &&
@@ -328,6 +338,8 @@ export const WorldPage = () => {
                                 <div>
                                     <h2 className="panel-title">{visit.villageName}</h2>
                                     <div className="world-visit-level">Обжитость {visit.level.level}</div>
+                                    {visit.profileLogicName != null &&
+                                        <ProfileTag logicName={visit.profileLogicName} className="world-profile-chip" iconClassName="world-profile-chip-ico" />}
                                 </div>
                             </div>
                             <LevelBreakdown visit={visit} />

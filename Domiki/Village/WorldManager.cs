@@ -54,6 +54,7 @@ public class WorldManager
     {
         var season = _seasonManager.GetCurrentSeason(DateTimeHelper.GetNowDate());
         var counters = _seasonManager.GetCounters(season.Number);
+        var neighborLogicById = _resourceManager.GetNeighbors().ToDictionary(x => x.Id, x => x.LogicName);
 
         var villages = _context.Players
             .Where(x => x.VillageName != null)
@@ -71,6 +72,7 @@ public class WorldManager
                     IsNpc = false,
                     IsMe = x.Id == currentPlayerId,
                     NpcResourceTypeId = null,
+                    ProfileLogicName = ResolveProfileLogicName(neighborLogicById, x.ProfileNeighborId),
                     SeasonOrders = counters.GetValueOrDefault((x.Id, SeasonMetric.Orders)),
                     SeasonToloka = counters.GetValueOrDefault((x.Id, SeasonMetric.Toloka)),
                     SeasonExpeditions = counters.GetValueOrDefault((x.Id, SeasonMetric.Expeditions)),
@@ -98,6 +100,8 @@ public class WorldManager
         var level = _villageLevelCalculator.GetLevel(targetPlayerId);
         level.VisitsSinceBigGift = 0;
 
+        var neighborLogicById = _resourceManager.GetNeighbors().ToDictionary(x => x.Id, x => x.LogicName);
+
         return new()
         {
             VillageName = player.VillageName,
@@ -111,7 +115,13 @@ public class WorldManager
                     Level = x.Level,
                 })
                 .ToArray(),
+            ProfileLogicName = ResolveProfileLogicName(neighborLogicById, player.ProfileNeighborId),
         };
+    }
+
+    private static string? ResolveProfileLogicName(Dictionary<int, string> neighborLogicById, int? profileNeighborId)
+    {
+        return profileNeighborId is { } id && neighborLogicById.TryGetValue(id, out var logicName) ? logicName : null;
     }
 
     private IEnumerable<WorldVillage> GetNpcVillages()

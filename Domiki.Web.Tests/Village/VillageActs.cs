@@ -66,4 +66,14 @@ public static class VillageActs
         App.Act<VillageProfileManager>(m => m.SetVillageProfile(p.Id, neighborId));
         return p;
     }
+
+    public static TestPlayer RaiseVillageLevel(this TestPlayer p, int target)
+    {
+        while (p.GetVillageLevel().Level < target)
+        {
+            p.WithDomik(DomikIds.Market);
+        }
+
+        return p;
+    }
 }
