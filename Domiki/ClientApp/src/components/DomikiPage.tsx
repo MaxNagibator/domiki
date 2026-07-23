@@ -279,43 +279,43 @@ export const DomikiPage = () => {
 
     const gameTabs: GameTab[] = [
         {
-            key: 'orders', label: 'Заказы', icon: <MechanicSprite logicName="orders" size={24} className="game-tab-ico" aria-hidden="true" />, visible: true,
+            key: 'orders', label: 'Заказы', icon: <MechanicSprite logicName="orders" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
             node: <OrdersBox orders={orders} errand={errand} workers={workers} reputation={reputation} convoys={convoys} resourceTypes={resourceTypes} resources={resources} now={now}
                 domikTypes={domikTypes} villageProfiles={villageProfiles} village={village} villageLevel={villageLevel}
                 onComplete={completeOrder} onCancel={cancelOrder} onAcceptErrand={acceptErrandAction} onCancelErrand={cancelErrandAction}
                 onBuyFromConvoy={buyFromConvoyAction} onSetFriend={setFriendNeighborAction} onSetVillageProfile={setVillageProfileAction} />,
         },
         {
-            key: 'blueprints', label: 'Вехи соседей', icon: <MechanicSprite logicName="blueprints" size={24} className="game-tab-ico" aria-hidden="true" />, visible: blueprints.length > 0 || (decor?.types ?? []).some(x => x.neighborId != null),
+            key: 'blueprints', label: 'Вехи соседей', icon: <MechanicSprite logicName="blueprints" size={32} className="game-tab-ico" aria-hidden="true" />, visible: blueprints.length > 0 || (decor?.types ?? []).some(x => x.neighborId != null),
             node: <BlueprintsBox blueprints={blueprints} domikTypes={domikTypes} decorTypes={decor?.types ?? []} reputations={reputation} />,
         },
         {
-            key: 'expeditions', label: 'Экспедиции', icon: <MechanicSprite logicName="expeditions" size={24} className="game-tab-ico" aria-hidden="true" />, visible: expeditions != null,
+            key: 'expeditions', label: 'Экспедиции', icon: <MechanicSprite logicName="expeditions" size={32} className="game-tab-ico" aria-hidden="true" />, visible: expeditions != null,
             node: <ExpeditionsBox expeditions={expeditions} resourceTypes={resourceTypes} decorTypes={decor?.types ?? []} resources={resources} workers={workers} tavernLevel={tavernLevel} now={now} onStart={startExpeditionAction} />,
         },
         {
-            key: 'decor', label: 'Декор', icon: <MechanicSprite logicName="decor" size={24} className="game-tab-ico" aria-hidden="true" />, visible: decor != null,
+            key: 'decor', label: 'Декор', icon: <MechanicSprite logicName="decor" size={32} className="game-tab-ico" aria-hidden="true" />, visible: decor != null,
             node: <DecorBox decor={decor} resourceTypes={resourceTypes} resources={resources} reputations={reputation} onBuy={buyDecorAction} />,
         },
         {
-            key: 'toloka', label: 'Толока', icon: <MechanicSprite logicName="toloka" size={24} className="game-tab-ico" aria-hidden="true" />, visible: toloka != null,
+            key: 'toloka', label: 'Толока', icon: <MechanicSprite logicName="toloka" size={32} className="game-tab-ico" aria-hidden="true" />, visible: toloka != null,
             node: <TolokaBox toloka={toloka} resourceTypes={resourceTypes} resources={resources} now={now} onContribute={contributeTolokaAction} onVote={voteTolokaAction} />,
         },
         {
-            key: 'market', label: 'Ярмарка', icon: <MechanicSprite logicName="market" size={24} className="game-tab-ico" aria-hidden="true" />, visible: market != null,
+            key: 'market', label: 'Ярмарка', icon: <MechanicSprite logicName="market" size={32} className="game-tab-ico" aria-hidden="true" />, visible: market != null,
             node: <MarketBox market={market} resourceTypes={resourceTypes} resources={resources} now={now}
                 onPost={postLotAction} onAccept={acceptLotAction} onCancel={cancelLotAction} />,
         },
         {
-            key: 'workers', label: 'Трудяги', icon: <MechanicSprite logicName="workers" size={24} className="game-tab-ico" aria-hidden="true" />, visible: true,
+            key: 'workers', label: 'Трудяги', icon: <MechanicSprite logicName="workers" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
             node: <WorkersBox workers={workers} domikTypes={domikTypes} domiks={domiks} expeditions={expeditions} errand={errand} incident={incident} domikIncident={domikIncident} cloaks={cloaks} sickTypes={sickTypes} resourceTypes={resourceTypes} resources={resources} tavernLevel={tavernLevel} now={now} />,
         },
         {
-            key: 'journal', label: 'Журнал', icon: <AbstractSprite logicName="journal" size={24} className="game-tab-ico" aria-hidden="true" />, visible: true,
+            key: 'journal', label: 'Журнал', icon: <AbstractSprite logicName="journal" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
             node: <JournalBox events={events} resourceTypes={resourceTypes} domikTypes={domikTypes} decorTypes={decor?.types ?? []} now={now} />,
         },
         {
-            key: 'guestbook', label: 'Гости', icon: <MechanicSprite logicName="guestbook" size={24} className="game-tab-ico" aria-hidden="true" />, visible: true,
+            key: 'guestbook', label: 'Гости', icon: <MechanicSprite logicName="guestbook" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
             node: <GuestbookBox now={now} />,
         },
     ];
@@ -369,13 +369,13 @@ export const DomikiPage = () => {
                 <div className="village-header-actions">
                     {domiks.length > 1 && <DomikSortMenu value={sortMode} onChange={changeSortMode} />}
                     <PushToggle />
-                    <Link className="btn-game" to="/world">
-                        <MechanicSprite logicName="world" size={24} className="btn-ico" aria-hidden="true" />
+                    <Link className="btn-game icon-chip-btn" to="/world">
+                        <MechanicSprite logicName="world" size={32} className="btn-ico" aria-hidden="true" />
                         Мир
                     </Link>
                     {purchaseDomikTypes != null &&
-                        <ActionButton className="btn-game" onClick={() => toggleShop()}>
-                            <MechanicSprite logicName="shop" size={24} className="btn-ico" aria-hidden="true" />
+                        <ActionButton className="btn-game icon-chip-btn" onClick={() => toggleShop()}>
+                            <MechanicSprite logicName="shop" size={32} className="btn-ico" aria-hidden="true" />
                             {shopVisible ? 'Закрыть' : 'Плотник'}
                         </ActionButton>
                     }

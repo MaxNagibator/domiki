@@ -95,16 +95,37 @@ code {
     flex-shrink: 0;
 }
 
-.btn-game:not(.btn-ghost) .px-sprite {
+.btn-game:not(.btn-ghost):not(.icon-chip-btn) .px-sprite {
+    box-sizing: content-box;
     padding: 2px;
     background: var(--plank);
 }
 
-.game-tab .px-sprite,
-.world-tab .px-sprite {
-    padding: 3px 7px 3px 3px;
+.icon-chip-btn {
+    padding: 0 14px 0 0;
+    gap: 10px;
+    overflow: hidden;
+}
+
+.icon-chip-btn > .px-sprite {
+    box-sizing: content-box;
+    width: 36px;
+    height: 36px;
+    flex: none;
+    padding: 5px 9px;
     background: #fffaec;
     border-right: 2px solid var(--ink);
+}
+
+.btn-game.icon-chip-btn {
+    padding: 0 16px 0 0;
+    gap: 10px;
+}
+
+.btn-game.icon-chip-btn > .px-sprite {
+    width: 24px;
+    height: 24px;
+    padding: 6px 10px;
 }
 
 @media (max-width: 575px) {

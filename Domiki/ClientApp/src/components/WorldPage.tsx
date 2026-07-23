@@ -22,7 +22,7 @@ type SortKey = 'level' | 'seasonOrders' | 'seasonToloka' | 'seasonExpeditions' |
 
 type MetaIcon = FC<SVGProps<SVGSVGElement>>;
 
-const mechanicIcon = (logicName: string): MetaIcon => props => <MechanicSprite logicName={logicName} size={24} {...props} />;
+const mechanicIcon = (logicName: string): MetaIcon => props => <MechanicSprite logicName={logicName} size={32} {...props} />;
 
 const SORT_META: Record<SortKey, { label: string; Icon: MetaIcon }> = {
     level: { label: 'Обжитость', Icon: mechanicIcon('obzhitost') },
@@ -226,7 +226,7 @@ export const WorldPage = () => {
                     <button
                         type="button"
                         key={tab.key}
-                        className={'world-tab' + (tab.key === sortKey ? ' world-tab-active' : '')}
+                        className={'world-tab icon-chip-btn' + (tab.key === sortKey ? ' world-tab-active' : '')}
                         onClick={() => { setSortKey(tab.key); }}
                     >
                         <tab.Icon className="world-tab-ico" aria-hidden="true" />

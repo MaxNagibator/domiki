@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { KeyboardEvent, ReactNode } from 'react';
+import type { KeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import BuildingIcon from 'pixelarticons/svg/building.svg?react';
 
 interface GameTabEntry {
@@ -17,6 +17,7 @@ interface GameTabsNavProps {
 
 export const GameTabsNav = ({ tabs, activeKey, onSelect, onScrollToPanel }: GameTabsNavProps) => {
     const gameTabsRef = useRef<HTMLDivElement>(null);
+    const dragRef = useRef({ active: false, startX: 0, startScroll: 0, moved: false });
     const [tabsOverflow, setTabsOverflow] = useState({ left: false, right: false });
 
     useEffect(() => {
@@ -70,10 +71,53 @@ export const GameTabsNav = ({ tabs, activeKey, onSelect, onScrollToPanel }: Game
         }
     };
 
+    const beginDrag = (event: ReactPointerEvent<HTMLElement>) => {
+        const tabsEl = gameTabsRef.current;
+        if (tabsEl == null || event.pointerType === 'touch' || event.button !== 0) {
+            return;
+        }
+        dragRef.current = { active: true, startX: event.clientX, startScroll: tabsEl.scrollLeft, moved: false };
+    };
+
+    const moveDrag = (event: ReactPointerEvent<HTMLElement>) => {
+        const tabsEl = gameTabsRef.current;
+        const drag = dragRef.current;
+        if (tabsEl == null || !drag.active) {
+            return;
+        }
+        const dx = event.clientX - drag.startX;
+        if (!drag.moved && Math.abs(dx) > 4) {
+            drag.moved = true;
+            tabsEl.setPointerCapture(event.pointerId);
+            tabsEl.style.cursor = 'grabbing';
+        }
+        if (drag.moved) {
+            tabsEl.scrollLeft = drag.startScroll - dx;
+        }
+    };
+
+    const endDrag = () => {
+        dragRef.current.active = false;
+        if (gameTabsRef.current != null) {
+            gameTabsRef.current.style.cursor = '';
+        }
+    };
+
+    const suppressDragClick = (event: ReactMouseEvent<HTMLElement>) => {
+        if (dragRef.current.moved) {
+            event.preventDefault();
+            event.stopPropagation();
+            dragRef.current.moved = false;
+        }
+    };
+
     return (
         <nav className={'game-tabs' + (tabsOverflow.left ? ' game-tabs-overflow-left' : '') + (tabsOverflow.right ? ' game-tabs-overflow-right' : '')}
-            ref={gameTabsRef} aria-label="Разделы деревни">
-            <button type="button" className="game-tab game-tab-home" onClick={() => { window.scrollTo({ top: 0 }); }}>
+            ref={gameTabsRef} aria-label="Разделы деревни"
+            onPointerDown={beginDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}
+            onClickCapture={suppressDragClick}>
+            <span className="game-tabs-affordance game-tabs-affordance-left" aria-hidden="true">‹</span>
+            <button type="button" className="game-tab game-tab-home icon-chip-btn" onClick={() => { window.scrollTo({ top: 0 }); }}>
                 <BuildingIcon className="game-tab-ico" aria-hidden="true" />
                 Домики
             </button>
@@ -86,7 +130,7 @@ export const GameTabsNav = ({ tabs, activeKey, onSelect, onScrollToPanel }: Game
                             aria-selected={active}
                             aria-controls="game-tab-panel"
                             tabIndex={active ? 0 : -1}
-                            className={'game-tab' + (active ? ' game-tab-active' : '')}
+                            className={'game-tab icon-chip-btn' + (active ? ' game-tab-active' : '')}
                             onKeyDown={event => activateTabByKeyboard(event, index)}
                             onClick={() => { onSelect(tab.key); onScrollToPanel(); }}>
                             {tab.icon}
@@ -95,7 +139,7 @@ export const GameTabsNav = ({ tabs, activeKey, onSelect, onScrollToPanel }: Game
                     );
                 })}
             </div>
-            <span className="game-tabs-affordance" aria-hidden="true">›</span>
+            <span className="game-tabs-affordance game-tabs-affordance-right" aria-hidden="true">›</span>
         </nav>
     );
 };
