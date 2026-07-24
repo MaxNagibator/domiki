@@ -1,20 +1,21 @@
 import { useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import type { NeighborReputationDto } from '../types/api';
 import { Link } from 'react-router-dom';
-import SettingsIcon from 'pixelarticons/svg/settings-cog.svg?react';
 import { acceptErrand as acceptErrandApi, apiPost, ApiError, cancelErrand as cancelErrandApi, cancelOrder as cancelOrderApi, completeOrder as completeOrderApi, setFriendNeighbor as setFriendNeighborApi, setVillageProfile as setVillageProfileApi, startIncidentSearch as startIncidentSearchApi } from '../services/api';
 import { useToast } from '../services/toastContext';
 import { useGameData } from '../hooks/useGameData';
 import { GOLD_RESOURCE_TYPE_ID, computeSelectedDomikView, isWorkerFree } from '../utils/game';
+import { computeHudDigest } from '../utils/hud';
 import type { DomikSortMode } from '../utils/game';
 import { buildDomikNamer } from '../utils/domikNames';
 import { profileGenitiveName } from '../utils/profileLore';
-import { PushToggle } from './PushToggle';
 import { GameTabsNav } from './GameTabsNav';
 import { VillageIdentityModal } from './VillageIdentityModal';
 import { VillageHud } from './VillageHud';
-import { DomikGridSection, DomikSortMenu } from './DomikGridSection';
+import { ChangelogButton } from './ChangelogButton';
+import { DomikGridSection } from './DomikGridSection';
 import { VillageYard } from './VillageYard';
 import { SelectedDomikPanel } from './SelectedDomikPanel';
 import { ActionButton, ActionBusyProvider } from './ActionButton';
@@ -78,6 +79,10 @@ export const DomikiPage = () => {
         max: workers.length,
         free: workers.filter(worker => isWorkerFree(worker, now)).length,
     }), [workers, now]);
+    const hudDigest = useMemo(
+        () => computeHudDigest(domiks, domikTypes, orders, expeditions, workers, now),
+        [domiks, domikTypes, orders, expeditions, workers, now],
+    );
     const selected = useMemo(
         () => computeSelectedDomikView(selectedDomikId, domiks, domikTypes, receipts, resources, now),
         [selectedDomikId, domiks, domikTypes, receipts, resources, now],
@@ -122,6 +127,8 @@ export const DomikiPage = () => {
     const currentCrestColor = village?.crestColor ?? 0;
     const villageName = village?.villageName ?? 'Безымянная деревня';
     const identityVisible = identity === 'open' || (identity === 'auto' && village?.villageName === null);
+
+    const villageSlot = document.getElementById('village-slot');
 
     const openIdentity = () => setIdentity('open');
 
@@ -337,8 +344,30 @@ export const DomikiPage = () => {
                     <PixelLoader label="Загрузка деревни…" />
                 </div>
             }
-            <VillageHud resources={resources} resourceTypes={resourceTypes} domikTypes={domikTypes} plodder={plodder}
-                villageLevel={villageLevel} weather={weather} now={now} onStickyOffsetChange={setHudStickyOffset} villageProfile={villageProfile} />
+            {villageSlot != null && createPortal(
+                <button type="button" className="village-identity" title="Настроить деревню" onClick={openIdentity}>
+                    <Crest icon={currentCrestIcon} color={currentCrestColor} />
+                    <span className="section-title village-name">{villageName}</span>
+                </button>,
+                villageSlot)}
+            <VillageHud resources={resources} resourceTypes={resourceTypes} domikTypes={domikTypes} plodder={plodder} digest={hudDigest}
+                villageLevel={villageLevel} weather={weather} now={now} onStickyOffsetChange={setHudStickyOffset} villageProfile={villageProfile}
+                nav={
+                    <>
+                        <Link className="btn-game icon-chip-btn" to="/world">
+                            <MechanicSprite logicName="world" size={32} className="btn-ico" aria-hidden="true" />
+                            Мир
+                        </Link>
+                        {purchaseDomikTypes != null &&
+                            <ActionButton className="btn-game icon-chip-btn" onClick={() => toggleShop()}>
+                                <MechanicSprite logicName="shop" size={32} className="btn-ico" aria-hidden="true" />
+                                {shopVisible ? 'Закрыть' : 'Плотник'}
+                            </ActionButton>
+                        }
+                        <ChangelogButton />
+                    </>
+                }
+                />
             <GoalCard goals={goals} resourceTypes={resourceTypes} />
             {incident != null && <IncidentCard incident={incident} workers={workers} now={now} onStartSearch={startIncidentSearchAction} />}
             {domikIncident != null && <DomikIncidentCard incident={domikIncident} workers={workers} domikTypes={domikTypes} now={now} onStartSearch={startIncidentSearchAction} />}
@@ -358,46 +387,23 @@ export const DomikiPage = () => {
                     onClose={clearRecap}
                 />
             }
-            <div className="village-header">
-                <div className="village-identity">
-                    <Crest icon={currentCrestIcon} color={currentCrestColor} />
-                    <h2 className="section-title village-name">{villageName}</h2>
-                    <button type="button" className="identity-button" title="Настроить деревню" onClick={openIdentity}>
-                        <SettingsIcon className="btn-ico" aria-hidden="true" />
-                    </button>
-                </div>
-                <div className="village-header-actions">
-                    {domiks.length > 1 && <DomikSortMenu value={sortMode} onChange={changeSortMode} />}
-                    <PushToggle />
-                    <Link className="btn-game icon-chip-btn" to="/world">
-                        <MechanicSprite logicName="world" size={32} className="btn-ico" aria-hidden="true" />
-                        Мир
-                    </Link>
-                    {purchaseDomikTypes != null &&
-                        <ActionButton className="btn-game icon-chip-btn" onClick={() => toggleShop()}>
-                            <MechanicSprite logicName="shop" size={32} className="btn-ico" aria-hidden="true" />
-                            {shopVisible ? 'Закрыть' : 'Плотник'}
-                        </ActionButton>
-                    }
-                </div>
-            </div>
+            <VillageYard domiks={domiks} domikTypes={domikTypes} decor={decor} workers={workers}
+                villageLevel={villageLevel} currentWeather={currentWeather} selectedDomikId={selectedDomikId}
+                displayName={domik => {
+                    const domikType = domikTypes.find(type => type.id === domik.typeId);
+                    return domikType == null ? '' : domikDisplayName(domik.typeId, domik.id, domikType.name, domikType.logicName);
+                }}
+                onSelect={id => {
+                    const domik = domiks.find(item => item.id === id);
+                    const domikType = domik == null ? undefined : domikTypes.find(type => type.id === domik.typeId);
+                    selectDomik(id, domikType?.logicName ?? '');
+                }}
+                recapPending={recapPending}
+                onOpenRecap={() => { setRecapOpen(true); }}
+                activeExpeditionNames={(expeditions?.active ?? []).map(e => e.expeditionName)}
+                friendNeighbor={friendNeighbor} />
             <div className="workspace">
                 <section className="village">
-                    <VillageYard domiks={domiks} domikTypes={domikTypes} decor={decor} workers={workers}
-                        villageLevel={villageLevel} currentWeather={currentWeather} selectedDomikId={selectedDomikId}
-                        displayName={domik => {
-                            const domikType = domikTypes.find(type => type.id === domik.typeId);
-                            return domikType == null ? '' : domikDisplayName(domik.typeId, domik.id, domikType.name, domikType.logicName);
-                        }}
-                        onSelect={id => {
-                            const domik = domiks.find(item => item.id === id);
-                            const domikType = domik == null ? undefined : domikTypes.find(type => type.id === domik.typeId);
-                            selectDomik(id, domikType?.logicName ?? '');
-                        }}
-                        recapPending={recapPending}
-                        onOpenRecap={() => { setRecapOpen(true); }}
-                        activeExpeditionNames={(expeditions?.active ?? []).map(e => e.expeditionName)}
-                        friendNeighbor={friendNeighbor} />
                     {shopVisible && purchaseDomikTypes != null &&
                         <ShopBox purchaseDomikTypes={purchaseDomikTypes} domikTypes={domikTypes} receipts={receipts}
                             resourceTypes={resourceTypes} resources={resources} blueprints={blueprints} villageLevel={villageLevel}
@@ -405,7 +411,8 @@ export const DomikiPage = () => {
                     }
                     <DomikGridSection domiks={domiks} domikTypes={domikTypes} receipts={receipts} resources={resources}
                         resourceTypes={resourceTypes} currentWeather={currentWeather} now={now} sortMode={sortMode}
-                        selectedDomikId={selectedDomikId} displayName={domikDisplayName} onSelect={selectDomik} workers={workers} />
+                        onSortChange={changeSortMode} selectedDomikId={selectedDomikId} displayName={domikDisplayName}
+                        onSelect={selectDomik} workers={workers} />
                 </section>
                 {selected != null && <div className="actions-scrim" role="presentation" onClick={() => { setSelectedDomikId(null); }} />}
                 <SelectedDomikPanel selected={selected} resources={resources} resourceTypes={resourceTypes} receipts={receipts}

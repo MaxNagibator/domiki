@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import MenuIcon from 'pixelarticons/svg/menu.svg?react';
 import BuildingIcon from 'pixelarticons/svg/building.svg?react';
 import { LoginMenu } from './api-authorization/LoginMenu';
+import { PushToggle } from './PushToggle';
 import { MechanicSprite } from './sprites';
 
 export const NavMenu = () => {
@@ -14,6 +15,7 @@ export const NavMenu = () => {
             <nav className="topnav">
                 <div className="topnav-inner">
                     <Link className="brand" to="/" onClick={close}>Domiki</Link>
+                    <div id="village-slot" className="nav-village" />
                     <button
                         type="button"
                         className="nav-toggle"
@@ -35,6 +37,9 @@ export const NavMenu = () => {
                                 <MechanicSprite logicName="wiki" size={24} className="nav-ico" aria-hidden="true" />
                                 Справочник
                             </Link>
+                        </li>
+                        <li>
+                            <PushToggle />
                         </li>
                         <LoginMenu />
                     </ul>

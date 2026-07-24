@@ -1,66 +1,88 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
 import ChevronUpIcon from 'pixelarticons/svg/chevron-up.svg?react';
 import HomeIcon from 'pixelarticons/svg/home.svg?react';
 import LockIcon from 'pixelarticons/svg/lock.svg?react';
 import type { DomikTypeDto, PlodderCount, ResourceDto, ResourceTypeDto, VillageLevelDto, WeatherStateDto } from '../types/api';
-import { COIN_RESOURCE_TYPE_ID, strongestWeatherEffect } from '../utils/game';
+import { COIN_RESOURCE_TYPE_ID, GOLD_RESOURCE_TYPE_ID, strongestWeatherEffect } from '../utils/game';
+import { groupStockByDen, type HudDigest } from '../utils/hud';
+import { pluralRu } from '../utils/plural';
 import { remainingSeconds } from '../utils/time';
 import { AbstractSprite, DomikSprite, MechanicSprite, NeighborSprite, WeatherSprite } from './sprites';
 import { HudResource } from './HudResource';
+import { ResourceChip } from './ResourceChip';
+import { HudRibbon } from './HudRibbon';
 import { ProgressBar } from './ProgressBar';
 import { GiftVisitDots } from './GiftVisitDots';
-import { ChangelogButton } from './ChangelogButton';
 
 interface VillageHudProps {
     resources: ResourceDto[];
     resourceTypes: ResourceTypeDto[];
     domikTypes: DomikTypeDto[];
     plodder: PlodderCount;
+    digest: HudDigest;
     villageLevel: VillageLevelDto | null;
     weather: WeatherStateDto | null;
     now: number;
     onStickyOffsetChange: (offset: number) => void;
     villageProfile?: { logicName: string; name: string; buildings: string[] } | null;
+    nav: ReactNode;
 }
 
-export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, villageLevel, weather, now, onStickyOffsetChange, villageProfile }: VillageHudProps) => {
-    const hudSentinelRef = useRef<HTMLDivElement>(null);
+const CURRENCY_TYPE_IDS = new Set([COIN_RESOURCE_TYPE_ID, GOLD_RESOURCE_TYPE_ID]);
+
+const hoursLeft = (finishDate: string, now: number) => Math.max(1, Math.ceil(remainingSeconds(finishDate, now) / 3600));
+
+export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, digest, villageLevel, weather, now, onStickyOffsetChange, villageProfile, nav }: VillageHudProps) => {
     const hudRef = useRef<HTMLElement>(null);
-    const [hudAway, setHudAway] = useState(false);
-    const [hudPinnedOpen, setHudPinnedOpen] = useState(false);
+    const [stockOpen, setStockOpen] = useState(false);
     const [levelFlyout, setLevelFlyout] = useState<{ top: number; right: number } | null>(null);
+    const [weatherFlyout, setWeatherFlyout] = useState<{ top: number; right: number } | null>(null);
     const villageLevelRef = useRef<HTMLDivElement>(null);
+    const weatherCapsuleRef = useRef<HTMLButtonElement>(null);
+    const flyoutPosition = (rect: DOMRect) => ({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
     const openLevelFlyout = () => {
         const rect = villageLevelRef.current?.getBoundingClientRect();
         if (rect != null) {
-            setLevelFlyout({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+            setLevelFlyout(flyoutPosition(rect));
         }
     };
     const closeLevelFlyout = () => setLevelFlyout(null);
+    const toggleWeatherFlyout = () => {
+        setWeatherFlyout(open => {
+            if (open != null) {
+                return null;
+            }
+
+            const rect = weatherCapsuleRef.current?.getBoundingClientRect();
+            return rect == null ? null : flyoutPosition(rect);
+        });
+    };
 
     useEffect(() => {
-        const sentinel = hudSentinelRef.current;
-        if (sentinel == null) {
+        if (weatherFlyout == null) {
             return;
         }
 
-        const observer = new IntersectionObserver(entries => {
-            const entry = entries[0];
-            if (entry == null) {
-                return;
+        const onDocInteract = (event: Event) => {
+            if (!weatherCapsuleRef.current?.contains(event.target as Node)) {
+                setWeatherFlyout(null);
             }
-
-            setHudAway(!entry.isIntersecting);
-            if (entry.isIntersecting) {
-                setHudPinnedOpen(false);
+        };
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setWeatherFlyout(null);
             }
-        });
-
-        observer.observe(sentinel);
-        return () => { observer.disconnect(); };
-    }, []);
+        };
+        document.addEventListener('mousedown', onDocInteract);
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('mousedown', onDocInteract);
+            document.removeEventListener('keydown', onKey);
+        };
+    }, [weatherFlyout]);
 
     useEffect(() => {
         const hud = hudRef.current;
@@ -74,133 +96,110 @@ export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, vill
         return () => { observer?.disconnect(); };
     }, [onStickyOffsetChange]);
 
-    const hudCollapsed = hudAway && !hudPinnedOpen;
     const coinType = resourceTypes.find(t => t.id === COIN_RESOURCE_TYPE_ID);
     const coinValue = resources.find(r => r.typeId === COIN_RESOURCE_TYPE_ID)?.value;
+    const goldType = resourceTypes.find(t => t.id === GOLD_RESOURCE_TYPE_ID);
+    const goldValue = resources.find(r => r.typeId === GOLD_RESOURCE_TYPE_ID)?.value;
     const currentWeather = weather?.current ?? null;
     const nextGoal = villageLevel?.unlocks.find((unlock): unlock is typeof unlock & { level: number } => !unlock.unlocked && unlock.level != null);
     const effectChips = currentWeather?.effects.filter(effect => effect.outputPercent !== 100) ?? [];
     const villageProfileBuildingsText = villageProfile == null ? '' : villageProfile.buildings.join(' и ');
+    const weatherLeftHours = currentWeather != null ? hoursLeft(currentWeather.endDate, now) : 0;
+    const nextPeriod = weather?.forecast[0] ?? null;
+    const laterPeriods = weather?.forecast.slice(1) ?? [];
+
+    const stockDens = useMemo(() => {
+        const typeById = new Map(resourceTypes.map(type => [type.id, type]));
+        const stock = resources
+            .filter(resource => !CURRENCY_TYPE_IDS.has(resource.typeId) && resource.value > 0)
+            .map(resource => ({ type: typeById.get(resource.typeId), value: resource.value }))
+            .filter((entry): entry is { type: ResourceTypeDto; value: number } => entry.type != null);
+        return groupStockByDen(stock);
+    }, [resources, resourceTypes]);
+
+    const plodderState: string[] = [];
+    if (digest.workersSick > 0) {
+        plodderState.push(`${digest.workersSick} ${pluralRu(digest.workersSick, 'хворает', 'хворают', 'хворают')}`);
+    }
+    if (digest.workersResting > 0) {
+        plodderState.push(`${digest.workersResting} ${pluralRu(digest.workersResting, 'отдыхает', 'отдыхают', 'отдыхают')}`);
+    }
+    const plodderTitle = plodderState.length > 0
+        ? `Трудяги: ${plodder.free}/${plodder.max} свободно · ${plodderState.join(' · ')}`
+        : `Трудяги: ${plodder.free}/${plodder.max} свободно`;
 
     return (
         <>
-            <div className="hud-sentinel" ref={hudSentinelRef} aria-hidden="true" />
-            <header ref={hudRef} className={'hud pixel-panel' + (hudCollapsed ? ' hud-collapsed' : '')}>
-                <button type="button" className="hud-compact" onClick={() => { setHudPinnedOpen(true); }} title="Развернуть панель">
-                    {coinType != null && coinValue != null && <HudResource resourceType={coinType} value={coinValue} />}
-                    <div className="resource-box">
-                        <img src="/images/modificatorTypes/plodder.png" alt="Трудяги" />
-                        <span className="resource-value">{plodder.free}/{plodder.max}</span>
-                    </div>
-                    {villageLevel != null &&
-                        <span className="resource-box">
-                            <MechanicSprite logicName="obzhitost" size={24} className="village-level-ico" aria-hidden="true" />
-                            <span className="resource-value">{villageLevel.level}</span>
-                        </span>}
-                    {currentWeather != null && <WeatherSprite logicName={currentWeather.logicName} className="weather-ico" aria-hidden="true" />}
-                    <ChevronDownIcon className="btn-ico hud-compact-caret" aria-hidden="true" />
-                </button>
-                <div className="resources">
-                    {resourceTypes.length > 0 &&
-                        resources.map(resource => {
-                            const resourceType = resourceTypes.find(x => x.id === resource.typeId);
-                            if (resourceType == null) {
-                                return null;
-                            }
-
-                            return <HudResource key={resource.typeId} resourceType={resourceType} value={resource.value} />;
-                        })
-                    }
-                </div>
-                {domikTypes.length > 0 &&
-                    <div className="resource-box hud-plodder" title="Трудяги">
-                        <img src="/images/modificatorTypes/plodder.png" alt="Трудяги" />
-                        <span className="resource-value">{plodder.free}/{plodder.max}</span>
-                    </div>
-                }
-                {villageLevel != null &&
-                    <>
-                        <div className="village-level" ref={villageLevelRef}
-                            onMouseEnter={openLevelFlyout} onMouseLeave={closeLevelFlyout}
-                            onFocus={openLevelFlyout} onBlur={closeLevelFlyout}>
-                            <button type="button" className="village-level-box"
-                                title={`Постройки ${villageLevel.buildings}, жители ${villageLevel.residents}, репутация ${villageLevel.reputation}, уют ${villageLevel.comfort}`}>
-                                <MechanicSprite logicName="obzhitost" size={24} className="village-level-ico" aria-hidden="true" />
-                                <span className="village-level-label">Обжитость</span>
-                                <span className="village-level-value">{villageLevel.level}</span>
-                            </button>
+            <header ref={hudRef} className="hud pixel-panel">
+                <div className="hud-bar">
+                    <div className="hud-left">
+                        <div className="hud-casna">
+                            {coinType != null && coinValue != null && <HudResource resourceType={coinType} value={coinValue} />}
+                            {goldType != null && goldValue != null && <HudResource resourceType={goldType} value={goldValue} />}
                         </div>
-                        {levelFlyout != null && createPortal(
-                            <div className="village-level-flyout" style={{ top: levelFlyout.top, right: levelFlyout.right }}>
-                                <div className="vlf-stats">
-                                    <span className="vlf-stat"><span className="vlf-stat-label">Постройки</span><span className="vlf-stat-value">{villageLevel.buildings}</span></span>
-                                    <span className="vlf-stat"><span className="vlf-stat-label">Жители</span><span className="vlf-stat-value">{villageLevel.residents}</span></span>
-                                    <span className="vlf-stat"><span className="vlf-stat-label">Репутация</span><span className="vlf-stat-value">{villageLevel.reputation}</span></span>
-                                    <span className="vlf-stat"><span className="vlf-stat-label">Уют</span><span className="vlf-stat-value">{villageLevel.comfort}</span></span>
-                                </div>
-                                {(() => {
-                                    const rows = [
-                                        ...villageLevel.unlocks.filter(unlock => !unlock.unlocked && unlock.level != null).slice(0, 3),
-                                        ...villageLevel.unlocks.filter(unlock => !unlock.unlocked && unlock.level == null),
-                                    ];
-                                    if (rows.length === 0) {
-                                        return null;
-                                    }
 
-                                    return (
-                                        <div className="vlf-ahead">
-                                            <span className="vlf-ahead-title">Впереди</span>
-                                            <ul className="vlf-unlocks">
-                                                {rows.map(unlock => (
-                                                    <li key={`${unlock.label}-${unlock.level ?? unlock.requirement ?? ''}`} className="vlf-row">
-                                                        {unlock.kind === 'building'
-                                                            ? <DomikSprite logicName={unlock.logicName ?? ''} className="vlf-ico" aria-hidden="true" />
-                                                            : unlock.kind === 'neighbor'
-                                                                ? <NeighborSprite logicName={unlock.logicName ?? ''} size={24} className="vlf-ico" aria-hidden="true" />
-                                                                : unlock.logicName === 'smart_artel'
-                                                                    ? <AbstractSprite logicName="smart_artel" size={24} className="vlf-ico" aria-hidden="true" />
-                                                                    : <HomeIcon className="vlf-ico" aria-hidden="true" />}
-                                                        <span className="vlf-body">
-                                                            <span className="vlf-name">{unlock.label}</span>
-                                                            {unlock.level == null && unlock.requirement != null &&
-                                                                <span className="vlf-req">{unlock.requirement}</span>}
-                                                        </span>
-                                                        {unlock.level != null &&
-                                                            <span className="vlf-badge">обж {unlock.level}</span>}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    );
-                                })()}
-                            </div>,
-                            document.body)}
-                        {villageProfile != null &&
-                            <div className="village-profile-chip"
-                                title={`Деревня живёт по укладу ${villageProfile.name}: ${villageProfileBuildingsText} управляются быстрее на 15 %.`}>
-                                <NeighborSprite logicName={villageProfile.logicName} size={24} className="village-profile-chip-ico" aria-hidden="true" />
-                                <span className="village-profile-chip-label">уклад {villageProfile.name}</span>
+                        {domikTypes.length > 0 &&
+                            <>
+                                <span className="hud-div" aria-hidden="true" />
+                                <div className="hud-plodders" title={plodderTitle}>
+                                    <img src="/images/modificatorTypes/plodder.png" alt="Трудяги" />
+                                    <span className="resource-value">{plodder.free}/{plodder.max}</span>
+                                    <span className="hud-plodders-word">свободно</span>
+                                    {plodderState.length > 0 &&
+                                        <span className="hud-plodders-alert" aria-label={plodderState.join(', ')}>
+                                            {digest.workersSick + digest.workersResting}
+                                        </span>}
+                                </div>
+                            </>}
+
+                        <HudRibbon digest={digest} />
+                    </div>
+
+                    <div className="hud-right">
+                        {weather != null && currentWeather != null &&
+                            <button type="button" ref={weatherCapsuleRef}
+                                className={'weather-capsule' + (weatherFlyout != null ? ' is-open' : '')}
+                                onClick={toggleWeatherFlyout} aria-expanded={weatherFlyout != null}
+                                title={`${currentWeather.weatherName}, ещё ${weatherLeftHours} ч`}>
+                                <WeatherSprite logicName={currentWeather.logicName} className="weather-ico" aria-hidden="true" />
+                                <span className="weather-left">ещё {weatherLeftHours}ч</span>
+                                {weatherFlyout != null
+                                    ? <ChevronUpIcon className="btn-ico weather-capsule-caret" aria-hidden="true" />
+                                    : <ChevronDownIcon className="btn-ico weather-capsule-caret" aria-hidden="true" />}
+                            </button>}
+
+                        {villageLevel != null &&
+                            <div className="village-level" ref={villageLevelRef}
+                                onMouseEnter={openLevelFlyout} onMouseLeave={closeLevelFlyout}
+                                onFocus={openLevelFlyout} onBlur={closeLevelFlyout}>
+                                <button type="button" className="village-level-box"
+                                    title={`Постройки ${villageLevel.buildings}, жители ${villageLevel.residents}, репутация ${villageLevel.reputation}, уют ${villageLevel.comfort}`}>
+                                    <MechanicSprite logicName="obzhitost" size={24} className="village-level-ico" aria-hidden="true" />
+                                    <span className="village-level-label">Обжитость</span>
+                                    <span className="village-level-value">{villageLevel.level}</span>
+                                </button>
                             </div>}
-                        {villageLevel.visitsSinceBigGift > 0 &&
-                            <div className="hud-gift-strip" role="img"
-                                aria-label={`До большого гостинца визитов: ${7 - villageLevel.visitsSinceBigGift}`}
-                                title={`До большого гостинца визитов: ${7 - villageLevel.visitsSinceBigGift}`}>
-                                <GiftVisitDots visitIndex={villageLevel.visitsSinceBigGift} />
-                            </div>}
-                        {nextGoal != null &&
-                            <div className="hud-goal"
-                                title={`Откроется при обжитости ${nextGoal.level}: ${nextGoal.label}`}>
-                                <LockIcon className="hud-goal-ico" aria-hidden="true" />
-                                <span className="hud-goal-label">{nextGoal.label}</span>
-                                <ProgressBar value={villageLevel.level} max={nextGoal.level}
-                                    label={`${villageLevel.level}/${nextGoal.level}`} />
-                            </div>}
-                    </>
-                }
-                {weather != null && currentWeather != null &&
-                    <div className="weather-strip" title={currentWeather.weatherName}>
-                        <WeatherSprite logicName={currentWeather.logicName} className="weather-ico" aria-hidden="true" />
-                        <span className="weather-name">{currentWeather.weatherName}</span>
+                    </div>
+                </div>
+
+                <div className="hud-deck">
+                    <div className="hud-deck-nav">{nav}</div>
+                    <div className="hud-deck-tools">
+                        <button type="button" className={'hud-tool' + (stockOpen ? ' is-open' : '')}
+                            onClick={() => { setStockOpen(open => !open); }} title="Закрома" aria-expanded={stockOpen}>
+                            <span className="hud-tool-label">Закрома</span>
+                            {stockOpen ? <ChevronUpIcon className="btn-ico" aria-hidden="true" /> : <ChevronDownIcon className="btn-ico" aria-hidden="true" />}
+                        </button>
+                    </div>
+                </div>
+
+                {weatherFlyout != null && currentWeather != null && createPortal(
+                    <div className="weather-flyout" style={{ top: weatherFlyout.top, right: weatherFlyout.right }}>
+                        <div className="wf-head">
+                            <WeatherSprite logicName={currentWeather.logicName} className="weather-ico" aria-hidden="true" />
+                            <span className="weather-name">{currentWeather.weatherName}</span>
+                            <span className="weather-left">ещё {weatherLeftHours}ч</span>
+                        </div>
                         {effectChips.length > 0 &&
                             <div className="weather-effects">
                                 {effectChips.map(effect => {
@@ -214,42 +213,116 @@ export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, vill
                                     return (
                                         <span key={effect.domikTypeId}
                                             className={'weather-effect' + (buff ? ' weather-effect-buff' : ' weather-effect-nerf')}
-                                            title={`${domikType.name}: ${buff ? "+" : ""}${delta}% выход`}>
+                                            title={`${domikType.name}: ${buff ? '+' : ''}${delta}% выход`}>
                                             <DomikSprite className="weather-effect-ico" logicName={domikType.logicName} />
                                             {buff ? '+' : ''}{delta}%
                                         </span>
                                     );
                                 })}
-                            </div>
-                        }
-                        {weather.forecast.length > 0 &&
-                        <div className="weather-forecast">
-                            <span className="weather-forecast-label">далее</span>
-                            {weather.forecast.map(period => {
-                                const hoursAhead = Math.max(1, Math.round(remainingSeconds(period.startDate, now) / 3600));
-                                const hint = strongestWeatherEffect(period.effects, domikTypes);
-                                return (
-                                    <span key={period.startDate} className="weather-chip" title={period.weatherName}>
-                                        <WeatherSprite logicName={period.logicName} size={24} className="weather-chip-ico" aria-hidden="true" />
-                                        через {hoursAhead}ч
-                                        {hint != null &&
-                                            <span className={'weather-effect' + (hint.delta > 0 ? ' weather-effect-buff' : ' weather-effect-nerf')}
-                                                title={`${hint.domikType.name}: ${hint.delta > 0 ? '+' : ''}${hint.delta}% выход`}>
-                                                <DomikSprite className="weather-effect-ico" logicName={hint.domikType.logicName} />
-                                                {hint.delta > 0 ? '+' : ''}{hint.delta}%
-                                            </span>}
-                                    </span>
-                                );
-                            })}
+                            </div>}
+                        {nextPeriod != null &&
+                            <div className="wf-forecast-title">Впереди</div>}
+                        {nextPeriod != null &&
+                            <div className="weather-forecast">
+                                {[nextPeriod, ...laterPeriods].map(period => {
+                                    const hint = strongestWeatherEffect(period.effects, domikTypes);
+                                    return (
+                                        <span key={period.startDate} className="weather-chip" title={period.weatherName}>
+                                            <WeatherSprite logicName={period.logicName} size={24} className="weather-chip-ico" aria-hidden="true" />
+                                            через {hoursLeft(period.startDate, now)}ч
+                                            {hint != null &&
+                                                <span className={'weather-effect' + (hint.delta > 0 ? ' weather-effect-buff' : ' weather-effect-nerf')}>
+                                                    <DomikSprite className="weather-effect-ico" logicName={hint.domikType.logicName} />
+                                                    {hint.delta > 0 ? '+' : ''}{hint.delta}%
+                                                </span>}
+                                        </span>
+                                    );
+                                })}
+                            </div>}
+                    </div>,
+                    document.body)}
+
+                {stockOpen &&
+                    <div className="hud-stock">
+                        {stockDens.length === 0
+                            ? <span className="hud-stock-empty">закрома пусты</span>
+                            : stockDens.map(den => (
+                                <div key={den.key} className="hud-den" data-den={den.key}>
+                                    <span className="hud-den-name">{den.label}</span>
+                                    <div className="hud-den-items">
+                                        {den.items.map(({ type, value }) => (
+                                            <ResourceChip key={type.id} resourceType={type} value={value} />
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                    </div>}
+
+                {levelFlyout != null && createPortal(
+                    <div className="village-level-flyout" style={{ top: levelFlyout.top, right: levelFlyout.right }}>
+                        <div className="vlf-stats">
+                            <span className="vlf-stat"><span className="vlf-stat-label">Постройки</span><span className="vlf-stat-value">{villageLevel?.buildings}</span></span>
+                            <span className="vlf-stat"><span className="vlf-stat-label">Жители</span><span className="vlf-stat-value">{villageLevel?.residents}</span></span>
+                            <span className="vlf-stat"><span className="vlf-stat-label">Репутация</span><span className="vlf-stat-value">{villageLevel?.reputation}</span></span>
+                            <span className="vlf-stat"><span className="vlf-stat-label">Уют</span><span className="vlf-stat-value">{villageLevel?.comfort}</span></span>
                         </div>
-                        }
-                    </div>
-                }
-                <ChangelogButton />
-                {hudAway && hudPinnedOpen &&
-                    <button type="button" className="hud-fold" onClick={() => { setHudPinnedOpen(false); }} title="Свернуть панель">
-                        <ChevronUpIcon className="btn-ico" aria-hidden="true" />
-                    </button>}
+                        {villageLevel != null && nextGoal != null &&
+                            <div className="vlf-goal">
+                                <div className="vlf-goal-head">
+                                    <LockIcon className="vlf-goal-ico" aria-hidden="true" />
+                                    <span className="vlf-goal-name">{nextGoal.label}</span>
+                                </div>
+                                <ProgressBar value={villageLevel.level} max={nextGoal.level}
+                                    label={`обжитость ${villageLevel.level}/${nextGoal.level}`} />
+                            </div>}
+                        {villageProfile != null &&
+                            <div className="vlf-uklad" title={`Деревня живёт по укладу ${villageProfile.name}: ${villageProfileBuildingsText} управляются быстрее на 15 %.`}>
+                                <NeighborSprite logicName={villageProfile.logicName} size={24} className="vlf-uklad-ico" aria-hidden="true" />
+                                <span className="vlf-uklad-label">уклад {villageProfile.name}</span>
+                            </div>}
+                        {villageLevel != null && villageLevel.visitsSinceBigGift > 0 &&
+                            <div className="vlf-gift">
+                                <span className="vlf-gift-label">До большого гостинца</span>
+                                <GiftVisitDots visitIndex={villageLevel.visitsSinceBigGift} />
+                            </div>}
+                        {(() => {
+                            const rows = [
+                                ...(villageLevel?.unlocks.filter(unlock => !unlock.unlocked && unlock.level != null).slice(0, 3) ?? []),
+                                ...(villageLevel?.unlocks.filter(unlock => !unlock.unlocked && unlock.level == null) ?? []),
+                            ];
+                            if (rows.length === 0) {
+                                return null;
+                            }
+
+                            return (
+                                <div className="vlf-ahead">
+                                    <span className="vlf-ahead-title">Впереди</span>
+                                    <ul className="vlf-unlocks">
+                                        {rows.map(unlock => (
+                                            <li key={`${unlock.label}-${unlock.level ?? unlock.requirement ?? ''}`} className="vlf-row">
+                                                {unlock.kind === 'building'
+                                                    ? <DomikSprite logicName={unlock.logicName ?? ''} className="vlf-ico" aria-hidden="true" />
+                                                    : unlock.kind === 'neighbor'
+                                                        ? <NeighborSprite logicName={unlock.logicName ?? ''} size={24} className="vlf-ico" aria-hidden="true" />
+                                                        : unlock.logicName === 'smart_artel'
+                                                            ? <AbstractSprite logicName="smart_artel" size={24} className="vlf-ico" aria-hidden="true" />
+                                                            : <HomeIcon className="vlf-ico" aria-hidden="true" />}
+                                                <span className="vlf-body">
+                                                    <span className="vlf-name">{unlock.label}</span>
+                                                    {unlock.level == null && unlock.requirement != null &&
+                                                        <span className="vlf-req">{unlock.requirement}</span>}
+                                                </span>
+                                                {unlock.level != null &&
+                                                    <span className="vlf-badge">обж {unlock.level}</span>}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            );
+                        })()}
+                    </div>,
+                    document.body)}
+
             </header>
         </>
     );

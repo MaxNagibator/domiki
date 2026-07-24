@@ -103,13 +103,14 @@ interface DomikGridSectionProps {
     currentWeather: WeatherPeriodDto | null;
     now: number;
     sortMode: DomikSortMode;
+    onSortChange: (mode: DomikSortMode) => void;
     selectedDomikId: number | null;
     displayName: DomikNamer;
     onSelect: (id: number, logicName: string) => void;
     workers: WorkerDto[];
 }
 
-export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, resourceTypes, currentWeather, now, sortMode, selectedDomikId, displayName: namer, onSelect, workers }: DomikGridSectionProps) => {
+export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, resourceTypes, currentWeather, now, sortMode, onSortChange, selectedDomikId, displayName: namer, onSelect, workers }: DomikGridSectionProps) => {
     const [rowsPerPage, setRowsPerPage] = useState<RowsPerPage>(() => {
         const saved = localStorage.getItem('domik-page-size');
         if (saved === '2') return 2;
@@ -286,8 +287,9 @@ export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, reso
                     })
                 }
             </div>
-            {(totalPages > 1 || domiks.length > 2 * columns) &&
+            {domiks.length > 1 &&
                 <div className="domik-pager">
+                    <DomikSortMenu value={sortMode} onChange={onSortChange} />
                     {totalPages > 1 &&
                         <div className="domik-pager-nav">
                             <button type="button" className="btn-game btn-ghost btn-icon" disabled={safePage <= 1}

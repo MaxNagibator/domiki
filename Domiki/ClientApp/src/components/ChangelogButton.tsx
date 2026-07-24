@@ -23,9 +23,10 @@ export const ChangelogButton = () => {
 
     return (
         <>
-            <button type="button" className="hud-news" title="Сельский вестник" aria-label="Сельский вестник – история изменений"
-                onClick={() => { setOpen(true); }}>
-                <MechanicSprite logicName="vestnik" size={24} className="hud-news-ico" aria-hidden="true" />
+            <button type="button" className="btn-game icon-chip-btn changelog-chip" title="Сельский вестник"
+                aria-label="Сельский вестник – история изменений" onClick={() => { setOpen(true); }}>
+                <MechanicSprite logicName="vestnik" size={32} className="btn-ico" aria-hidden="true" />
+                Вестник
                 {unread && <span className="hud-news-dot" aria-hidden="true" />}
             </button>
             {open && <ChangelogModal lastSeenId={lastSeen} onClose={close} />}

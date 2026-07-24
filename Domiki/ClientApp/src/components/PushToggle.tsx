@@ -42,13 +42,14 @@ export const PushToggle = () => {
     }
 
     return (
-        <button type="button" className={`btn-game btn-ghost btn-icon push-toggle push-toggle-${pushState}`}
+        <button type="button" className={`nav-link push-toggle push-toggle-${pushState}`}
             title={pushState === 'on' ? 'Push-уведомления включены' : pushState === 'denied' ? 'Push-уведомления заблокированы браузером' : 'Push-уведомления выключены'}
             aria-label={pushState === 'on' ? 'Выключить push-уведомления' : 'Включить push-уведомления'}
             disabled={pushBusy} onClick={() => void togglePush()}>
             {pushState === 'on'
-                ? <BellIcon className="btn-ico" aria-hidden="true" />
-                : <BellOffIcon className="btn-ico" aria-hidden="true" />}
+                ? <BellIcon className="nav-ico" aria-hidden="true" />
+                : <BellOffIcon className="nav-ico" aria-hidden="true" />}
+            Уведомления
         </button>
     );
 };
