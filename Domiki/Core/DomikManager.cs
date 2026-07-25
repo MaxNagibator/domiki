@@ -483,7 +483,7 @@ public class DomikManager
 
         var domikType = domikTypes.First(x => x.Id == dbDomik.TypeId);
         var domikLevel = domikType.Levels.First(x => x.Value == dbDomik.Level);
-        var levelReceipt = domikLevel.Receipts.First(x => x.Id == receiptId);
+        var levelReceipt = domikLevel.Receipts.FirstOrDefault(x => x.Id == receiptId) ?? throw new BusinessException("Рецепт больше не доступен на этом уровне");
         var receipt = _resourceManager.GetReceipts().First(x => x.Id == levelReceipt.Id);
         var needPlodderCount = receipt.PlodderCount;
         if (freeWorkers.Length < needPlodderCount)
@@ -562,13 +562,14 @@ public class DomikManager
         duration = Math.Max(duration, (int)Math.Ceiling(receipt.DurationSeconds * 0.6));
 
         var marketDomikTypeId = _resourceManager.GetDomikTypes().First(x => x.LogicName == "market").Id;
+        var zealChargeOwed = false;
         if (receipt.DurationSeconds <= ZealMaxRecipeSeconds && dbDomik.TypeId != marketDomikTypeId)
         {
             if (dbPlayer.ZealCharges > 0)
             {
                 var mult = dbPlayer.ZealCharges > ZealX4Threshold ? 4 : 2;
                 duration = Math.Max(1, duration / mult);
-                dbPlayer.ZealCharges--;
+                zealChargeOwed = true;
             }
         }
 
@@ -598,6 +599,11 @@ public class DomikManager
         }
 
         _playerResourceManager.WriteOffResources(playerId, writeOffResources);
+
+        if (zealChargeOwed)
+        {
+            dbPlayer.ZealCharges--;
+        }
 
         var manufacture = new Data.Entities.Manufacture
         {
@@ -834,8 +840,13 @@ public class DomikManager
                 {
                     StartManufacture(playerId, domikId, receiptId, useOptional, freedWorkerIds.ToArray(), true);
                 }
-                catch (Exception)
+                catch (BusinessException ex)
                 {
+                    _playerEventManager.Record(playerId, PlayerEventType.ManufactureRepeatFailed, new { domikId, domikTypeId = dbDomik.TypeId, receiptId, reason = ex.Message });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "FinishManufacture: наряд {ManufactureId} игрока {PlayerId} не смог возобновиться", dbManufacture.Id, playerId);
                 }
             }
 

@@ -27,6 +27,7 @@ export interface RecapView {
     villageHelped: { guestVillageName: string; guestCrestIcon: number; guestCrestColor: number; domikTypeName: string; reducedSeconds: number; date: string }[];
     incidents: { kind: 'missing' | 'resolved'; autoReturned?: boolean; workerName: string; workerGender: number; templateId: number; clueId?: number; resourceTypeId?: number; value?: number; traitUpgraded?: boolean; newTrait?: string; newTraitLogicName?: string }[];
     domikIncidents: { kind: 'started' | 'resolved'; autoResolved?: boolean; domikTypeId: number; templateId: number; clueId?: number; resourceTypeId?: number; value?: number; traitUpgraded?: boolean; newTrait?: string; newTraitLogicName?: string; heroWorkerName?: string; heroWorkerGender?: number; upgradedWorkerName?: string }[];
+    manufactureRepeatFailures: { domikTypeId: number; reason: string }[];
 }
 
 export const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
@@ -79,6 +80,7 @@ export function buildRecapView(events: RecapEventDto[]): RecapView {
     const villageHelped: RecapView['villageHelped'] = [];
     const incidents: RecapView['incidents'] = [];
     const domikIncidents: RecapView['domikIncidents'] = [];
+    const manufactureRepeatFailures: RecapView['manufactureRepeatFailures'] = [];
 
     for (const event of events) {
         if (!isRecord(event.data)) {
@@ -112,6 +114,14 @@ export function buildRecapView(events: RecapEventDto[]): RecapView {
             if (give != null) {
                 market.push({ kind: 'expired', give });
             }
+        }
+
+        if (event.type === 'ManufactureRepeatFailed') {
+            const { domikTypeId, reason } = event.data;
+            if (!isNumber(domikTypeId) || typeof reason !== 'string') {
+                continue;
+            }
+            manufactureRepeatFailures.push({ domikTypeId, reason });
         }
 
         if (event.type === 'DomikUpgraded' && isNumber(event.data.domikTypeId) && isNumber(event.data.level)) {
@@ -208,5 +218,6 @@ export function buildRecapView(events: RecapEventDto[]): RecapView {
         villageHelped,
         incidents,
         domikIncidents,
+        manufactureRepeatFailures,
     };
 }

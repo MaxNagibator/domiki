@@ -7,11 +7,12 @@ import { MechanicSprite, NeighborSprite } from './sprites';
 
 interface HudRibbonProps {
     digest: HudDigest;
+    onOpenHousehold: () => void;
 }
 
 const RIBBON_LIMIT = 2;
 
-export const HudRibbon = ({ digest }: HudRibbonProps) => {
+export const HudRibbon = ({ digest, onOpenHousehold }: HudRibbonProps) => {
     const items: { key: string; text: string; node: ReactNode }[] = [];
 
     if (digest.soonestOrder != null) {
@@ -69,9 +70,10 @@ export const HudRibbon = ({ digest }: HudRibbonProps) => {
         <div className="hud-ribbon">
             {shown.map(item => <span key={item.key} className="hud-ribbon-slot">{item.node}</span>)}
             {hidden.length > 0 &&
-                <span className="hud-ribbon-more" title={hidden.map(item => item.text).join(', ')}>
+                <button type="button" className="hud-ribbon-more" title={hidden.map(item => item.text).join(', ')}
+                    onClick={onOpenHousehold}>
                     +{hidden.length}
-                </span>}
+                </button>}
         </div>
     );
 };

@@ -16,6 +16,7 @@ import { VillageIdentityModal } from './VillageIdentityModal';
 import { VillageHud } from './VillageHud';
 import { ChangelogButton } from './ChangelogButton';
 import { DomikGridSection } from './DomikGridSection';
+import { HouseholdBox } from './HouseholdBox';
 import { VillageYard } from './VillageYard';
 import { SelectedDomikPanel } from './SelectedDomikPanel';
 import { ActionButton, ActionBusyProvider } from './ActionButton';
@@ -65,6 +66,7 @@ export const DomikiPage = () => {
     const [activeTab, setActiveTab] = useState('');
     const [identity, setIdentity] = useState<'auto' | 'open' | 'dismissed'>('auto');
     const gameTabPanelRef = useRef<HTMLDivElement>(null);
+    const selectedDomikPanelRef = useRef<HTMLElement>(null);
     const [hudStickyOffset, setHudStickyOffset] = useState(76);
     const [sortMode, setSortMode] = useState<DomikSortMode>(() => {
         const saved = localStorage.getItem('domik-sort-mode');
@@ -80,8 +82,8 @@ export const DomikiPage = () => {
         free: workers.filter(worker => isWorkerFree(worker, now)).length,
     }), [workers, now]);
     const hudDigest = useMemo(
-        () => computeHudDigest(domiks, domikTypes, orders, expeditions, workers, now),
-        [domiks, domikTypes, orders, expeditions, workers, now],
+        () => computeHudDigest(domiks, domikTypes, receipts, resources, orders, expeditions, workers, now),
+        [domiks, domikTypes, receipts, resources, orders, expeditions, workers, now],
     );
     const selected = useMemo(
         () => computeSelectedDomikView(selectedDomikId, domiks, domikTypes, receipts, resources, now),
@@ -227,7 +229,7 @@ export const DomikiPage = () => {
 
     const toggleManufactureAutoRepeat = (manufactureId: number, next: boolean) => runAction(
         () => setManufactureAutoRepeat(manufactureId, next),
-        next ? 'Автоповтор включён' : 'Повторы остановлены',
+        next ? 'Наряд поставлен' : 'Наряда нет',
     );
 
     const hurryDomikAction = (domikId: number) => runAction(() => hurryDomik(domikId), 'Улучшение ускорено');
@@ -286,7 +288,27 @@ export const DomikiPage = () => {
         }
     };
 
+    const scrollToSelectedDomikPanel = () => {
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const panel = selectedDomikPanelRef.current;
+        panel?.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' });
+        if (panel != null) {
+            panel.tabIndex = -1;
+            panel.focus({ preventScroll: true });
+        }
+    };
+
+    const selectDomikFromBoard = (id: number, logicName: string) => {
+        selectDomik(id, logicName);
+        scrollToSelectedDomikPanel();
+    };
+
     const gameTabs: GameTab[] = [
+        {
+            key: 'household', label: 'Хозяйство', icon: <AbstractSprite logicName="elder_order" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
+            node: <HouseholdBox digest={hudDigest} resourceTypes={resourceTypes} now={now} onSelectDomik={selectDomikFromBoard} onOpenTab={setActiveTab}
+                onToggleRepeat={toggleManufactureAutoRepeat} />,
+        },
         {
             key: 'orders', label: 'Заказы', icon: <MechanicSprite logicName="orders" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
             node: <OrdersBox orders={orders} errand={errand} workers={workers} reputation={reputation} convoys={convoys} resourceTypes={resourceTypes} resources={resources} now={now}
@@ -317,7 +339,7 @@ export const DomikiPage = () => {
         },
         {
             key: 'workers', label: 'Трудяги', icon: <MechanicSprite logicName="workers" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
-            node: <WorkersBox workers={workers} domikTypes={domikTypes} domiks={domiks} expeditions={expeditions} errand={errand} incident={incident} domikIncident={domikIncident} cloaks={cloaks} sickTypes={sickTypes} resourceTypes={resourceTypes} resources={resources} tavernLevel={tavernLevel} larder={larder} onSetFoodRule={setFoodRuleAction} now={now} />,
+            node: <WorkersBox workers={workers} domikTypes={domikTypes} domiks={domiks} receipts={receipts} expeditions={expeditions} errand={errand} incident={incident} domikIncident={domikIncident} cloaks={cloaks} sickTypes={sickTypes} resourceTypes={resourceTypes} resources={resources} tavernLevel={tavernLevel} larder={larder} onSetFoodRule={setFoodRuleAction} now={now} />,
         },
         {
             key: 'journal', label: 'Журнал', icon: <AbstractSprite logicName="journal" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
@@ -354,6 +376,7 @@ export const DomikiPage = () => {
                 villageSlot)}
             <VillageHud resources={resources} resourceTypes={resourceTypes} domikTypes={domikTypes} plodder={plodder} digest={hudDigest}
                 villageLevel={villageLevel} weather={weather} now={now} onStickyOffsetChange={setHudStickyOffset} villageProfile={villageProfile}
+                onOpenHousehold={() => { setActiveTab('household'); scrollToGameTabPanel(); }}
                 nav={
                     <>
                         <Link className="btn-game icon-chip-btn" to="/world">
@@ -417,7 +440,7 @@ export const DomikiPage = () => {
                         onSelect={selectDomik} workers={workers} />
                 </section>
                 {selected != null && <div className="actions-scrim" role="presentation" onClick={() => { setSelectedDomikId(null); }} />}
-                <SelectedDomikPanel selected={selected} resources={resources} resourceTypes={resourceTypes} receipts={receipts}
+                <SelectedDomikPanel ref={selectedDomikPanelRef} selected={selected} resources={resources} resourceTypes={resourceTypes} receipts={receipts}
                     workers={workers} goals={goals} villageLevel={villageLevel} currentWeather={currentWeather} now={now}
                     goldValue={goldValue} goldType={goldType} plodderFree={plodder.free} displayName={domikDisplayName}
                     onClose={() => setSelectedDomikId(null)} onUpgrade={upgrade} onHurryDomik={hurryDomikAction}

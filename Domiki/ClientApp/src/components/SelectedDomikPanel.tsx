@@ -1,5 +1,5 @@
 import { useReducer, useState } from 'react';
-import type { Dispatch, KeyboardEvent } from 'react';
+import type { Dispatch, KeyboardEvent, Ref } from 'react';
 import ArrowUpIcon from 'pixelarticons/svg/arrow-up.svg?react';
 import BriefcaseIcon from 'pixelarticons/svg/briefcase.svg?react';
 import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
@@ -185,11 +185,11 @@ const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, wor
                     <label className="receipt-optional">
                         <input type="checkbox" checked={autoRepeat}
                             onChange={() => dispatch({ type: 'toggleAutoRepeat', id: receipt.id })} />
-                        Повторять смену автоматически
+                        Поставить наряд на смену
                     </label>
                     {autoRepeat &&
                         <p className="receipt-repeat-hint">
-                            После каждой смены этот рецепт запустится снова, пока хватает ресурсов и трудяги могут работать.
+                            По наряду смена возобновится сама, пока хватает припасов и трудяги могут работать.
                         </p>
                     }
                     {weatherEffect != null &&
@@ -327,6 +327,7 @@ interface UpgradeBenefits {
 }
 
 interface SelectedDomikPanelProps {
+    ref?: Ref<HTMLElement>;
     selected: SelectedDomikView | null;
     resources: ResourceDto[];
     resourceTypes: ResourceTypeDto[];
@@ -348,7 +349,7 @@ interface SelectedDomikPanelProps {
     onToggleManufactureRepeat: (manufactureId: number, next: boolean) => void;
 }
 
-export const SelectedDomikPanel = ({ selected, resources, resourceTypes, receipts, workers, goals, villageLevel, currentWeather, now, goldValue, goldType, plodderFree, displayName, onClose, onUpgrade, onHurryDomik, onStartManufacture, onHurryManufacture, onToggleManufactureRepeat }: SelectedDomikPanelProps) => {
+export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, receipts, workers, goals, villageLevel, currentWeather, now, goldValue, goldType, plodderFree, displayName, onClose, onUpgrade, onHurryDomik, onStartManufacture, onHurryManufacture, onToggleManufactureRepeat }: SelectedDomikPanelProps) => {
     const [ui, dispatch] = useReducer(receiptUiReducer, initialReceiptUiState);
     const [tab, setTab] = useState<PanelView>('work');
     const [tabbedDomikId, setTabbedDomikId] = useState(selected?.domik.id);
@@ -412,7 +413,7 @@ export const SelectedDomikPanel = ({ selected, resources, resourceTypes, receipt
         : soonestManufacture != null ? formatDuration(soonestManufacture) : null;
 
     return (
-        <aside className={'actions pixel-panel' + (selected == null ? ' actions--empty' : '')}>
+        <aside ref={ref} className={'actions pixel-panel' + (selected == null ? ' actions--empty' : '')}>
             <button type="button" className="actions-close" title="Закрыть" onClick={onClose}>
                 <CloseIcon className="btn-ico" aria-hidden="true" />
             </button>

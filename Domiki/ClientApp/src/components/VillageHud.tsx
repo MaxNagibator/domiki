@@ -29,13 +29,14 @@ interface VillageHudProps {
     onStickyOffsetChange: (offset: number) => void;
     villageProfile?: { logicName: string; name: string; buildings: string[] } | null;
     nav: ReactNode;
+    onOpenHousehold: () => void;
 }
 
 const CURRENCY_TYPE_IDS = new Set([COIN_RESOURCE_TYPE_ID, GOLD_RESOURCE_TYPE_ID]);
 
 const hoursLeft = (finishDate: string, now: number) => Math.max(1, Math.ceil(remainingSeconds(finishDate, now) / 3600));
 
-export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, digest, villageLevel, weather, now, onStickyOffsetChange, villageProfile, nav }: VillageHudProps) => {
+export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, digest, villageLevel, weather, now, onStickyOffsetChange, villageProfile, nav, onOpenHousehold }: VillageHudProps) => {
     const hudRef = useRef<HTMLElement>(null);
     const [stockOpen, setStockOpen] = useState(false);
     const [levelFlyout, setLevelFlyout] = useState<{ top: number; right: number } | null>(null);
@@ -152,7 +153,7 @@ export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, dige
                                 </div>
                             </>}
 
-                        <HudRibbon digest={digest} />
+                        <HudRibbon digest={digest} onOpenHousehold={onOpenHousehold} />
                     </div>
 
                     <div className="hud-right">

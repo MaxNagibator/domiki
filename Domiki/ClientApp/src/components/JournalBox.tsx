@@ -97,6 +97,20 @@ const renderContent = (event: RecapEventDto, resourceTypes: ResourceTypeDto[], d
         };
     }
 
+    if (event.type === 'ManufactureRepeatFailed' && isNumber(data.domikTypeId) && typeof data.reason === 'string') {
+        const domikType = domikTypes.find(x => x.id === data.domikTypeId);
+        return {
+            tone: 'prod',
+            Icon: abstractIcon('production_recipe'),
+            body: (
+                <>
+                    {domikType != null && <DomikSprite logicName={domikType.logicName} aria-hidden="true" />}
+                    <span className="journal-text">Наряд заглох: {data.reason}</span>
+                </>
+            ),
+        };
+    }
+
     if (event.type === 'DomikUpgraded' && isNumber(data.domikTypeId) && isNumber(data.level)) {
         const domikType = domikTypes.find(x => x.id === data.domikTypeId);
         return {

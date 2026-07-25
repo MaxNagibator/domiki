@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatClock, formatDuration, formatDurationShort, remainingSeconds } from './time';
+import { formatClock, formatDuration, formatDurationShort, formatTimeOfDay, remainingSeconds } from './time';
 
 describe('formatDuration', () => {
     it.each<[number, string]>([
@@ -45,6 +45,15 @@ describe('formatClock', () => {
         [90061, '1д 1ч'],
     ])('formatClock(%i) -> %s', (totalSeconds, expected) => {
         expect(formatClock(totalSeconds)).toBe(expected);
+    });
+});
+
+describe('formatTimeOfDay', () => {
+    it.each<[string, string, number, string]>([
+        ['same calendar day as now', new Date(2026, 0, 15, 5, 0, 0).toISOString(), new Date(2026, 0, 15, 20, 0, 0).getTime(), '05:00'],
+        ['different calendar day than now', new Date(2026, 0, 16, 5, 0, 0).toISOString(), new Date(2026, 0, 15, 20, 0, 0).getTime(), '16 янв., 05:00'],
+    ])('%s', (_label, dateIso, now, expected) => {
+        expect(formatTimeOfDay(dateIso, now)).toBe(expected);
     });
 });
 

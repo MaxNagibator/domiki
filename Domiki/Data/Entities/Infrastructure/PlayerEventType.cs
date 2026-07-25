@@ -128,4 +128,12 @@ public enum PlayerEventType
     /// обезличиваются – имя и род трудяги очищаются (см. <see cref="Infrastructure.PlayerEventManager.RecordWorkerMeal"/>).
     /// </remarks>
     WorkerMeal = 18,
+
+    /// <summary>
+    /// Наряд (стоящая смена с автоповтором) не смог возобновиться.
+    /// </summary>
+    /// <remarks>
+    /// См. <see cref="Core.DomikManager.FinishManufacture"/>.
+    /// </remarks>
+    ManufactureRepeatFailed = 19,
 }

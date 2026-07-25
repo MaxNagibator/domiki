@@ -3,9 +3,9 @@ import type { CSSProperties, FocusEvent } from 'react';
 import { createPortal } from 'react-dom';
 import ClockIcon from 'pixelarticons/svg/clock.svg?react';
 import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
-import type { CloakStateDto, DomikDto, DomikIncidentDto, DomikTypeDto, ErrandDto, ExpeditionStateDto, FoodRuleDto, IncidentDto, ResourceDto, ResourceTypeDto, SickTypeDto, TavernLarderDto, WorkerDto } from '../types/api';
+import type { CloakStateDto, DomikDto, DomikIncidentDto, DomikTypeDto, ErrandDto, ExpeditionStateDto, FoodRuleDto, IncidentDto, ReceiptDto, ResourceDto, ResourceTypeDto, SickTypeDto, TavernLarderDto, WorkerDto } from '../types/api';
 import { buildDomikNamer, type DomikNamer } from '../utils/domikNames';
-import { formatDuration, formatDurationShort, remainingSeconds } from '../utils/time';
+import { formatDuration, formatDurationShort, formatTimeOfDay, remainingSeconds } from '../utils/time';
 import { describeWorker, describeWorkerParts, isSkilledWorker, rankedSkills } from '../utils/worker';
 import { AbstractSprite, DomikSprite, MechanicSprite, ResourceSprite, TraitSprite, WorkerSprite } from './sprites';
 import { genderForm, traitLabel } from '../utils/gender';
@@ -16,6 +16,7 @@ interface WorkersBoxProps {
     workers: WorkerDto[];
     domikTypes: DomikTypeDto[];
     domiks: DomikDto[];
+    receipts: ReceiptDto[];
     expeditions: ExpeditionStateDto | null;
     errand: ErrandDto | null;
     incident: IncidentDto | null;
@@ -152,7 +153,7 @@ const LarderRuleRow = ({ resourceType, stock, rule, onSetFoodRule }: LarderRuleR
     );
 };
 
-export const WorkersBox = ({ workers, domikTypes, domiks, expeditions, errand, incident, domikIncident, cloaks, sickTypes, resourceTypes, resources, tavernLevel, larder, onSetFoodRule, now }: WorkersBoxProps) => {
+export const WorkersBox = ({ workers, domikTypes, domiks, receipts, expeditions, errand, incident, domikIncident, cloaks, sickTypes, resourceTypes, resources, tavernLevel, larder, onSetFoodRule, now }: WorkersBoxProps) => {
     const [hover, setHover] = useState<{ worker: WorkerDto; rect: DOMRect } | null>(null);
     const [larderOpen, setLarderOpen] = useState(false);
     const clearHover = (id: number) => setHover(prev => (prev?.worker.id === id ? null : prev));
@@ -324,12 +325,25 @@ export const WorkersBox = ({ workers, domikTypes, domiks, expeditions, errand, i
                         }
                         return null;
                     })();
-                    const workplaceType = (() => {
+                    const workplace = (() => {
                         if (stateKey !== 'busy') {
                             return null;
                         }
                         const domik = domiks.find(d => (d.manufactures ?? []).some(m => m.id === worker.manufactureId));
-                        return domik == null ? null : domikTypes.find(t => t.id === domik.typeId) ?? null;
+                        const domikType = domik == null ? null : domikTypes.find(t => t.id === domik.typeId) ?? null;
+                        const manufacture = domik?.manufactures?.find(m => m.id === worker.manufactureId) ?? null;
+                        const receipt = manufacture == null ? null : receipts.find(r => r.id === manufacture.receiptId) ?? null;
+                        if (domik == null || domikType == null || manufacture == null || receipt == null) {
+                            return null;
+                        }
+                        return {
+                            logicName: domikType.logicName,
+                            name: namer(domikType.id, domik.id, domikType.name, domikType.logicName),
+                            level: domik.level,
+                            receiptName: receipt.name,
+                            finishTime: formatTimeOfDay(manufacture.finishDate, now),
+                            autoRepeat: manufacture.autoRepeat,
+                        };
                     })();
                     const portraitState = isSick
                         ? 'sick'
@@ -362,10 +376,13 @@ export const WorkersBox = ({ workers, domikTypes, domiks, expeditions, errand, i
                                     {stateKey === 'resting' && <AbstractSprite logicName="fatigue_rest" size={24} className="worker-badge-ico" aria-hidden="true" />}
                                     {stateLabel}
                                 </span>
-                                {workplaceType != null &&
-                                    <span className="worker-workplace" title={`Работает в постройке «${workplaceType.name}»`}>
-                                        <DomikSprite logicName={workplaceType.logicName} className="worker-workplace-ico" aria-hidden="true" />
-                                        {workplaceType.name}
+                                {workplace != null &&
+                                    <span className="worker-workplace" title={`Работает в постройке «${workplace.name}»`}>
+                                        <DomikSprite logicName={workplace.logicName} className="worker-workplace-ico" aria-hidden="true" />
+                                        {workplace.name} (ур. {workplace.level}) · {workplace.receiptName} · до {workplace.finishTime}
+                                        {workplace.autoRepeat &&
+                                            <span className="worker-shift-badge">наряд</span>
+                                        }
                                     </span>
                                 }
                                 {timer != null &&

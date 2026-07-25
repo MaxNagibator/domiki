@@ -3,16 +3,10 @@ import RepeatIcon from 'pixelarticons/svg/repeat.svg?react';
 import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
 import type { ManufactureDto, ReceiptDto, ResourceTypeDto } from '../types/api';
 import { canInstaFinish, instaFinishCost, manufactureProgressPercent } from '../utils/game';
+import { formatTimeOfDay } from '../utils/time';
 import { ProgressBar } from './ProgressBar';
 import { ActionButton } from './ActionButton';
 import { AbstractSprite, ResourceSprite } from './sprites';
-
-const REPEAT_AT_FORMAT = new Intl.DateTimeFormat('ru-RU', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-});
 
 interface ManufactureBoxProps {
     manufacture: ManufactureDto;
@@ -34,7 +28,7 @@ export const ManufactureBox = ({ manufacture, receipt, now, remainingText, goldV
     const hurryTitle = tooFar
         ? `До конца ${remainingText}; ускорение доступно в последние 6 ч`
         : notEnoughGold ? `Не хватает золота: ${hurryCost - goldValue}` : undefined;
-    const repeatAt = REPEAT_AT_FORMAT.format(new Date(manufacture.finishDate));
+    const repeatAt = formatTimeOfDay(manufacture.finishDate, now);
 
     return (
         <div className="manufacture-box">
@@ -61,7 +55,7 @@ export const ManufactureBox = ({ manufacture, receipt, now, remainingText, goldV
                     aria-expanded={repeatExpanded}
                     onClick={() => setRepeatExpanded(expanded => !expanded)}>
                     <RepeatIcon className="manufacture-repeat-ico" aria-hidden="true" />
-                    <strong>{manufacture.autoRepeat ? 'Автоповтор включён' : 'Автоповтор выключен'}</strong>
+                    <strong>{manufacture.autoRepeat ? 'Наряд поставлен' : 'Наряда нет'}</strong>
                     <ChevronDownIcon className={'manufacture-repeat-caret' + (repeatExpanded ? ' manufacture-repeat-caret-open' : '')}
                         aria-hidden="true" />
                 </button>
@@ -69,12 +63,12 @@ export const ManufactureBox = ({ manufacture, receipt, now, remainingText, goldV
                     <div className="manufacture-repeat-body">
                         <p>
                             {manufacture.autoRepeat
-                                ? <>Следующая попытка — {repeatAt}: снова запустится «{receipt.name}», если хватит ресурсов и трудяги смогут продолжить.</>
+                                ? <>Следующая попытка в {repeatAt}: снова возьмутся за «{receipt.name}», если хватит припасов и трудяг.</>
                                 : <>После завершения «{receipt.name}» новая смена сама не запустится.</>}
                         </p>
                         <ActionButton className="btn-game btn-ghost manufacture-repeat-action"
                             onClick={() => onToggleAutoRepeat(manufacture.id, !manufacture.autoRepeat)}>
-                            {manufacture.autoRepeat ? 'Остановить повторы' : 'Повторять эту смену'}
+                            {manufacture.autoRepeat ? 'Снять наряд' : 'Поставить наряд'}
                         </ActionButton>
                         {manufacture.autoRepeat &&
                             <span className="manufacture-repeat-note">Текущая смена завершится как обычно</span>

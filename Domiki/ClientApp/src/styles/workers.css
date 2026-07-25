@@ -311,8 +311,9 @@
 
 .worker-topline {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    gap: 6px 8px;
     padding: 7px 10px;
     border-bottom: 3px solid var(--ink);
     background: linear-gradient(120deg, #d9cfb6, var(--plank) 82%);
@@ -394,6 +395,19 @@
     height: 18px;
     flex: none;
     image-rendering: pixelated;
+}
+
+.worker-shift-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 4px;
+    padding: 1px 6px;
+    background: var(--pine);
+    border: 2px solid var(--pine-dark);
+    clip-path: var(--cut);
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff8e6;
 }
 
 .worker-timer {

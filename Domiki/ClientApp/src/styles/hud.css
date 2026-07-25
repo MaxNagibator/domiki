@@ -198,8 +198,13 @@
     border: 2px solid rgba(51, 41, 26, .3);
     clip-path: var(--cut);
     font-variant-numeric: tabular-nums;
-    cursor: default;
+    cursor: pointer;
 }
+
+    .hud-ribbon-more:hover {
+        color: var(--ink);
+        border-color: var(--ink);
+    }
 
 .hud-ribbon-item {
     display: inline-flex;

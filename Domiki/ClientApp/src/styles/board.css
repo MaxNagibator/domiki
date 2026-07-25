@@ -906,6 +906,7 @@
     flex: 0 0 320px;
     position: sticky;
     top: var(--hud-sticky-offset, 76px);
+    scroll-margin-top: calc(var(--hud-sticky-offset, 76px) + 12px);
     padding: 18px;
     box-shadow: inset 0 -4px 0 var(--plank-dark);
 }

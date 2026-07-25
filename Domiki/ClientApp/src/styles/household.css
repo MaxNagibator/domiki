@@ -1,0 +1,316 @@
+.household-panel {
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    box-shadow: inset 0 -4px 0 var(--plank-dark);
+}
+
+.household-hero {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: -16px -18px 16px;
+    padding: 14px 18px;
+    background: linear-gradient(115deg, #e0d4b0 0%, var(--plank) 62%);
+    border-bottom: 3px solid var(--ink);
+}
+
+.household-hero-emblem {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    background: #fffaec;
+    border: 3px solid var(--ink);
+    clip-path: var(--cut);
+    box-shadow: inset 0 -4px 0 var(--plank-dark);
+}
+
+    .household-hero-emblem svg {
+        width: 40px;
+        height: 40px;
+    }
+
+.household-hero-text {
+    min-width: 0;
+    flex: 1;
+}
+
+.household-hero-title {
+    margin: 0 0 4px;
+}
+
+.household-hero-sub {
+    margin: 0;
+    max-width: 52ch;
+    font-size: 13px;
+    line-height: 1.4;
+    color: rgba(51, 41, 26, .78);
+}
+
+.household-hero-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 7px 16px 6px;
+    text-align: center;
+    color: #fffaec;
+    background: var(--roof);
+    border: 3px solid var(--ink);
+    clip-path: var(--cut);
+    box-shadow: inset 0 -4px 0 rgba(51, 41, 26, .28);
+}
+
+    .household-hero-stat[data-calm="true"] {
+        background: var(--pine);
+    }
+
+.household-hero-stat-num {
+    font-family: var(--pixel);
+    font-size: 22px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.household-hero-stat-label {
+    margin-top: 5px;
+    max-width: 9ch;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: lowercase;
+}
+
+.household-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.household-block + .household-block {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 3px dashed var(--plank-dark);
+}
+
+.household-empty {
+    margin: 0;
+    padding: 12px 14px;
+    background: #fffaec;
+    border: 2px dashed rgba(51, 41, 26, .3);
+    clip-path: var(--cut);
+    font-size: 13px;
+    color: var(--pine-dark);
+}
+
+.household-rows {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(430px, 1fr));
+    gap: 8px;
+    align-items: start;
+}
+
+.household-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    background: var(--plank-dark);
+    border: 2px solid rgba(51, 41, 26, .38);
+    clip-path: var(--cut);
+    text-align: left;
+    font-size: 13px;
+    color: var(--ink);
+}
+
+button.household-row {
+    font: inherit;
+    cursor: pointer;
+    background: #fffaec;
+    border-color: var(--ink);
+    transition: box-shadow .12s, border-color .12s;
+}
+
+    button.household-row:hover {
+        border-color: var(--pine);
+        box-shadow: inset 3px 0 0 var(--pine);
+    }
+
+    button.household-row:focus-visible,
+    .household-building-btn:focus-visible,
+    .household-more-btn:focus-visible {
+        outline: 3px solid var(--coin);
+        outline-offset: -3px;
+    }
+
+.household-row-ico {
+    width: 22px;
+    height: 22px;
+    flex: none;
+    image-rendering: pixelated;
+}
+
+.household-row-label {
+    font-weight: 700;
+}
+
+.household-row-count {
+    margin-left: 6px;
+    font-family: var(--pixel);
+    font-size: 11px;
+    color: var(--pine-dark);
+    font-variant-numeric: tabular-nums;
+}
+
+.household-row-text {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+.household-shift-row .household-row-text {
+    flex: 1;
+}
+
+.household-row-lack {
+    color: var(--roof);
+    font-weight: 700;
+}
+
+.household-row-urgent {
+    color: var(--roof);
+    font-weight: 700;
+}
+
+.household-row-go {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    margin-left: auto;
+    color: rgba(51, 41, 26, .42);
+}
+
+    button.household-row:hover .household-row-go,
+    button.household-row:focus-visible .household-row-go {
+        color: var(--pine);
+    }
+
+.household-row-chips {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.household-row-group {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr);
+    grid-column: 1 / -1;
+    column-gap: 8px;
+    row-gap: 8px;
+    align-items: start;
+    padding: 10px 12px 11px;
+}
+
+    .household-row-group > .household-row-ico {
+        grid-area: 1 / 1;
+        margin-top: 1px;
+    }
+
+    .household-row-group > .household-row-label {
+        grid-area: 1 / 2;
+    }
+
+    .household-row-group > .household-chips {
+        grid-area: 2 / 2;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .household-row-group[data-expanded="true"] > .household-chips {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+    }
+
+.household-building-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    background: var(--plank);
+    border: 2px solid var(--ink);
+    clip-path: var(--cut);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+}
+
+    .household-building-btn:hover {
+        border-color: var(--pine);
+        background: #e4f0d5;
+    }
+
+.household-building-ico {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    image-rendering: pixelated;
+}
+
+.household-building-name {
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.household-more-btn {
+    background: var(--plank-dark);
+    color: var(--pine-dark);
+}
+
+    div.household-more-btn {
+        grid-column: 1 / -1;
+    }
+
+    .household-more-btn:hover {
+        background: #e4f0d5;
+        border-color: var(--pine);
+    }
+
+    .household-more-btn svg {
+        width: 14px;
+        height: 14px;
+        flex: none;
+    }
+
+.household-shift-row {
+    justify-content: space-between;
+}
+
+.household-shift-action {
+    flex: none;
+}
+
+@media (max-width: 575px) {
+    .household-row {
+        align-items: flex-start;
+    }
+
+    .household-shift-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .household-hero {
+        flex-wrap: wrap;
+    }
+
+    .household-hero-stat {
+        margin-left: auto;
+    }
+}

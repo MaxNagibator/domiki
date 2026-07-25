@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { DomikDto, DomikTypeDto, ExpeditionStateDto, OrderDto, ResourceTypeDto, WorkerDto } from '../types/api';
+import type { DomikDto, DomikTypeDto, ExpeditionStateDto, OrderDto, ReceiptDto, ResourceDto, ResourceTypeDto, WorkerDto } from '../types/api';
 import { computeHudDigest, groupStockByDen, STOCK_DENS, type StockEntry } from './hud';
 
 const NOW = Date.parse('2026-07-23T00:00:00.000Z');
@@ -8,7 +8,10 @@ const iso = (hoursFromNow: number) => new Date(NOW + hoursFromNow * 3600 * 1000)
 const forge: DomikTypeDto = {
     id: 10, name: 'Кузница', logicName: 'forge', maxCount: 3, availableCount: 0, maxLevel: 3, unlockLevel: 0,
     blueprintId: null, nextCountGateLevel: null,
-    levels: [{ value: 1, resources: [], modificators: [], receiptIds: [1], maxManufactureCount: 1 }],
+    levels: [
+        { value: 1, resources: [], modificators: [], receiptIds: [1], maxManufactureCount: 1 },
+        { value: 2, resources: [{ typeId: 200, value: 5 }], modificators: [], receiptIds: [1], maxManufactureCount: 1 },
+    ],
 };
 const well: DomikTypeDto = {
     id: 20, name: 'Колодец', logicName: 'well', maxCount: 1, availableCount: 0, maxLevel: 1, unlockLevel: 0,
@@ -21,6 +24,10 @@ const domik = (id: number, typeId: number, over: Partial<DomikDto> = {}): DomikD
     id, typeId, level: 1, finishDate: null, upgradeSeconds: null, manufactures: null, ...over,
 });
 const manufacture = { id: 1, finishDate: iso(2), durationSeconds: 10, plodderCount: 1, receiptId: 1, autoRepeat: false };
+
+const receipt = (id: number, name: string, inputResources: ResourceDto[] = []): ReceiptDto => ({
+    id, name, logicName: name, inputResources, optionalInputResources: [], durationSeconds: 100, outputBonusPercent: 0, outputResources: [], plodderCount: 1,
+});
 
 const order = (over: Partial<OrderDto>): OrderDto => ({
     id: 1, neighborId: 1, neighborName: 'Заречье', neighborLogicName: 'zarechye', expireDate: iso(1),
@@ -42,6 +49,15 @@ const resType = (logicName: string, marketValue: number): ResourceTypeDto =>
     ({ id: 0, name: logicName, logicName, isFood: false, marketValue });
 const entry = (logicName: string, value: number, marketValue = 10): StockEntry =>
     ({ type: resType(logicName, marketValue), value });
+
+const digest = (
+    domiks: DomikDto[],
+    orders: OrderDto[] = [],
+    expeditions: ExpeditionStateDto | null = null,
+    workers: WorkerDto[] = [],
+    receipts: ReceiptDto[] = [],
+    resources: ResourceDto[] = [],
+) => computeHudDigest(domiks, domikTypes, receipts, resources, orders, expeditions, workers, NOW);
 
 describe('STOCK_DENS', () => {
     it('assigns every reference resource to exactly one den', () => {
@@ -77,21 +93,152 @@ describe('computeHudDigest idle domiks', () => {
     it('counts production-capable domiks that stand with no active manufacture', () => {
         const domiks = [domik(1, 10), domik(2, 10, { manufactures: [manufacture] }), domik(3, 10, { finishDate: iso(2) }), domik(4, 20)];
 
-        expect(computeHudDigest(domiks, domikTypes, [], null, [], NOW).idleDomiks).toBe(1);
+        expect(digest(domiks).idleDomiks).toBe(1);
+        expect(digest(domiks).idleBuildings.map(building => building.domikId)).toEqual([1]);
+    });
+});
+
+describe('computeHudDigest idle vs blocked buildings', () => {
+    const recipe = receipt(1, 'Сковать инструмент', [{ typeId: 200, value: 4 }]);
+
+    it('reports a plain idle row when the recipe is affordable', () => {
+        const domiks = [domik(1, 10)];
+
+        const result = digest(domiks, [], null, [], [recipe], [{ typeId: 200, value: 4 }]);
+
+        expect(result.idleBuildings).toEqual([{ domikId: 1, typeId: 10, logicName: 'forge', displayName: 'Кузница', level: 1 }]);
+        expect(result.blockedBuildings).toEqual([]);
+    });
+
+    it('reports a blocked row naming the shortfall when no recipe can run', () => {
+        const domiks = [domik(1, 10)];
+
+        const result = digest(domiks, [], null, [], [recipe], [{ typeId: 200, value: 1 }]);
+
+        expect(result.idleBuildings).toEqual([]);
+        expect(result.blockedBuildings).toEqual([{
+            domikId: 1, typeId: 10, logicName: 'forge', displayName: 'Кузница', level: 1,
+            missing: [{ typeId: 200, value: 3 }],
+        }]);
+    });
+
+    it('picks the recipe closest to affordable among several', () => {
+        const closeRecipe = receipt(2, 'Починить', [{ typeId: 200, value: 2 }]);
+        const farRecipe = receipt(3, 'Отковать', [{ typeId: 200, value: 9 }]);
+        const domiks = [domik(1, 10, { level: 2 })];
+        const forgeLevel2 = { ...forge, levels: [{ value: 2, resources: [], modificators: [], receiptIds: [2, 3], maxManufactureCount: 1 }] };
+
+        const result = computeHudDigest(domiks, [forgeLevel2, well], [closeRecipe, farRecipe], [{ typeId: 200, value: 0 }], [], null, [], NOW);
+
+        expect(result.blockedBuildings).toEqual([{
+            domikId: 1, typeId: 10, logicName: 'forge', displayName: 'Кузница', level: 2,
+            missing: [{ typeId: 200, value: 2 }],
+        }]);
+    });
+});
+
+describe('computeHudDigest idle and upgradeable building order', () => {
+    const sortableForge: DomikTypeDto = {
+        id: 10, name: 'Кузница', logicName: 'forge', maxCount: 5, availableCount: 0, maxLevel: 3, unlockLevel: 0,
+        blueprintId: null, nextCountGateLevel: null,
+        levels: [1, 2, 3].map(value => ({ value, resources: [], modificators: [], receiptIds: [1], maxManufactureCount: 1 })),
+    };
+
+    it.each([
+        { title: 'higher level sorts first regardless of id order', domiks: [domik(2, 10, { level: 1 }), domik(1, 10, { level: 3 })], expectedOrder: [1, 2] },
+        { title: 'equal level falls back to ru name asc', domiks: [domik(1, 10, { level: 2 }), domik(2, 10, { level: 2 })], expectedOrder: [2, 1] },
+    ])('sorts idle buildings – $title', ({ domiks, expectedOrder }) => {
+        const result = computeHudDigest(domiks, [sortableForge, well], [], [], [], null, [], NOW);
+
+        expect(result.idleBuildings.map(building => building.domikId)).toEqual(expectedOrder);
+    });
+
+    it.each([
+        { title: 'higher level sorts first regardless of id order', domiks: [domik(2, 10, { level: 1 }), domik(1, 10, { level: 2 })], expectedOrder: [1, 2] },
+        { title: 'equal level falls back to ru name asc', domiks: [domik(1, 10, { level: 1 }), domik(2, 10, { level: 1 })], expectedOrder: [2, 1] },
+    ])('sorts upgradeable buildings – $title', ({ domiks, expectedOrder }) => {
+        const result = computeHudDigest(domiks, [sortableForge, well], [], [], [], null, [], NOW);
+
+        expect(result.upgradeableBuildings.map(building => building.domikId)).toEqual(expectedOrder);
+    });
+});
+
+describe('computeHudDigest blocked building order', () => {
+    const blockedType = (id: number, receiptId: number): DomikTypeDto => ({
+        id, name: `Тип${id}`, logicName: 'forge', maxCount: 5, availableCount: 0, maxLevel: 1, unlockLevel: 0,
+        blueprintId: null, nextCountGateLevel: null,
+        levels: [{ value: 1, resources: [], modificators: [], receiptIds: [receiptId], maxManufactureCount: 1 }],
+    });
+    const shortfallTypes = [blockedType(101, 1), blockedType(102, 2), blockedType(103, 3)];
+    const shortfallRecipes = [
+        receipt(1, 'Большая нужда', [{ typeId: 200, value: 10 }]),
+        receipt(2, 'Средняя нужда', [{ typeId: 200, value: 8 }]),
+        receipt(3, 'Малая нужда', [{ typeId: 200, value: 5 }]),
+    ];
+    const domikById = (id: number, typeId: number) => domik(id, typeId, { level: 1 });
+
+    it.each([
+        { title: 'defined in id order', order: [1, 2, 3] },
+        { title: 'defined in reverse order', order: [3, 2, 1] },
+    ])('sorts blocked buildings by ascending total shortfall – $title', ({ order }) => {
+        const typeById = new Map([[1, 101], [2, 102], [3, 103]]);
+        const domiks = order.map(id => domikById(id, typeById.get(id) ?? 0));
+
+        const result = computeHudDigest(domiks, shortfallTypes, shortfallRecipes, [{ typeId: 200, value: 4 }], [], null, [], NOW);
+
+        expect(result.blockedBuildings.map(building => building.domikId)).toEqual([3, 2, 1]);
+    });
+});
+
+describe('computeHudDigest upgradeable buildings', () => {
+    it('lists buildings whose next level is affordable', () => {
+        const domiks = [domik(1, 10, { level: 1 })];
+
+        const result = digest(domiks, [], null, [], [], [{ typeId: 200, value: 5 }]);
+
+        expect(result.upgradeableBuildings).toEqual([{ domikId: 1, typeId: 10, logicName: 'forge', displayName: 'Кузница', level: 1 }]);
+    });
+
+    it('stays empty when the next level is not affordable', () => {
+        const domiks = [domik(1, 10, { level: 1 })];
+
+        const result = digest(domiks, [], null, [], [], []);
+
+        expect(result.upgradeableBuildings).toEqual([]);
+    });
+});
+
+describe('computeHudDigest standing shifts', () => {
+    it('extracts every manufacture with autoRepeat as a наряд row', () => {
+        const recipe = receipt(1, 'Сковать инструмент');
+        const domiks = [domik(1, 10, { manufactures: [{ ...manufacture, autoRepeat: true }] })];
+
+        const result = digest(domiks, [], null, [], [recipe]);
+
+        expect(result.standingShifts).toEqual([{
+            manufactureId: 1, domikId: 1, domikName: 'Кузница', receiptId: 1, receiptName: 'Сковать инструмент', finishDate: manufacture.finishDate,
+        }]);
+    });
+
+    it('ignores manufactures without a standing наряд', () => {
+        const recipe = receipt(1, 'Сковать инструмент');
+        const domiks = [domik(1, 10, { manufactures: [manufacture] })];
+
+        expect(digest(domiks, [], null, [], [recipe]).standingShifts).toEqual([]);
     });
 });
 
 describe('computeHudDigest soonest order', () => {
     it('surfaces the nearest order only within the alert window and rounds hours up', () => {
-        const orders = [order({ id: 1, expireDate: iso(2.2) }), order({ id: 2, neighborName: 'Боровое', neighborLogicName: 'borovoe', expireDate: iso(0.4) })];
+        const orders = [order({ id: 1, expireDate: iso(2.2) }), order({ id: 2, neighborId: 2, neighborName: 'Боровое', neighborLogicName: 'borovoe', expireDate: iso(0.4) })];
 
-        expect(computeHudDigest([], domikTypes, orders, null, [], NOW).soonestOrder).toEqual({ neighborName: 'Боровое', neighborLogicName: 'borovoe', hours: 1 });
+        expect(digest([], orders).soonestOrder).toEqual({ neighborName: 'Боровое', neighborLogicName: 'borovoe', hours: 1 });
     });
 
     it('stays silent when the nearest order is beyond the alert window or already expired', () => {
         const orders = [order({ id: 1, expireDate: iso(9) }), order({ id: 2, expireDate: iso(-1) })];
 
-        expect(computeHudDigest([], domikTypes, orders, null, [], NOW).soonestOrder).toBeNull();
+        expect(digest([], orders).soonestOrder).toBeNull();
     });
 });
 
@@ -99,10 +246,10 @@ describe('computeHudDigest expeditions and workers', () => {
     it('counts returned expeditions, not those still afield', () => {
         const state = expeditionState([expedition(1, iso(-0.1)), expedition(2, iso(3))]);
 
-        expect(computeHudDigest([], domikTypes, [], state, [], NOW).expeditionsBack).toBe(1);
+        expect(digest([], [], state).expeditionsBack).toBe(1);
     });
 
-    it('splits sick from resting and ignores expired timers', () => {
+    it('splits sick from resting and reports the earliest of each', () => {
         const workers = [
             worker(1, { sickUntil: iso(4) }),
             worker(2, { restUntil: iso(2), sickUntil: iso(4) }),
@@ -110,9 +257,11 @@ describe('computeHudDigest expeditions and workers', () => {
             worker(4, { restUntil: iso(-1) }),
         ];
 
-        const digest = computeHudDigest([], domikTypes, [], null, workers, NOW);
+        const result = digest([], [], null, workers);
 
-        expect(digest.workersSick).toBe(2);
-        expect(digest.workersResting).toBe(1);
+        expect(result.workersSick).toBe(2);
+        expect(result.workersResting).toBe(1);
+        expect(result.sickEarliest).toEqual(iso(4));
+        expect(result.restingEarliest).toEqual(iso(1));
     });
 });

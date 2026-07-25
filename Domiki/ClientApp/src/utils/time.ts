@@ -47,6 +47,16 @@ export function remainingSeconds(finishDate: string, now: number): number {
     return (new Date(finishDate).getTime() - now) / 1000;
 }
 
+const TIME_OF_DAY_FORMAT = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' });
+const DAY_MONTH_TIME_FORMAT = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+export function formatTimeOfDay(dateIso: string, now: number): string {
+    const date = new Date(dateIso);
+    const nowDate = new Date(now);
+    const sameDay = date.getFullYear() === nowDate.getFullYear() && date.getMonth() === nowDate.getMonth() && date.getDate() === nowDate.getDate();
+    return sameDay ? TIME_OF_DAY_FORMAT.format(date) : DAY_MONTH_TIME_FORMAT.format(date);
+}
+
 export function formatRelativeTime(dateIso: string, now: number): string {
     const seconds = Math.max(1, Math.floor((now - Date.parse(dateIso)) / 1000));
     if (seconds < 45) {

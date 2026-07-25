@@ -203,7 +203,7 @@ export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, reso
                             return name == null ? [] : [name];
                         });
                         const repeatTitle = repeatedRecipeNames.length > 0
-                            ? `Автоповтор: ${repeatedRecipeNames.join(', ')}`
+                            ? `Наряды: ${repeatedRecipeNames.join(', ')}`
                             : null;
                         const durationSecondsText = domik.finishDate != null
                             ? formatClock(remainingSeconds(domik.finishDate, now))
