@@ -1,5 +1,7 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { Crest } from './Crest';
+import { VillageIdentityModal } from './VillageIdentityModal';
 import {
     AbstractSprite,
     DecorSprite,
@@ -84,6 +86,18 @@ describe('inline sprite style budget', () => {
         expect(container.querySelectorAll('svg style')).toHaveLength(0);
         expect(hosts).toHaveLength(1);
         expect(hosts[0]?.textContent).not.toBe('');
+    });
+
+    it('hoists crest stylesheets from the village badge and the identity modal', () => {
+        const { container } = render(
+            <>
+                <Crest icon={0} color={0} />
+                <VillageIdentityModal village={null} onSave={() => Promise.resolve()} onClose={() => undefined} />
+            </>,
+        );
+
+        expect(container.querySelectorAll('svg')).not.toHaveLength(0);
+        expect(container.querySelectorAll('svg style')).toHaveLength(0);
     });
 });
 

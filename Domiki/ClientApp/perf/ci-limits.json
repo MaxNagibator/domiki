@@ -1,0 +1,9 @@
+{
+    "strict": true,
+    "document": {
+        "styleSheets": 4,
+        "cssRules": 3000,
+        "spriteStyles": 0
+    },
+    "tabs": {}
+}

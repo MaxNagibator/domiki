@@ -3,6 +3,7 @@ import CloseIcon from 'pixelarticons/svg/close.svg?react';
 import SaveIcon from 'pixelarticons/svg/save.svg?react';
 import type { VillageDto } from '../types/api';
 import { VILLAGE_CREST_COLORS, VILLAGE_CREST_ICONS } from '../constants/village';
+import { prepareInlineSprite } from '../utils/inlineSprite';
 
 const CREST_OPTIONS = VILLAGE_CREST_ICONS.map((Icon, index) => ({ Icon, index, label: `Герб ${String(index + 1)}` }));
 
@@ -37,7 +38,7 @@ export const VillageIdentityModal = ({ village, onSave, onClose }: VillageIdenti
                             <button key={label} type="button" aria-label={label}
                                 className={'crest-option' + (draftCrestIcon === index ? ' crest-option-selected' : '')}
                                 onClick={() => setDraftCrestIcon(index)}>
-                                <Icon className="crest-ico" aria-hidden="true" />
+                                <Icon className="crest-ico" aria-hidden="true" ref={prepareInlineSprite} />
                             </button>,
                         )}
                     </div>

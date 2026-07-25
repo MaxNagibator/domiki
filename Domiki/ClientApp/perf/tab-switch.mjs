@@ -2,6 +2,7 @@
 // (dotnet run --project Domiki), вход – демо-учётка. Запуск из Domiki/ClientApp:
 //   npm run perf              сверка с perf/baseline.json
 //   npm run perf:update       перезапись базы
+// PERF_BASELINE подменяет файл базы (в CI – perf/ci-limits.json, там "strict": true и допуска нет).
 // Переменные: PERF_BASE (https://localhost:44444), PERF_CHROME (путь к chrome).
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -9,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
 
 const BASE = process.env.PERF_BASE ?? 'https://localhost:44444';
-const BASELINE = fileURLToPath(new URL('./baseline.json', import.meta.url));
+const BASELINE = process.env.PERF_BASELINE ?? fileURLToPath(new URL('./baseline.json', import.meta.url));
 const ROUNDS = 5;
 const COUNT_TOLERANCE = 1.05;
 const TIME_TOLERANCE = 1.6;
@@ -105,9 +106,9 @@ console.log('счётчики документа:');
 for (const [name, value] of Object.entries(report.document)) {
     const was = baseline.document[name];
     const gated = GATED.includes(name);
-    const limit = was === 0 ? 0 : Math.max(Math.round(was * COUNT_TOLERANCE), was + 5);
+    const limit = baseline.strict === true || was === 0 ? was : Math.max(Math.round(was * COUNT_TOLERANCE), was + 5);
     const bad = gated && was != null && value > limit;
-    const note = gated ? `  предел ${String(limit).padStart(6)}` : '  справочно';
+    const note = !gated || was == null ? '  справочно' : `  предел ${String(limit).padStart(6)}`;
     console.log(`  ${name.padEnd(13)} ${String(value).padStart(6)}  база ${String(was ?? '–').padStart(6)}${note}${bad ? '  ПРЕВЫШЕН' : ''}`);
     if (bad) {
         failures.push(`${name}: ${value} против ${was} в базе`);

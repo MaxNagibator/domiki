@@ -112,7 +112,7 @@ try
 
     builder.Services.AddAuthorization();
 
-    if (!builder.Environment.IsDevelopment())
+    if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing"))
     {
         builder.Services.AddDataProtection()
             .PersistKeysToFileSystem(new DirectoryInfo("/dpkeys"))
