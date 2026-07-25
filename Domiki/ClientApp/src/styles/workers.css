@@ -297,6 +297,8 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 168px;
     background: var(--plank);
     border: 3px solid var(--ink);
     clip-path: var(--cut);

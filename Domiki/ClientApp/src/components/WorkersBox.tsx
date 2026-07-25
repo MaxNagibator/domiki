@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, FocusEvent } from 'react';
 import { createPortal } from 'react-dom';
 import ClockIcon from 'pixelarticons/svg/clock.svg?react';
@@ -35,6 +35,37 @@ const stateLabels: Record<WorkerState, string> = { expedition: 'В экспед�
 const tallyLabels: Record<WorkerState, string> = { expedition: 'в пути', errand: 'в поручении', incidentMissing: 'задержались', incidentSearch: 'в поисках', domikIncidentSearch: 'разбираются', busy: 'за работой', resting: 'отдыхают', free: 'свободны' };
 const tallyOrder: WorkerState[] = ['free', 'busy', 'resting', 'incidentMissing', 'incidentSearch', 'domikIncidentSearch', 'errand', 'expedition'];
 const FATIGUE_THRESHOLD_SECONDS = 28800;
+
+const useShownPortraits = () => {
+    const [shown, setShown] = useState<ReadonlySet<number>>(() => new Set());
+    const observer = useMemo(() => {
+        if (typeof IntersectionObserver === 'undefined') {
+            return null;
+        }
+
+        const instance = new IntersectionObserver(entries => {
+            const ids = entries
+                .filter(entry => entry.isIntersecting)
+                .map(entry => {
+                    instance.unobserve(entry.target);
+                    return Number((entry.target as HTMLElement).dataset.workerId);
+                });
+            if (ids.length > 0) {
+                setShown(prev => new Set([...prev, ...ids]));
+            }
+        }, { rootMargin: '300px' });
+        return instance;
+    }, []);
+
+    useEffect(() => () => { observer?.disconnect(); }, [observer]);
+    const observePortrait = useCallback((node: HTMLSpanElement | null) => {
+        if (node != null) {
+            observer?.observe(node);
+        }
+    }, [observer]);
+
+    return { shownPortraits: observer == null ? null : shown, observePortrait };
+};
 
 const WorkerDetails = ({ worker, domikTypes, domiks, namer, style }: { worker: WorkerDto; domikTypes: DomikTypeDto[]; domiks: DomikDto[]; namer: DomikNamer; style: CSSProperties }) => {
     const effect = worker.traitDurationPercent === 0 ? '' : ` ${worker.traitDurationPercent} %`;
@@ -156,6 +187,7 @@ const LarderRuleRow = ({ resourceType, stock, rule, onSetFoodRule }: LarderRuleR
 export const WorkersBox = ({ workers, domikTypes, domiks, receipts, expeditions, errand, incident, domikIncident, cloaks, sickTypes, resourceTypes, resources, tavernLevel, larder, onSetFoodRule, now }: WorkersBoxProps) => {
     const [hover, setHover] = useState<{ worker: WorkerDto; rect: DOMRect } | null>(null);
     const [larderOpen, setLarderOpen] = useState(false);
+    const { shownPortraits, observePortrait } = useShownPortraits();
     const clearHover = (id: number) => setHover(prev => (prev?.worker.id === id ? null : prev));
     const namer = useMemo(() => buildDomikNamer(domiks), [domiks]);
     const freeCloaks = Math.max(0, cloaks.stock - cloaks.outOnShifts);
@@ -393,8 +425,10 @@ export const WorkersBox = ({ workers, domikTypes, domiks, receipts, expeditions,
                                 }
                             </div>
                             <div className="worker-card-body">
-                                <span className="worker-portrait">
-                                    <WorkerSprite name={worker.name} state={portraitState} skilled={isSkilledWorker(worker)} className="worker-avatar" aria-hidden="true" />
+                                <span className="worker-portrait" data-worker-id={worker.id} ref={observePortrait}>
+                                    {(shownPortraits == null || shownPortraits.has(worker.id)) &&
+                                        <WorkerSprite name={worker.name} state={portraitState} skilled={isSkilledWorker(worker)} className="worker-avatar" aria-hidden="true" />
+                                    }
                                     {craft.tier === 'master' && <AbstractSprite logicName="worker_mastery" size={24} className="worker-seal" aria-hidden="true" />}
                                     {!worker.noFatigue && worker.workedSeconds > 0 &&
                                         <span className="worker-fatigue" data-level={fatigueLevel}
