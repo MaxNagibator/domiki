@@ -1,0 +1,21 @@
+{
+    "document": {
+        "styleSheets": 3,
+        "cssRules": 2168,
+        "spriteStyles": 0,
+        "nodes": 24337,
+        "sprites": 150
+    },
+    "tabs": {
+        "household": 102,
+        "orders": 137,
+        "blueprints": 99,
+        "expeditions": 119,
+        "decor": 102,
+        "toloka": 68,
+        "market": 104,
+        "workers": 315,
+        "journal": 187,
+        "guestbook": 72
+    }
+}

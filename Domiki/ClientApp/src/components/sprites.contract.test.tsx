@@ -4,7 +4,14 @@ import {
     AbstractSprite,
     DecorSprite,
     DomikSprite,
+    MechanicSprite,
+    NeighborSprite,
     ResourceSprite,
+    SheepSprite,
+    TolokaSprite,
+    TraitSprite,
+    WeatherSprite,
+    WorkerSprite,
 } from './sprites';
 
 describe('sprite registry contract', () => {
@@ -49,6 +56,34 @@ describe('sprite registry contract', () => {
         expect(warn).toHaveBeenCalledWith('[sprites] Unknown abstract logicName: "missing_abstract"');
         expect(warn).toHaveBeenCalledWith('[sprites] Unknown decor logicName: "missing_decor"');
         warn.mockRestore();
+    });
+});
+
+describe('inline sprite style budget', () => {
+    it('hoists every family stylesheet into a single document-level sheet', () => {
+        const { container } = render(
+            <>
+                <DomikSprite logicName="tavern" />
+                <DomikSprite logicName="forge" />
+                <DecorSprite logicName="bench" />
+                <ResourceSprite logicName="coin" />
+                <ResourceSprite logicName="wood" />
+                <AbstractSprite logicName="journal" />
+                <MechanicSprite logicName="orders" />
+                <NeighborSprite logicName="zarechye" />
+                <TraitSprite logicName="nimble" />
+                <WeatherSprite logicName="rain" />
+                <TolokaSprite logicName="bridge" />
+                <SheepSprite />
+                <WorkerSprite name="Аким" />
+                <WorkerSprite name="Дарья" />
+            </>,
+        );
+        const hosts = document.querySelectorAll('style[data-sprite-styles]');
+
+        expect(container.querySelectorAll('svg style')).toHaveLength(0);
+        expect(hosts).toHaveLength(1);
+        expect(hosts[0]?.textContent).not.toBe('');
     });
 });
 

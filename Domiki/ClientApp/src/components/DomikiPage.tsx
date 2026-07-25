@@ -60,7 +60,7 @@ interface GameTab {
     label: string;
     icon: ReactNode;
     visible: boolean;
-    node: ReactNode;
+    node: () => ReactNode;
 }
 
 export const DomikiPage = () => {
@@ -375,48 +375,48 @@ export const DomikiPage = () => {
     const gameTabs: GameTab[] = [
         {
             key: 'household', label: 'Хозяйство', icon: <AbstractSprite logicName="elder_order" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
-            node: <HouseholdBox digest={hudDigest} resourceTypes={resourceTypes} now={now} onSelectDomik={selectDomikFromBoard} onOpenTab={setActiveTab}
+            node: () => <HouseholdBox digest={hudDigest} resourceTypes={resourceTypes} now={now} onSelectDomik={selectDomikFromBoard} onOpenTab={setActiveTab}
                 onToggleRepeat={toggleManufactureAutoRepeat} />,
         },
         {
             key: 'orders', label: 'Заказы', icon: <MechanicSprite logicName="orders" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
-            node: <OrdersBox orders={orders} errand={errand} workers={workers} reputation={reputation} convoys={convoys} resourceTypes={resourceTypes} resources={resources} now={now}
+            node: () => <OrdersBox orders={orders} errand={errand} workers={workers} reputation={reputation} convoys={convoys} resourceTypes={resourceTypes} resources={resources} now={now}
                 domikTypes={domikTypes} villageProfiles={villageProfiles} village={village} villageLevel={villageLevel}
                 onComplete={completeOrder} onCancel={cancelOrder} onAcceptErrand={acceptErrandAction} onCancelErrand={cancelErrandAction}
                 onBuyFromConvoy={buyFromConvoyAction} onSetFriend={setFriendNeighborAction} onSetVillageProfile={setVillageProfileAction} />,
         },
         {
             key: 'blueprints', label: 'Вехи соседей', icon: <MechanicSprite logicName="blueprints" size={32} className="game-tab-ico" aria-hidden="true" />, visible: blueprints.length > 0 || (decor?.types ?? []).some(x => x.neighborId != null),
-            node: <BlueprintsBox blueprints={blueprints} domikTypes={domikTypes} decorTypes={decor?.types ?? []} reputations={reputation} />,
+            node: () => <BlueprintsBox blueprints={blueprints} domikTypes={domikTypes} decorTypes={decor?.types ?? []} reputations={reputation} />,
         },
         {
             key: 'expeditions', label: 'Экспедиции', icon: <MechanicSprite logicName="expeditions" size={32} className="game-tab-ico" aria-hidden="true" />, visible: expeditions != null,
-            node: <ExpeditionsBox expeditions={expeditions} resourceTypes={resourceTypes} decorTypes={decor?.types ?? []} resources={resources} workers={workers} tavernLevel={tavernLevel} now={now} onStart={startExpeditionAction} />,
+            node: () => <ExpeditionsBox expeditions={expeditions} resourceTypes={resourceTypes} decorTypes={decor?.types ?? []} resources={resources} workers={workers} tavernLevel={tavernLevel} now={now} onStart={startExpeditionAction} />,
         },
         {
             key: 'decor', label: 'Декор', icon: <MechanicSprite logicName="decor" size={32} className="game-tab-ico" aria-hidden="true" />, visible: decor != null,
-            node: <DecorBox decor={decor} resourceTypes={resourceTypes} resources={resources} reputations={reputation} onBuy={buyDecorAction} />,
+            node: () => <DecorBox decor={decor} resourceTypes={resourceTypes} resources={resources} reputations={reputation} onBuy={buyDecorAction} />,
         },
         {
             key: 'toloka', label: 'Толока', icon: <MechanicSprite logicName="toloka" size={32} className="game-tab-ico" aria-hidden="true" />, visible: toloka != null,
-            node: <TolokaBox toloka={toloka} resourceTypes={resourceTypes} resources={resources} now={now} onContribute={contributeTolokaAction} onVote={voteTolokaAction} />,
+            node: () => <TolokaBox toloka={toloka} resourceTypes={resourceTypes} resources={resources} now={now} onContribute={contributeTolokaAction} onVote={voteTolokaAction} />,
         },
         {
             key: 'market', label: 'Ярмарка', icon: <MechanicSprite logicName="market" size={32} className="game-tab-ico" aria-hidden="true" />, visible: market != null,
-            node: <MarketBox market={market} resourceTypes={resourceTypes} resources={resources} now={now}
+            node: () => <MarketBox market={market} resourceTypes={resourceTypes} resources={resources} now={now}
                 onPost={postLotAction} onAccept={acceptLotAction} onCancel={cancelLotAction} />,
         },
         {
             key: 'workers', label: 'Трудяги', icon: <MechanicSprite logicName="workers" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
-            node: <WorkersBox workers={workers} domikTypes={domikTypes} domiks={domiks} receipts={receipts} expeditions={expeditions} errand={errand} incident={incident} domikIncident={domikIncident} cloaks={cloaks} sickTypes={sickTypes} resourceTypes={resourceTypes} resources={resources} tavernLevel={tavernLevel} larder={larder} onSetFoodRule={setFoodRuleAction} now={now} />,
+            node: () => <WorkersBox workers={workers} domikTypes={domikTypes} domiks={domiks} receipts={receipts} expeditions={expeditions} errand={errand} incident={incident} domikIncident={domikIncident} cloaks={cloaks} sickTypes={sickTypes} resourceTypes={resourceTypes} resources={resources} tavernLevel={tavernLevel} larder={larder} onSetFoodRule={setFoodRuleAction} now={now} />,
         },
         {
             key: 'journal', label: 'Журнал', icon: <AbstractSprite logicName="journal" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
-            node: <JournalBox events={events} resourceTypes={resourceTypes} domikTypes={domikTypes} decorTypes={decor?.types ?? []} now={now} />,
+            node: () => <JournalBox events={events} resourceTypes={resourceTypes} domikTypes={domikTypes} decorTypes={decor?.types ?? []} now={now} />,
         },
         {
             key: 'guestbook', label: 'Гости', icon: <MechanicSprite logicName="guestbook" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
-            node: <GuestbookBox now={now} />,
+            node: () => <GuestbookBox now={now} />,
         },
     ];
     const visibleGameTabs = gameTabs.filter(tab => tab.visible);
@@ -545,7 +545,7 @@ export const DomikiPage = () => {
             <GameTabsNav tabs={visibleGameTabs} activeKey={activeGameTab?.key} onSelect={setActiveTab} onScrollToPanel={scrollToGameTabPanel} />
             <div className="game-tab-panel" ref={gameTabPanelRef} id="game-tab-panel" role="tabpanel"
                 aria-labelledby={activeGameTab == null ? undefined : `game-tab-${activeGameTab.key}`} tabIndex={0}>
-                <PerfZone id="вкладка">{activeGameTab?.node}</PerfZone>
+                <PerfZone id="вкладка">{activeGameTab?.node()}</PerfZone>
             </div>
         </div>
         </ActionBusyProvider>

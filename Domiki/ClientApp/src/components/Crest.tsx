@@ -1,4 +1,5 @@
 import { DEFAULT_VILLAGE_ICON, VILLAGE_CREST_COLORS, VILLAGE_CREST_ICONS, VILLAGE_CREST_INKS } from '../constants/village';
+import { prepareInlineSprite } from '../utils/inlineSprite';
 
 interface CrestProps {
     icon: number;
@@ -13,7 +14,7 @@ export const Crest = ({ icon, color, className }: CrestProps) => {
 
     return (
         <span className={className == null ? 'crest-badge' : `crest-badge ${className}`} style={{ backgroundColor, color: ink }}>
-            <Icon className="crest-ico" aria-hidden="true" />
+            <Icon className="crest-ico" aria-hidden="true" ref={prepareInlineSprite} />
         </span>
     );
 };

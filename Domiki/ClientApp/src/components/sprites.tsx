@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import type { FC, SVGProps } from 'react';
+import { prepareInlineSprite } from '../utils/inlineSprite';
 import BarracksSprite from '../assets/domikTypes/barracks.svg?react';
 import ClayMineSprite from '../assets/domikTypes/clay_mine.svg?react';
 import FieldSprite from '../assets/domikTypes/field.svg?react';
@@ -124,14 +125,6 @@ import CloakResSprite from '../assets/resourceTypes/cloak.svg?react';
 import CheeseResSprite from '../assets/resourceTypes/cheese.svg?react';
 
 type SpriteComponent = FC<SVGProps<SVGSVGElement>>;
-
-const prepareInlineSprite = (node: SVGSVGElement | null) => {
-    if (node == null) {
-        return;
-    }
-
-    node.querySelectorAll('title, desc').forEach(element => element.remove());
-};
 
 const cleanSpriteProps = (props: SVGProps<SVGSVGElement>): SVGProps<SVGSVGElement> => {
     const hidden = props['aria-hidden'] ?? (props['aria-label'] == null ? true : undefined);
