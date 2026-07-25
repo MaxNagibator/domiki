@@ -32,6 +32,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Worker> Workers { get; set; }
     public DbSet<WorkerSkill> WorkerSkills { get; set; }
     public DbSet<WorkerMilestone> WorkerMilestones { get; set; }
+    public DbSet<PlayerFoodRule> PlayerFoodRules { get; set; }
 
     public DbSet<Receipt> Receipts { get; set; }
     public DbSet<ReceiptResource> ReceiptResources { get; set; }

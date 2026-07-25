@@ -342,6 +342,19 @@ export const sickTypeSchema = z.object({
 });
 export type SickTypeDto = z.infer<typeof sickTypeSchema>;
 
+export const foodRuleSchema = z.object({
+    resourceTypeId: z.number(),
+    reserve: z.number(),
+    forbidden: z.boolean(),
+    eatenToday: z.number(),
+});
+export type FoodRuleDto = z.infer<typeof foodRuleSchema>;
+
+export const larderSchema = z.object({
+    rules: z.array(foodRuleSchema),
+});
+export type TavernLarderDto = z.infer<typeof larderSchema>;
+
 export const cloakStateSchema = z.object({
     stock: z.number(),
     outOnShifts: z.number(),
@@ -576,6 +589,7 @@ export const gameStateSchema = z.object({
     villageLevel: villageLevelSchema,
     workers: workerSchema.array(),
     cloaks: cloakStateSchema,
+    larder: larderSchema,
     sickTypes: sickTypeSchema.array(),
     purchaseAvailableDomiks: domikTypeSchema.array(),
     weather: weatherStateSchema,

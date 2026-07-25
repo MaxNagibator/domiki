@@ -1,5 +1,6 @@
 ﻿using Domiki.Web.Core;
 using Domiki.Web.Infrastructure;
+using System.Text.Json;
 
 namespace Domiki.Web.Tests;
 
@@ -154,6 +155,246 @@ public sealed class MealTests
     }
 
     /// <summary>
+    /// Запас кладовой не даёт Корчме тронуть отложенный хлеб (трудяга отдыхает весь срок), но пускает в дело излишек сверх запаса.
+    /// </summary>
+    /// <param name="bread">Хлеб на складе перед стартом.</param>
+    /// <param name="reserve">Запас, который кладовая не должна трогать.</param>
+    /// <param name="expectedRestSeconds">Ожидаемая длительность отдыха трудяги.</param>
+    /// <param name="expectedBread">Ожидаемый остаток хлеба после завершения производства.</param>
+    [TestCase(2, 2, 7200, 2)]
+    [TestCase(3, 2, 3600, 2)]
+    public void ReserveKeepsBreadUntouchedUnlessSurplusTest(int bread, int reserve, int expectedRestSeconds, int expectedBread)
+    {
+        var player = TestPlayer.Create()
+            .WithDomik(DomikIds.Tavern)
+            .WithResource(ResourceIds.Bread, bread);
+
+        player.SetFoodRule(ResourceIds.Bread, reserve, false);
+
+        var worker = player.Workers().Single();
+        player.SetWorkerTrait(worker.Id, OrdinaryTraitId);
+
+        using (App.PendingEvents())
+        {
+            player.StartManufacture(StartingDomikIds.ClayMine, ReceiptIds.ClayDig8h);
+        }
+
+        var manufacture = player.Manufacture(StartingDomikIds.ClayMine);
+        var finishDate = manufacture.FinishDate.AddSeconds(1);
+        player.FinishManufacture(manufacture.Id, finishDate);
+
+        worker = player.Workers().Single();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That((worker.RestUntilValue() - finishDate).TotalSeconds, Is.EqualTo(expectedRestSeconds).Within(2));
+            Assert.That(player.Resource(ResourceIds.Bread), Is.EqualTo(expectedBread));
+        }
+    }
+
+    /// <summary>
+    /// Запрещённый в кладовой хлеб Корчма не трогает, даже будучи дешевле сыра, и кормит трудягу сыром вместо него.
+    /// </summary>
+    [Test]
+    public void ForbiddenBreadIsSkippedForCheeseTest()
+    {
+        const int startBread = 2;
+        const int startCheese = 1;
+
+        var player = TestPlayer.Create()
+            .WithDomik(DomikIds.Tavern)
+            .WithResource(ResourceIds.Bread, startBread)
+            .WithResource(ResourceIds.Cheese, startCheese);
+
+        player.SetFoodRule(ResourceIds.Bread, 0, true);
+
+        var worker = player.Workers().Single();
+        player.SetWorkerTrait(worker.Id, OrdinaryTraitId);
+
+        using (App.PendingEvents())
+        {
+            player.StartManufacture(StartingDomikIds.ClayMine, ReceiptIds.ClayDig8h);
+        }
+
+        var manufacture = player.Manufacture(StartingDomikIds.ClayMine);
+        player.FinishManufacture(manufacture.Id, manufacture.FinishDate.AddSeconds(1));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(player.Resource(ResourceIds.Bread), Is.EqualTo(startBread));
+            Assert.That(player.Resource(ResourceIds.Cheese), Is.Zero);
+        }
+    }
+
+    /// <summary>
+    /// Когда вся еда в кладовой заповедана, трудяга отдыхает весь срок, а в журнал попадает запись о кормлении с причиной «forbidden».
+    /// </summary>
+    [Test]
+    public void AllFoodForbiddenLeavesFullRestAndForbiddenReasonEventTest()
+    {
+        const int startBread = 3;
+
+        var player = TestPlayer.Create()
+            .WithDomik(DomikIds.Tavern)
+            .WithResource(ResourceIds.Bread, startBread);
+
+        player.SetFoodRule(ResourceIds.Bread, 0, true);
+
+        var worker = player.Workers().Single();
+        player.SetWorkerTrait(worker.Id, OrdinaryTraitId);
+
+        using (App.PendingEvents())
+        {
+            player.StartManufacture(StartingDomikIds.ClayMine, ReceiptIds.ClayDig8h);
+        }
+
+        var manufacture = player.Manufacture(StartingDomikIds.ClayMine);
+        var finishDate = manufacture.FinishDate.AddSeconds(1);
+        player.FinishManufacture(manufacture.Id, finishDate);
+
+        worker = player.Workers().Single();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That((worker.RestUntilValue() - finishDate).TotalSeconds, Is.EqualTo(7200).Within(2));
+            Assert.That(player.Resource(ResourceIds.Bread), Is.EqualTo(startBread));
+            Assert.That(GetMealEventReason(player.Id), Is.EqualTo("forbidden"));
+        }
+    }
+
+    /// <summary>
+    /// Успешное кормление пишет в журнал событие с именем трудяги и съеденным хлебом, а повторное кормление сливается в ту же
+    /// запись со счётчиком 2 и обезличенным именем.
+    /// </summary>
+    [Test]
+    public void SuccessfulMealWritesAndMergesWorkerMealEventTest()
+    {
+        const int startBread = 10;
+        const int mergedCount = 2;
+
+        var player = TestPlayer.Create()
+            .WithDomik(DomikIds.Tavern)
+            .WithDomik(DomikIds.Barrack)
+            .WithDomik(DomikIds.ClayMine)
+            .WithResource(ResourceIds.Bread, startBread);
+
+        foreach (var worker in player.Workers())
+        {
+            player.SetWorkerTrait(worker.Id, OrdinaryTraitId);
+        }
+
+        var firstDomikId = StartingDomikIds.ClayMine;
+        var secondDomikId = player.DomikId(DomikIds.ClayMine);
+
+        using (App.PendingEvents())
+        {
+            player.StartManufacture(firstDomikId, ReceiptIds.ClayDig8h);
+            player.StartManufacture(secondDomikId, ReceiptIds.ClayDig8h);
+        }
+
+        var firstManufacture = player.Manufacture(firstDomikId);
+        var secondManufacture = player.Manufacture(secondDomikId);
+        var firstWorkerName = player.Workers().Single(x => x.ManufactureId == firstManufacture.Id).Name;
+
+        player.FinishManufacture(firstManufacture.Id, firstManufacture.FinishDate.AddSeconds(1));
+
+        var firstEvents = GetMealEvents(player.Id);
+        Assert.That(firstEvents, Has.Count.EqualTo(1));
+        using (var firstData = JsonDocument.Parse(firstEvents[0].Data))
+        {
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstData.RootElement.GetProperty("workerName").GetString(), Is.EqualTo(firstWorkerName));
+                Assert.That(firstData.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(1));
+            }
+        }
+
+        player.FinishManufacture(secondManufacture.Id, secondManufacture.FinishDate.AddSeconds(1));
+
+        var mergedEvents = GetMealEvents(player.Id);
+        Assert.That(mergedEvents, Has.Count.EqualTo(1));
+        using var mergedData = JsonDocument.Parse(mergedEvents[0].Data);
+        var resource = mergedData.RootElement.GetProperty("resources").EnumerateArray().Single(x => x.GetProperty("resourceTypeId").GetInt32() == ResourceIds.Bread);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(mergedData.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(mergedCount));
+            Assert.That(mergedData.RootElement.GetProperty("workerName").ValueKind, Is.EqualTo(JsonValueKind.Null));
+            Assert.That(resource.GetProperty("value").GetInt32(), Is.EqualTo(mergedCount));
+        }
+    }
+
+    /// <summary>
+    /// Два трудяги, уставших в одной смене одного производства, сливаются в одну запись журнала со счётчиком 2 и
+    /// обезличенным именем, даже когда оба кормления регистрируются до сохранения транзакции.
+    /// </summary>
+    [Test]
+    public void TwoWorkersFatiguingInSameManufactureMergeIntoOneEventTest()
+    {
+        const int startBread = 10;
+        const int mealCount = 2;
+        const int manufactureDurationSeconds = 3600;
+
+        var player = TestPlayer.Create()
+            .WithDomik(DomikIds.Tavern)
+            .WithDomiks(DomikIds.Barrack, 4)
+            .WithDomik(DomikIds.ClayMine)
+            .WithResource(ResourceIds.Bread, startBread);
+
+        var domikId = player.DomikId(DomikIds.ClayMine);
+        player.Upgrade(domikId);
+
+        var workers = player.Workers().OrderBy(x => x.Id).ToArray();
+        foreach (var worker in workers)
+        {
+            player.SetWorkerTrait(worker.Id, OrdinaryTraitId);
+        }
+
+        var fatiguedWorkerIds = workers.Take(mealCount).Select(x => x.Id).ToArray();
+        foreach (var workerId in fatiguedWorkerIds)
+        {
+            player.SetWorkerWorked(workerId, DomikManager.FatigueThresholdSeconds - manufactureDurationSeconds);
+        }
+
+        using (App.PendingEvents())
+        {
+            player.StartManufacture(domikId, ReceiptIds.ClayDigTogether);
+        }
+
+        var manufacture = player.Manufacture(domikId);
+        player.FinishManufacture(manufacture.Id, manufacture.FinishDate.AddSeconds(1));
+
+        var events = GetMealEvents(player.Id);
+        Assert.That(events, Has.Count.EqualTo(1));
+        using var data = JsonDocument.Parse(events[0].Data);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(data.RootElement.GetProperty("count").GetInt32(), Is.EqualTo(mealCount));
+            Assert.That(data.RootElement.GetProperty("workerName").ValueKind, Is.EqualTo(JsonValueKind.Null));
+        }
+    }
+
+    /// <summary>
+    /// Кладовая копит счётчик съеденного за сутки и сбрасывает его, когда сохранённые сутки уже не совпадают с текущими.
+    /// </summary>
+    [Test]
+    public void EatenTodayAccumulatesAndResetsOnNewDayTest()
+    {
+        const int firstMeal = 1;
+        const int secondMeal = 2;
+
+        var player = TestPlayer.Create();
+
+        player.RegisterMeal(ResourceIds.Bread, firstMeal);
+        player.RegisterMeal(ResourceIds.Bread, secondMeal);
+
+        var rule = player.FoodRules().Single(x => x.ResourceTypeId == ResourceIds.Bread);
+        Assert.That(rule.EatenToday, Is.EqualTo(firstMeal + secondMeal));
+
+        SetFoodRuleEatenDate(player.Id, ResourceIds.Bread, DateTimeHelper.GetNowDate().Date.AddDays(-1));
+
+        var staleRule = player.FoodRules().Single(x => x.ResourceTypeId == ResourceIds.Bread);
+        Assert.That(staleRule.EatenToday, Is.Zero);
+    }
+
+    /// <summary>
     /// Корчма списывает хлеб раньше сыра, потому что хлеб дешевле на рынке.
     /// </summary>
     [Test]
@@ -182,5 +423,25 @@ public sealed class MealTests
             Assert.That(player.Resource(ResourceIds.Bread), Is.Zero);
             Assert.That(player.Resource(ResourceIds.Cheese), Is.EqualTo(startCheese));
         }
+    }
+
+    private static List<Data.Entities.PlayerEvent> GetMealEvents(int playerId)
+    {
+        return App.Read(context => context.PlayerEvents.Where(x => x.PlayerId == playerId && x.Type == Data.Entities.PlayerEventType.WorkerMeal).ToList());
+    }
+
+    private static string? GetMealEventReason(int playerId)
+    {
+        var events = GetMealEvents(playerId);
+        Assert.That(events, Has.Count.EqualTo(1));
+        using var data = JsonDocument.Parse(events[0].Data);
+        return data.RootElement.GetProperty("reason").GetString();
+    }
+
+    private static void SetFoodRuleEatenDate(int playerId, int resourceTypeId, DateTime eatenDate)
+    {
+        using var scope = App.Scope();
+        scope.Context.PlayerFoodRules.Single(x => x.PlayerId == playerId && x.ResourceTypeId == resourceTypeId).EatenDate = eatenDate;
+        scope.Commit();
     }
 }

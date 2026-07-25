@@ -7,6 +7,7 @@ import { getErrandTemplate, getErrandThanks } from '../utils/errandTexts';
 import { getIncidentTemplate, incidentText } from '../utils/incidentTexts';
 import { domikIncidentText, getDomikIncidentTemplate } from '../utils/domikIncidentTexts';
 import { getWorkerMilestoneTemplate, workerMilestoneText } from '../utils/workerMilestoneTexts';
+import { getWorkerMealText } from '../utils/tavernMealTexts';
 import { withStableKeys } from '../utils/keys';
 import { formatDuration, formatRelativeTime } from '../utils/time';
 import { genderForm, traitLabel } from '../utils/gender';
@@ -290,6 +291,36 @@ const renderContent = (event: RecapEventDto, resourceTypes: ResourceTypeDto[], d
         const partnerGender = isNumber(data.workerGender2) ? data.workerGender2 : undefined;
         const resourceType = isNumber(data.resourceTypeId) ? findResourceType(resourceTypes, data.resourceTypeId) : undefined;
         return { tone: 'goal', Icon: abstractIcon('worker_milestone'), body: <><span className="journal-text">{workerMilestoneText(template.journal, data.workerName, data.workerGender, partnerName, partnerGender)}<span className="journal-errand-thanks"><i>{workerMilestoneText(template.epilogue, data.workerName, data.workerGender, partnerName, partnerGender)}</i></span></span><span className="journal-chips">{resourceType != null && isNumber(data.value) && <ResourceChip resourceType={resourceType} value={data.value} />}{data.traitUpgraded === true && typeof data.newTrait === 'string' && <span className="journal-loot-rare">Черта: {data.workerName} – {traitLabel(typeof data.newTraitLogicName === 'string' ? data.newTraitLogicName : '', data.newTrait, data.workerGender)}</span>}</span></> };
+    }
+
+    if (event.type === 'WorkerMeal' && isNumber(data.count) && isNumber(data.variant) && Array.isArray(data.resources)) {
+        const workerName = typeof data.workerName === 'string' ? data.workerName : null;
+        const workerGender = isNumber(data.workerGender) ? data.workerGender : null;
+        const reason = typeof data.reason === 'string' ? data.reason : null;
+        const resources = data.resources.flatMap(entry => {
+            const parsed = readResource(entry);
+            return parsed == null ? [] : [parsed];
+        });
+        const foodResourceType = resources[0] == null ? undefined : findResourceType(resourceTypes, resources[0].typeId);
+        const foodName = foodResourceType == null ? null : foodResourceType.name.toLocaleLowerCase('ru-RU');
+        const text = getWorkerMealText({ count: data.count, workerName, workerGender, variant: data.variant, reason }, foodName);
+        return {
+            tone: 'errand',
+            Icon: mechanicIcon('tavern'),
+            body: (
+                <>
+                    <span className="journal-text">{text}</span>
+                    {resources.length > 0 &&
+                        <span className="journal-chips">
+                            {resources.map(resource => {
+                                const resourceType = findResourceType(resourceTypes, resource.typeId);
+                                return resourceType == null ? null : <ResourceChip key={resource.typeId} resourceType={resourceType} value={resource.value} />;
+                            })}
+                        </span>
+                    }
+                </>
+            ),
+        };
     }
 
     if (event.type === 'GoalCompleted' && typeof data.name === 'string' && isNumber(data.rewardCoins)) {

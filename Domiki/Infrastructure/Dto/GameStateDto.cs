@@ -106,6 +106,11 @@ public sealed record GameStateDto
     public required CloakStateDto Cloaks { get; init; }
 
     /// <summary>
+    /// Кладовая Корчмы: правила подбора еды по каждому съестному припасу.
+    /// </summary>
+    public required TavernLarderDto Larder { get; init; }
+
+    /// <summary>
     /// Справочник хворей, связанных с погодой.
     /// </summary>
     public required SickTypeDto[] SickTypes { get; init; }

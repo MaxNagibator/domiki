@@ -158,6 +158,11 @@ public class ExpeditionManager
         var foodCount = foodEquipment.Sum(x => x.Value);
         var food = _tavernManager.CollectFood(playerId, foodCount);
         var foodAffordable = food.Sum(x => x.Value) == foodCount;
+        if (provisions && !foodAffordable && _tavernManager.GetFoodStock(playerId) >= foodCount)
+        {
+            throw new BusinessException("Свободной еды нет – остальное заповедано в кладовой");
+        }
+
         var provisionResources = (foodAffordable
                 ? food
                 : foodEquipment.Select(x => new Resource { Type = resourceTypes[x.ResourceTypeId], Value = x.Value }).ToArray())

@@ -119,4 +119,13 @@ public enum PlayerEventType
     /// Плащ износился после выработки срока службы и был списан.
     /// </summary>
     CloakWornOut = 17,
+
+    /// <summary>
+    /// Трудяга поел (или не смог поесть) в Корчме после смены.
+    /// </summary>
+    /// <remarks>
+    /// Повторные события с одинаковой причиной сливаются в одну запись с накоплением счётчика и ресурсов, а
+    /// обезличиваются – имя и род трудяги очищаются (см. <see cref="Infrastructure.PlayerEventManager.RecordWorkerMeal"/>).
+    /// </remarks>
+    WorkerMeal = 18,
 }

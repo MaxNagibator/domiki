@@ -732,6 +732,13 @@ public class DomikManager
                         if (fed)
                         {
                             _playerResourceManager.WriteOffResources(playerId, food);
+                            _tavernManager.RegisterMeal(playerId, food);
+                        }
+
+                        if (tavernLevel >= TavernManager.MealMinLevel)
+                        {
+                            var mealReason = fed ? null : (_tavernManager.HasForbiddenOrReservedFood(playerId) ? "forbidden" : "empty");
+                            _playerEventManager.RecordWorkerMeal(playerId, fed ? worker.Name : null, fed ? (int)NameGrammar.GenderOf(worker.Name) : null, mealReason, food.ToDictionary(x => x.Type.Id, x => x.Value));
                         }
 
                         worker.RestUntil = date.AddSeconds(fed ? restSeconds / 2 : restSeconds);

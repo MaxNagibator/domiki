@@ -21,6 +21,7 @@ public class GameStateController : GameControllerBase
     private readonly ResourceManager _resourceManager;
     private readonly OrderManager _orderManager;
     private readonly WorkerManager _workerManager;
+    private readonly TavernManager _tavernManager;
     private readonly WeatherManager _weatherManager;
     private readonly VillageLevelCalculator _villageLevelCalculator;
     private readonly BlueprintManager _blueprintManager;
@@ -36,13 +37,14 @@ public class GameStateController : GameControllerBase
     private readonly IncidentManager _incidentManager;
     private readonly WorkerMilestoneManager _workerMilestoneManager;
 
-    public GameStateController(DomikManager domikManager, ResourceManager resourceManager, OrderManager orderManager, WorkerManager workerManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, ExpeditionManager expeditionManager, DecorManager decorManager, TolokaManager tolokaManager, MarketManager marketManager, ConvoyManager convoyManager, GiftManager giftManager, PlayerEventManager playerEventManager, GoalManager goalManager, ErrandManager errandManager, IncidentManager incidentManager, WorkerMilestoneManager workerMilestoneManager)
+    public GameStateController(DomikManager domikManager, ResourceManager resourceManager, OrderManager orderManager, WorkerManager workerManager, TavernManager tavernManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, ExpeditionManager expeditionManager, DecorManager decorManager, TolokaManager tolokaManager, MarketManager marketManager, ConvoyManager convoyManager, GiftManager giftManager, PlayerEventManager playerEventManager, GoalManager goalManager, ErrandManager errandManager, IncidentManager incidentManager, WorkerMilestoneManager workerMilestoneManager)
         : base(domikManager)
     {
         _domikManager = domikManager;
         _resourceManager = resourceManager;
         _orderManager = orderManager;
         _workerManager = workerManager;
+        _tavernManager = tavernManager;
         _weatherManager = weatherManager;
         _villageLevelCalculator = villageLevelCalculator;
         _blueprintManager = blueprintManager;
@@ -87,6 +89,7 @@ public class GameStateController : GameControllerBase
             VillageLevel = villageLevel.ToDto(),
             Workers = _workerManager.GetWorkers(playerId).Select(x => x.ToDto()).ToArray(),
             Cloaks = _workerManager.GetCloakState(playerId).ToDto(),
+            Larder = _tavernManager.GetRules(playerId).ToDto(),
             SickTypes = _resourceManager.GetSickTypes().Select(x => x.ToDto()).ToArray(),
             PurchaseAvailableDomiks = _domikManager.GetPurchaseAvailableDomiks(playerId).Select(x => x.Type.ToDto(x.AvailableCount, blueprints.FirstOrDefault(b => b.DomikTypeId == x.Type.Id)?.Id, x.NextCountGateLevel)).ToArray(),
             Weather = _weatherManager.GetWeather(DateTimeHelper.GetNowDate()).ToDto(),

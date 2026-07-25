@@ -153,6 +153,9 @@ export const getDecor = (signal?: AbortSignal): Promise<DecorStateDto> =>
 export const buyDecor = (decorTypeId: number, signal?: AbortSignal): Promise<void> =>
     apiPost(`Domiki/BuyDecor/${decorTypeId}`, signal);
 
+export const setFoodRule = (resourceTypeId: number, reserve: number, forbidden: boolean, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/SetFoodRule/${resourceTypeId}?reserve=${reserve}&forbidden=${String(forbidden)}`, signal);
+
 export const getToloka = (signal?: AbortSignal): Promise<TolokaStateDto | null> =>
     apiGet('Domiki/GetToloka', tolokaStateSchema.nullable(), signal);
 

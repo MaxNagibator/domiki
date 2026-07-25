@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { acceptLot as acceptLotApi, apiGet, ApiError, buyDecor as buyDecorApi, buyFromConvoy as buyFromConvoyApi, cancelLot as cancelLotApi, contributeToloka as contributeTolokaApi, getDecor, getGameState, getMarket, getToloka, getVillage, hurryDomik as hurryDomikApi, hurryManufacture as hurryManufactureApi, postLot as postLotApi, setManufactureAutoRepeat as setManufactureAutoRepeatApi, setVillage as setVillageApi, startExpedition as startExpeditionApi, voteToloka as voteTolokaApi } from '../services/api';
+import { acceptLot as acceptLotApi, apiGet, ApiError, buyDecor as buyDecorApi, buyFromConvoy as buyFromConvoyApi, cancelLot as cancelLotApi, contributeToloka as contributeTolokaApi, getDecor, getGameState, getMarket, getToloka, getVillage, hurryDomik as hurryDomikApi, hurryManufacture as hurryManufactureApi, postLot as postLotApi, setFoodRule as setFoodRuleApi, setManufactureAutoRepeat as setManufactureAutoRepeatApi, setVillage as setVillageApi, startExpedition as startExpeditionApi, voteToloka as voteTolokaApi } from '../services/api';
 import { useToast } from '../services/toastContext';
 import {
     domikTypeSchema,
@@ -25,6 +25,7 @@ import {
     type RecapDto,
     type RecapEventDto,
     type SickTypeDto,
+    type TavernLarderDto,
     type TolokaStateDto,
     type VillageDto,
     type VillageLevelDto,
@@ -61,6 +62,7 @@ export interface GameData {
     goals: GoalsStateDto | null;
     workers: WorkerDto[];
     cloaks: CloakStateDto;
+    larder: TavernLarderDto | null;
     sickTypes: SickTypeDto[];
     purchaseDomikTypes: DomikTypeDto[] | null;
     now: number;
@@ -73,6 +75,7 @@ export interface GameData {
     hurryDomik: (domikId: number) => Promise<void>;
     startExpedition: (expeditionTypeId: number, workerIds?: number[], provisions?: boolean) => Promise<void>;
     buyDecor: (decorTypeId: number) => Promise<void>;
+    setFoodRule: (resourceTypeId: number, reserve: number, forbidden: boolean) => Promise<void>;
     contributeToloka: (resourceTypeId: number, amount: number) => Promise<void>;
     voteToloka: (tolokaTypeId: number) => Promise<void>;
     postLot: (kind: number, giveResourceTypeId: number, giveValue: number, wantResourceTypeId: number, wantValue: number) => Promise<void>;
@@ -124,6 +127,7 @@ export function useGameData(): GameData {
     const [goals, setGoals] = useState<GoalsStateDto | null>(null);
     const [workers, setWorkers] = useState<WorkerDto[]>([]);
     const [cloaks, setCloaks] = useState<CloakStateDto>({ stock: 0, outOnShifts: 0, wearPoints: 0, lifetimeShifts: 0 });
+    const [larder, setLarder] = useState<TavernLarderDto | null>(null);
     const [sickTypes, setSickTypes] = useState<SickTypeDto[]>([]);
     const [purchaseDomikTypes, setPurchaseDomikTypes] = useState<DomikTypeDto[] | null>(null);
     const [recap, setRecap] = useState<RecapDto | null>(null);
@@ -232,6 +236,7 @@ export function useGameData(): GameData {
         setVillageProfiles(state.villageProfiles);
         setWorkers(state.workers);
         setCloaks(state.cloaks);
+        setLarder(state.larder);
         setSickTypes(state.sickTypes);
         setWeather(state.weather);
         setExpeditions(state.expeditions);
@@ -363,6 +368,11 @@ export function useGameData(): GameData {
         setVillageLevel(nextVillageLevel);
     }, []);
 
+    const setFoodRule = useCallback(async (resourceTypeId: number, reserve: number, forbidden: boolean) => {
+        await setFoodRuleApi(resourceTypeId, reserve, forbidden);
+        scheduleReload();
+    }, [scheduleReload]);
+
     useEffect(() => {
         const id = setInterval(() => setNow(Date.now()), 1000);
         return () => clearInterval(id);
@@ -390,6 +400,7 @@ export function useGameData(): GameData {
                 setVillageLevel(state.villageLevel);
                 setVillageProfiles(state.villageProfiles);
                 setWorkers(state.workers);
+                setLarder(state.larder);
                 setPurchaseDomikTypes(state.purchaseAvailableDomiks);
                 setWeather(state.weather);
                 setExpeditions(state.expeditions);
@@ -593,6 +604,7 @@ export function useGameData(): GameData {
         goals,
         workers,
         cloaks,
+        larder,
         sickTypes,
         purchaseDomikTypes,
         now,
@@ -606,6 +618,7 @@ export function useGameData(): GameData {
         hurryDomik,
         startExpedition,
         buyDecor,
+        setFoodRule,
         contributeToloka,
         voteToloka,
         postLot,

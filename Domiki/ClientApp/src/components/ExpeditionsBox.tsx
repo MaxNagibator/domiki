@@ -176,7 +176,7 @@ export const ExpeditionsBox = ({ expeditions, resourceTypes, decorTypes, resourc
                             {provisionEquipment.length > 0 &&
                                 <>
                                     {automaticProvisions
-                                        ? <span className="receipt-optional expedition-manual-toggle" title="Корчма кладёт в котомки любую еду со склада, дешёвую первой">
+                                        ? <span className="receipt-optional expedition-manual-toggle" title="Корчма кладёт в котомки любую еду со склада, кроме заповеданной, дешёвую первой">
                                             {provisionsReady
                                                 ? `Котомки собирает корчма: еды из запаса – ${provisionCount}`
                                                 : 'Котомки собрать не из чего – еды в запасе нет'}

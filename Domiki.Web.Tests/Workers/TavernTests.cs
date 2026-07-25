@@ -114,6 +114,91 @@ public sealed class TavernTests
         Assert.That(IsProvisioned(expedition.Id), Is.False);
     }
 
+    /// <summary>
+    /// Когда весь хлеб в кладовой отложен про запас, автопровиант остаётся выключен, но экспедиция всё равно стартует.
+    /// </summary>
+    [Test]
+    public void ReservedFoodKeepsAutoProvisionsOffButExpeditionStartsTest()
+    {
+        const int bread = 2;
+
+        var player = TestPlayer.Create()
+            .WithDomik(DomikIds.Barrack)
+            .WithDomik(DomikIds.ScoutHut)
+            .WithDomik(DomikIds.Tavern, TavernManager.ProvisionMinLevel)
+            .WithResource(ResourceIds.Gold, 1)
+            .WithResource(ResourceIds.Board, 2)
+            .WithResource(ResourceIds.Bread, bread);
+
+        player.SetFoodRule(ResourceIds.Bread, bread, false);
+
+        Assert.DoesNotThrow(() => player.StartExpedition(ExpeditionTypeIds.ShortScout));
+
+        var expedition = player.Expeditions().Active.Single();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(IsProvisioned(expedition.Id), Is.False);
+            Assert.That(player.Resource(ResourceIds.Bread), Is.EqualTo(bread));
+        }
+    }
+
+    /// <summary>
+    /// Явно заказанный провиант с частично заповеданным хлебом (свободного меньше, чем требует снаряжение) бросает ошибку про
+    /// кладовую и не списывает ничего со склада.
+    /// </summary>
+    [Test]
+    public void ManualProvisionsWithPartialReserveThrowsAndWritesOffNothingTest()
+    {
+        const int bread = 10;
+        const int reserve = 9;
+
+        var player = TestPlayer.Create()
+            .WithDomik(DomikIds.Barrack)
+            .WithDomik(DomikIds.ScoutHut)
+            .WithResource(ResourceIds.Gold, 1)
+            .WithResource(ResourceIds.Board, 2)
+            .WithResource(ResourceIds.Bread, bread);
+
+        player.SetFoodRule(ResourceIds.Bread, reserve, false);
+
+        var ex = Throws.Business(() => player.StartExpedition(ExpeditionTypeIds.ShortScout, provisions: true));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(ex.Message, Is.EqualTo("Свободной еды нет – остальное заповедано в кладовой"));
+            Assert.That(player.Resource(ResourceIds.Bread), Is.EqualTo(bread));
+            Assert.That(player.Expeditions().Active, Is.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Конкурирующие запросы на сохранение одного правила кладовой не роняют транзакцию дублирующимся ключом.
+    /// </summary>
+    [Test]
+    public void ConcurrencySaveRuleTest()
+    {
+        for (var i = 1; i <= 217; i++)
+        {
+            var player = TestPlayer.Create();
+
+            var numbers = Enumerable.Range(0, 10).ToList();
+            var errorCount = 0;
+            Parallel.ForEach(numbers, number =>
+            {
+                try
+                {
+                    player.SetFoodRule(ResourceIds.Bread, number, false);
+                }
+                catch (Exception)
+                {
+                    errorCount++;
+                }
+            });
+
+            Assert.That(errorCount, Is.Zero, "iterarion number " + i);
+        }
+    }
+
     private static void SetManufactureSickChance(int manufactureId, int chance)
     {
         using var scope = App.Scope();

@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react';
-import type { CSSProperties } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import type { CSSProperties, FocusEvent } from 'react';
 import { createPortal } from 'react-dom';
 import ClockIcon from 'pixelarticons/svg/clock.svg?react';
-import type { CloakStateDto, DomikDto, DomikIncidentDto, DomikTypeDto, ErrandDto, ExpeditionStateDto, IncidentDto, ResourceDto, ResourceTypeDto, SickTypeDto, WorkerDto } from '../types/api';
+import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
+import type { CloakStateDto, DomikDto, DomikIncidentDto, DomikTypeDto, ErrandDto, ExpeditionStateDto, FoodRuleDto, IncidentDto, ResourceDto, ResourceTypeDto, SickTypeDto, TavernLarderDto, WorkerDto } from '../types/api';
 import { buildDomikNamer, type DomikNamer } from '../utils/domikNames';
 import { formatDuration, formatDurationShort, remainingSeconds } from '../utils/time';
 import { describeWorker, describeWorkerParts, isSkilledWorker, rankedSkills } from '../utils/worker';
-import { AbstractSprite, DomikSprite, MechanicSprite, TraitSprite, WorkerSprite } from './sprites';
+import { AbstractSprite, DomikSprite, MechanicSprite, ResourceSprite, TraitSprite, WorkerSprite } from './sprites';
 import { genderForm, traitLabel } from '../utils/gender';
 
 type WorkerState = 'expedition' | 'errand' | 'incidentMissing' | 'incidentSearch' | 'domikIncidentSearch' | 'busy' | 'resting' | 'free';
@@ -24,6 +25,8 @@ interface WorkersBoxProps {
     resourceTypes: ResourceTypeDto[];
     resources: ResourceDto[];
     tavernLevel: number;
+    larder: TavernLarderDto | null;
+    onSetFoodRule: (resourceTypeId: number, reserve: number, forbidden: boolean) => void;
     now: number;
 }
 
@@ -79,8 +82,79 @@ const WorkerDetails = ({ worker, domikTypes, domiks, namer, style }: { worker: W
     );
 };
 
-export const WorkersBox = ({ workers, domikTypes, domiks, expeditions, errand, incident, domikIncident, cloaks, sickTypes, resourceTypes, resources, tavernLevel, now }: WorkersBoxProps) => {
+interface LarderRuleRowProps {
+    resourceType: ResourceTypeDto;
+    stock: number;
+    rule: FoodRuleDto | undefined;
+    onSetFoodRule: (resourceTypeId: number, reserve: number, forbidden: boolean) => void;
+}
+
+const LarderRuleRow = ({ resourceType, stock, rule, onSetFoodRule }: LarderRuleRowProps) => {
+    const reserve = rule?.reserve ?? 0;
+    const forbidden = rule?.forbidden ?? false;
+    const [reserveInput, setReserveInput] = useState(String(reserve));
+    const [forbiddenInput, setForbiddenInput] = useState(forbidden);
+    const forbiddenCheckboxRef = useRef<HTMLInputElement>(null);
+    const savedRef = useRef({ reserve, forbidden });
+
+    const parseReserveInput = () => {
+        const parsed = Math.trunc(Number(reserveInput));
+        return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+    };
+
+    const commit = (nextForbidden: boolean) => {
+        const next = parseReserveInput();
+        setReserveInput(String(next));
+        const saved = savedRef.current;
+        if (next === saved.reserve && nextForbidden === saved.forbidden) {
+            return;
+        }
+
+        savedRef.current = { reserve: next, forbidden: nextForbidden };
+        onSetFoodRule(resourceType.id, next, nextForbidden);
+    };
+
+    const commitReserve = (event: FocusEvent<HTMLInputElement>) => {
+        if (event.relatedTarget === forbiddenCheckboxRef.current) {
+            setReserveInput(String(parseReserveInput()));
+            return;
+        }
+
+        commit(savedRef.current.forbidden);
+    };
+
+    const commitForbidden = (nextForbidden: boolean) => {
+        setForbiddenInput(nextForbidden);
+        commit(nextForbidden);
+    };
+
+    return (
+        <div className="larder-row">
+            <span className="larder-row-name">
+                <ResourceSprite logicName={resourceType.logicName} size={24} className="larder-row-ico" aria-hidden="true" />
+                {resourceType.name}
+                <span className="larder-row-stock">{stock}</span>
+            </span>
+            <label className="larder-row-reserve" title="Корчмарь берёт только то, что сверх этого запаса – ниже не тронет">
+                оставлять
+                <input type="number" min={0} value={reserveInput}
+                    onChange={event => setReserveInput(event.target.value)}
+                    onBlur={commitReserve}
+                    onKeyDown={event => { if (event.key === 'Enter') { event.currentTarget.blur(); } }} />
+            </label>
+            <label className="receipt-optional larder-row-forbidden" title="Корчмарь обойдёт этот припас стороной – ни к обеду, ни в котомки">
+                <input ref={forbiddenCheckboxRef} type="checkbox" checked={forbiddenInput}
+                    onChange={event => commitForbidden(event.target.checked)}
+                    onBlur={() => commit(savedRef.current.forbidden)} />
+                не подавать
+            </label>
+        </div>
+    );
+};
+
+export const WorkersBox = ({ workers, domikTypes, domiks, expeditions, errand, incident, domikIncident, cloaks, sickTypes, resourceTypes, resources, tavernLevel, larder, onSetFoodRule, now }: WorkersBoxProps) => {
     const [hover, setHover] = useState<{ worker: WorkerDto; rect: DOMRect } | null>(null);
+    const [larderOpen, setLarderOpen] = useState(false);
     const clearHover = (id: number) => setHover(prev => (prev?.worker.id === id ? null : prev));
     const namer = useMemo(() => buildDomikNamer(domiks), [domiks]);
     const freeCloaks = Math.max(0, cloaks.stock - cloaks.outOnShifts);
@@ -93,6 +167,28 @@ export const WorkersBox = ({ workers, domikTypes, domiks, expeditions, errand, i
         }));
     const hasFood = foodStocks.some(food => food.value > 0);
     const tavernPerks = ['«котёл»', '«котомки в дорогу»', '«тёплый угол»'].slice(0, tavernLevel).join(' · ');
+
+    const foodTypes = resourceTypes.filter(resourceType => resourceType.isFood);
+    const ruleFor = (resourceTypeId: number) => larder?.rules.find(rule => rule.resourceTypeId === resourceTypeId);
+    const stockFor = (resourceTypeId: number) => resources.find(resource => resource.typeId === resourceTypeId)?.value ?? 0;
+    const allFoodForbidden = foodTypes.length > 0 && foodTypes.every(type => ruleFor(type.id)?.forbidden ?? false);
+    const anyFoodSpendable = foodTypes.some(type => {
+        const rule = ruleFor(type.id);
+        return !(rule?.forbidden ?? false) && stockFor(type.id) > (rule?.reserve ?? 0);
+    });
+    const larderState = !hasFood
+        ? 'В кладовой пусто – уставшие отдыхают полный срок'
+        : allFoodForbidden
+            ? 'Вся еда заповедана – корчмарь не подаёт, уставшие отдыхают полный срок'
+            : !anyFoodSpendable
+                ? 'Всё, что есть, – заповедное: обеда не будет, пока запас не подрастёт'
+                : null;
+    const eatenEntries = foodTypes
+        .map(type => ({ name: type.name.toLocaleLowerCase('ru-RU'), eaten: ruleFor(type.id)?.eatenToday ?? 0 }))
+        .filter(entry => entry.eaten > 0);
+    const eatenText = eatenEntries.length === 0
+        ? 'За сутки не съедено ни крошки'
+        : `Съедено за сутки: ${eatenEntries.map(entry => `${entry.name} ${entry.eaten}`).join(' · ')}`;
 
     const stateOf = (worker: WorkerDto): WorkerState => {
         if (worker.incidentId != null) {
@@ -159,6 +255,30 @@ export const WorkersBox = ({ workers, domikTypes, domiks, expeditions, errand, i
                     </div>
                 }
             </div>
+            {tavernLevel > 0 &&
+                <div className="workers-larder-panel">
+                    <div className="workers-larder-panel-head">
+                        <MechanicSprite logicName="tavern" size={24} className="workers-larder-panel-ico" aria-hidden="true" />
+                        <div className="workers-larder-panel-text">
+                            <span className="workers-larder-panel-title">Кладовая</span>
+                            <span className="workers-larder-panel-hint">Что беречь от котла: корчмарь берёт сам, дешёвое первым</span>
+                        </div>
+                        <button type="button" className="workers-larder-toggle" aria-expanded={larderOpen} onClick={() => setLarderOpen(open => !open)}>
+                            {larderOpen ? 'Свернуть' : 'Показать'}
+                            <ChevronDownIcon className="workers-larder-toggle-caret" aria-hidden="true" />
+                        </button>
+                    </div>
+                    {larderState != null && <p className="workers-larder-state">{larderState}</p>}
+                    {larderOpen &&
+                        <div className="workers-larder-rows">
+                            {foodTypes.map(type => (
+                                <LarderRuleRow key={`${type.id}:${ruleFor(type.id)?.reserve ?? 0}`} resourceType={type} stock={stockFor(type.id)} rule={ruleFor(type.id)} onSetFoodRule={onSetFoodRule} />
+                            ))}
+                        </div>
+                    }
+                    <p className="workers-larder-counter">{eatenText}</p>
+                </div>
+            }
             <div className="workers-list">
                 {workers.length === 0 &&
                     <span className="hint">Постройте барак, чтобы поселить трудяг.</span>
