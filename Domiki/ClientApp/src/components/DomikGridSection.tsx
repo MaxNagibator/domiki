@@ -11,6 +11,7 @@ import type { DomikDto, DomikTypeDto, ManufactureDto, ReceiptDto, ResourceDto, R
 import type { DomikNamer } from '../utils/domikNames';
 import { canAffordUpgrade, manufactureProgressPercent, progressPercent, sortDomiks } from '../utils/game';
 import type { DomikSortMode } from '../utils/game';
+import type { AssignTarget } from '../utils/assign';
 import { formatClock, remainingSeconds } from '../utils/time';
 import { WorkerSprite } from './sprites';
 import { AnimatedDomikSprite } from './AnimatedDomikSprite';
@@ -94,6 +95,49 @@ export const DomikSortMenu = ({ value, onChange }: DomikSortMenuProps) => {
     );
 };
 
+const PAGE_EDGE_DELAY = 600;
+
+export interface AssignGrid {
+    active: boolean;
+    dragging: boolean;
+    targets: Map<number, AssignTarget>;
+    hoverDomikId: number | null;
+    onDrop: (domikId: number, point: { x: number; y: number }) => void;
+}
+
+interface PageEdgeProps {
+    side: 'left' | 'right';
+    label: string;
+    onReach: () => void;
+}
+
+const PageEdge = ({ side, label, onReach }: PageEdgeProps) => {
+    const timerRef = useRef<number | null>(null);
+
+    useEffect(() => () => { if (timerRef.current != null) window.clearTimeout(timerRef.current); }, []);
+
+    const arm = () => {
+        if (timerRef.current == null) {
+            timerRef.current = window.setTimeout(() => { timerRef.current = null; onReach(); }, PAGE_EDGE_DELAY);
+        }
+    };
+
+    const disarm = () => {
+        if (timerRef.current != null) {
+            window.clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
+    };
+
+    return (
+        <div className={`domiks-edge domiks-edge--${side}`} aria-hidden="true"
+            onPointerEnter={arm} onPointerLeave={disarm}>
+            <span className="domiks-edge-chevron">{side === 'left' ? '‹' : '›'}</span>
+            <span className="domiks-edge-label">{label}</span>
+        </div>
+    );
+};
+
 interface DomikGridSectionProps {
     domiks: DomikDto[];
     domikTypes: DomikTypeDto[];
@@ -108,9 +152,10 @@ interface DomikGridSectionProps {
     displayName: DomikNamer;
     onSelect: (id: number, logicName: string) => void;
     workers: WorkerDto[];
+    assign: AssignGrid;
 }
 
-export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, resourceTypes, currentWeather, now, sortMode, onSortChange, selectedDomikId, displayName: namer, onSelect, workers }: DomikGridSectionProps) => {
+export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, resourceTypes, currentWeather, now, sortMode, onSortChange, selectedDomikId, displayName: namer, onSelect, workers, assign }: DomikGridSectionProps) => {
     const [rowsPerPage, setRowsPerPage] = useState<RowsPerPage>(() => {
         const saved = localStorage.getItem('domik-page-size');
         if (saved === '2') return 2;
@@ -245,12 +290,23 @@ export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, reso
                         const progress = domik.finishDate != null
                             ? domik.upgradeSeconds == null ? null : progressPercent(domik.finishDate, domik.upgradeSeconds, now)
                             : nextManufacture == null ? null : manufactureProgressPercent(nextManufacture, now);
+                        const assignTarget = assign.active ? assign.targets.get(domik.id) ?? null : null;
+                        const assignClass = assignTarget == null
+                            ? ''
+                            : (assignTarget.eligible ? ' plot-assign-ok' : ' plot-assign-no')
+                                + (assign.hoverDomikId === domik.id ? ' plot-assign-hover' : '');
                         return (
-                            <button key={domik.id} type="button"
-                                className={'plot' + (plotState.kind === 'upgradeable' ? ' plot-callout' : '') + (selectedDomikId === domik.id ? ' plot-selected' : '')}
+                            <button key={domik.id} type="button" data-assign-domik={domik.id}
+                                className={'plot' + (plotState.kind === 'upgradeable' ? ' plot-callout' : '') + (selectedDomikId === domik.id ? ' plot-selected' : '') + assignClass}
                                 aria-label={`${displayName}, уровень ${domik.level}, ${cardStatus}${busyCrew.length > 0 ? `, трудяг ${busyCrew.length}` : ''}`}
                                 aria-pressed={selectedDomikId === domik.id}
-                                onClick={() => onSelect(domik.id, domikType.logicName)}>
+                                onClick={event => {
+                                    if (assign.active) {
+                                        assign.onDrop(domik.id, { x: event.clientX, y: event.clientY });
+                                        return;
+                                    }
+                                    onSelect(domik.id, domikType.logicName);
+                                }}>
                                 <span className="plot-head">
                                     <span className="plot-name">{displayName}</span>
                                     <span className="plot-marks">
@@ -281,10 +337,19 @@ export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, reso
                                 <ProgressBar
                                     className={'plot-progress plot-progress-' + plotState.kind + (progress == null ? ' plot-progress-empty' : '')}
                                     value={progress ?? 0} max={100} />
-                                <PlotSign {...plotState} />
+                                {assignTarget != null && assignTarget.reason != null
+                                    ? <span className="plot-sign plot-sign-refuse">{assignTarget.reason}</span>
+                                    : <PlotSign {...plotState} />
+                                }
                             </button>
                         );
                     })
+                }
+                {assign.dragging && totalPages > 1 && safePage > 1 &&
+                    <PageEdge side="left" label={`Стр. ${safePage - 1}`} onReach={() => { setPage(safePage - 1); }} />
+                }
+                {assign.dragging && totalPages > 1 && safePage < totalPages &&
+                    <PageEdge side="right" label={`Стр. ${safePage + 1}`} onReach={() => { setPage(safePage + 1); }} />
                 }
             </div>
             {domiks.length > 1 &&

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import type { NeighborReputationDto } from '../types/api';
@@ -7,8 +7,16 @@ import { acceptErrand as acceptErrandApi, apiPost, ApiError, cancelErrand as can
 import { useToast } from '../services/toastContext';
 import { useGameData } from '../hooks/useGameData';
 import { GOLD_RESOURCE_TYPE_ID, computeSelectedDomikView, isWorkerFree } from '../utils/game';
+import { buildAssignTarget, buildAssignTargets } from '../utils/assign';
 import { computeHudDigest } from '../utils/hud';
 import type { DomikSortMode } from '../utils/game';
+import { useWorkerAssign } from '../hooks/useWorkerAssign';
+import type { AssignPoint } from '../hooks/useWorkerAssign';
+import { WorkerRail } from './WorkerRail';
+import { AssignGhost } from './AssignGhost';
+import { PerfZone } from './PerfZone';
+import { perfCommitProbe } from '../utils/perf';
+import { ReceiptDropMenu } from './ReceiptDropMenu';
 import { buildDomikNamer } from '../utils/domikNames';
 import { profileGenitiveName } from '../utils/profileLore';
 import { GameTabsNav } from './GameTabsNav';
@@ -56,6 +64,8 @@ interface GameTab {
 }
 
 export const DomikiPage = () => {
+    useEffect(() => { perfCommitProbe(); });
+
     const toast = useToast();
     const { domiks, domikTypes, resourceTypes, receipts, resources, orders, errand, incident, domikIncident, reputation, blueprints, village, villageLevel, villageProfiles, weather, expeditions, decor, toloka, market, convoys, goals, workers, cloaks, larder, sickTypes, purchaseDomikTypes, now, loading, scheduleReload, refreshPurchaseTypes, setVillage, hurryManufacture, setManufactureAutoRepeat, hurryDomik, startExpedition, buyDecor, setFoodRule, contributeToloka, voteToloka, postLot, acceptLot, cancelLot, buyFromConvoy, recap, clearRecap, events } =
         useGameData();
@@ -63,6 +73,7 @@ export const DomikiPage = () => {
     const [shopVisible, setShopVisible] = useState(false);
     const [recapOpen, setRecapOpen] = useState(false);
     const [selectedDomikId, setSelectedDomikId] = useState<number | null>(null);
+    const [assignMenu, setAssignMenu] = useState<{ workerId: number; domikId: number; point: AssignPoint } | null>(null);
     const [activeTab, setActiveTab] = useState('');
     const [identity, setIdentity] = useState<'auto' | 'open' | 'dismissed'>('auto');
     const gameTabPanelRef = useRef<HTMLDivElement>(null);
@@ -175,6 +186,64 @@ export const DomikiPage = () => {
         await apiPost(`Domiki/StartManufacture/${domikId}/${receiptId}?useOptional=${String(useOptional)}&autoRepeat=${String(autoRepeat)}${workerIdsQuery}`);
         scheduleReload();
     }, 'Производство запущено');
+
+    const assignWorker = (workerId: number, domikId: number, point: AssignPoint) => {
+        const worker = workers.find(item => item.id === workerId);
+        const domik = domiks.find(item => item.id === domikId);
+        const domikType = domikTypes.find(type => type.id === domik?.typeId);
+        if (worker == null || domik == null || domikType == null) {
+            return;
+        }
+
+        const freeWorkers = workers.filter(item => isWorkerFree(item, now));
+        const target = buildAssignTarget(domik, domikType, receipts, resources, freeWorkers, worker);
+        const name = domikDisplayName(domik.typeId, domik.id, domikType.name, domikType.logicName);
+        if (!target.eligible) {
+            toast.error(`«${name}»: ${target.reason ?? 'нечего делать'}`);
+            return;
+        }
+
+        const runnable = target.options.filter(option => option.canRun);
+        const single = runnable.length === 1 ? runnable[0] : null;
+        if (single != null) {
+            void startManufacture(domikId, single.receipt.id, false, false, single.crew.map(item => item.id));
+            return;
+        }
+
+        setAssignMenu({ workerId, domikId, point });
+    };
+
+    const assign = useWorkerAssign(assignWorker);
+    const heldWorker = assign.workerId == null ? null : workers.find(worker => worker.id === assign.workerId) ?? null;
+    const assignTargets = useMemo(
+        () => heldWorker == null
+            ? new Map<number, ReturnType<typeof buildAssignTarget>>()
+            : buildAssignTargets(domiks, domikTypes, receipts, resources, workers.filter(item => isWorkerFree(item, now)), heldWorker),
+        [heldWorker, domiks, domikTypes, receipts, resources, workers, now],
+    );
+    const assignMenuView = useMemo(() => {
+        if (assignMenu == null) {
+            return null;
+        }
+
+        const worker = workers.find(item => item.id === assignMenu.workerId);
+        const domik = domiks.find(item => item.id === assignMenu.domikId);
+        const domikType = domikTypes.find(type => type.id === domik?.typeId);
+        if (worker == null || domik == null || domikType == null) {
+            return null;
+        }
+
+        return {
+            worker,
+            domikType,
+            name: domikDisplayName(domik.typeId, domik.id, domikType.name, domikType.logicName),
+            target: buildAssignTarget(domik, domikType, receipts, resources, workers.filter(item => isWorkerFree(item, now)), worker),
+        };
+    }, [assignMenu, workers, domiks, domikTypes, receipts, resources, now, domikDisplayName]);
+    const railSkillDomikTypeId = useMemo(() => {
+        const domikId = assign.hoverDomikId ?? selectedDomikId;
+        return domiks.find(item => item.id === domikId)?.typeId ?? null;
+    }, [assign.hoverDomikId, selectedDomikId, domiks]);
 
     const completeOrder = (orderId: number) => runAction(async () => {
         await completeOrderApi(orderId);
@@ -374,6 +443,7 @@ export const DomikiPage = () => {
                     <span className="section-title village-name">{villageName}</span>
                 </button>,
                 villageSlot)}
+            <PerfZone id="шапка">
             <VillageHud resources={resources} resourceTypes={resourceTypes} domikTypes={domikTypes} plodder={plodder} digest={hudDigest}
                 villageLevel={villageLevel} weather={weather} now={now} onStickyOffsetChange={setHudStickyOffset} villageProfile={villageProfile}
                 onOpenHousehold={() => { setActiveTab('household'); scrollToGameTabPanel(); }}
@@ -393,6 +463,7 @@ export const DomikiPage = () => {
                     </>
                 }
                 />
+            </PerfZone>
             <GoalCard goals={goals} resourceTypes={resourceTypes} />
             {incident != null && <IncidentCard incident={incident} workers={workers} now={now} onStartSearch={startIncidentSearchAction} />}
             {domikIncident != null && <DomikIncidentCard incident={domikIncident} workers={workers} domikTypes={domikTypes} now={now} onStartSearch={startIncidentSearchAction} />}
@@ -412,6 +483,7 @@ export const DomikiPage = () => {
                     onClose={clearRecap}
                 />
             }
+            <PerfZone id="двор">
             <VillageYard domiks={domiks} domikTypes={domikTypes} decor={decor} workers={workers}
                 villageLevel={villageLevel} currentWeather={currentWeather} selectedDomikId={selectedDomikId}
                 displayName={domik => {
@@ -427,30 +499,53 @@ export const DomikiPage = () => {
                 onOpenRecap={() => { setRecapOpen(true); }}
                 activeExpeditionNames={(expeditions?.active ?? []).map(e => e.expeditionName)}
                 friendNeighbor={friendNeighbor} />
+            </PerfZone>
             <div className="workspace">
+                <PerfZone id="рельс">
+                    <WorkerRail workers={workers} domikTypes={domikTypes} now={now} skillDomikTypeId={railSkillDomikTypeId}
+                        heldWorkerId={assign.workerId} onGrab={assign.grab} onCancel={assign.cancel} />
+                </PerfZone>
                 <section className="village">
                     {shopVisible && purchaseDomikTypes != null &&
                         <ShopBox purchaseDomikTypes={purchaseDomikTypes} domikTypes={domikTypes} receipts={receipts}
                             resourceTypes={resourceTypes} resources={resources} blueprints={blueprints} villageLevel={villageLevel}
                             onBuy={buy} onClose={() => setShopVisible(false)} />
                     }
-                    <DomikGridSection domiks={domiks} domikTypes={domikTypes} receipts={receipts} resources={resources}
-                        resourceTypes={resourceTypes} currentWeather={currentWeather} now={now} sortMode={sortMode}
-                        onSortChange={changeSortMode} selectedDomikId={selectedDomikId} displayName={domikDisplayName}
-                        onSelect={selectDomik} workers={workers} />
+                    <PerfZone id="сетка">
+                        <DomikGridSection domiks={domiks} domikTypes={domikTypes} receipts={receipts} resources={resources}
+                            resourceTypes={resourceTypes} currentWeather={currentWeather} now={now} sortMode={sortMode}
+                            onSortChange={changeSortMode} selectedDomikId={selectedDomikId} displayName={domikDisplayName}
+                            onSelect={selectDomik} workers={workers}
+                            assign={{ active: assign.workerId != null, dragging: assign.dragging, targets: assignTargets, hoverDomikId: assign.hoverDomikId, onDrop: assign.drop }} />
+                    </PerfZone>
                 </section>
                 {selected != null && <div className="actions-scrim" role="presentation" onClick={() => { setSelectedDomikId(null); }} />}
-                <SelectedDomikPanel ref={selectedDomikPanelRef} selected={selected} resources={resources} resourceTypes={resourceTypes} receipts={receipts}
-                    workers={workers} goals={goals} villageLevel={villageLevel} currentWeather={currentWeather} now={now}
-                    goldValue={goldValue} goldType={goldType} plodderFree={plodder.free} displayName={domikDisplayName}
-                    onClose={() => setSelectedDomikId(null)} onUpgrade={upgrade} onHurryDomik={hurryDomikAction}
-                    onStartManufacture={startManufacture} onHurryManufacture={hurryManufactureAction}
-                    onToggleManufactureRepeat={toggleManufactureAutoRepeat} />
+                <PerfZone id="карточка">
+                    <SelectedDomikPanel ref={selectedDomikPanelRef} selected={selected} resources={resources} resourceTypes={resourceTypes} receipts={receipts}
+                        workers={workers} goals={goals} villageLevel={villageLevel} currentWeather={currentWeather} now={now}
+                        goldValue={goldValue} goldType={goldType} plodderFree={plodder.free} displayName={domikDisplayName}
+                        onClose={() => setSelectedDomikId(null)} onUpgrade={upgrade} onHurryDomik={hurryDomikAction}
+                        onStartManufacture={startManufacture} onHurryManufacture={hurryManufactureAction}
+                        onToggleManufactureRepeat={toggleManufactureAutoRepeat} />
+                </PerfZone>
             </div>
+            {assign.dragging && heldWorker != null &&
+                <AssignGhost ghost={assign.ghost} name={heldWorker.name} />
+            }
+            {assignMenu != null && assignMenuView != null &&
+                <ReceiptDropMenu target={assignMenuView.target} domikName={assignMenuView.name}
+                    domikTypeId={assignMenuView.domikType.id} worker={assignMenuView.worker} point={assignMenu.point}
+                    resourceTypes={resourceTypes}
+                    onPick={(receiptId, workerIds) => {
+                        setAssignMenu(null);
+                        void startManufacture(assignMenu.domikId, receiptId, false, false, workerIds);
+                    }}
+                    onClose={() => { setAssignMenu(null); }} />
+            }
             <GameTabsNav tabs={visibleGameTabs} activeKey={activeGameTab?.key} onSelect={setActiveTab} onScrollToPanel={scrollToGameTabPanel} />
             <div className="game-tab-panel" ref={gameTabPanelRef} id="game-tab-panel" role="tabpanel"
                 aria-labelledby={activeGameTab == null ? undefined : `game-tab-${activeGameTab.key}`} tabIndex={0}>
-                {activeGameTab?.node}
+                <PerfZone id="вкладка">{activeGameTab?.node}</PerfZone>
             </div>
         </div>
         </ActionBusyProvider>

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { PixelLoader } from './components/PixelLoader';
+import { PerfZone } from './components/PerfZone';
 
 const Home = lazy(() => import('./components/Home').then(({ Home }) => ({ default: Home })));
 const DomikiPage = lazy(() => import('./components/DomikiPage').then(({ DomikiPage }) => ({ default: DomikiPage })));
@@ -23,7 +24,7 @@ const AppRoutes: AppRouteConfig[] = [
     },
     {
         path: '/domiki-page',
-        element: lazyPage(<DomikiPage />),
+        element: lazyPage(<PerfZone id="страница"><DomikiPage /></PerfZone>),
     },
     {
         path: '/wiki',

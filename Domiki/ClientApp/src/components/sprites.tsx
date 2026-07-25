@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { FC, SVGProps } from 'react';
 import BarracksSprite from '../assets/domikTypes/barracks.svg?react';
 import ClayMineSprite from '../assets/domikTypes/clay_mine.svg?react';
@@ -340,13 +341,13 @@ interface DomikSpriteProps extends SpriteProps {
 
 const clampLevel = (level: number) => Math.min(5, Math.max(1, Math.floor(level)));
 
-export const DomikSprite = ({ logicName, level = 1, working = false, weather, ...props }: DomikSpriteProps) => {
+export const DomikSprite = memo(({ logicName, level = 1, working = false, weather, ...props }: DomikSpriteProps) => {
     const Sprite = domikSprites[logicName];
     if (Sprite == null) {
         warnUnknownSprite('domik', logicName);
     }
     return Sprite == null ? null : <Sprite data-level={clampLevel(level)} data-working={working ? 'true' : 'false'} data-weather={weather} {...cleanSpriteProps(props)} />;
-};
+});
 
 export const TolokaSprite = ({ logicName, level = 1, ...props }: SpriteProps) => {
     const Sprite = tolokaSprites[logicName];
@@ -439,11 +440,11 @@ interface WorkerSpriteProps extends SVGProps<SVGSVGElement> {
     skilled?: boolean;
 }
 
-export const WorkerSprite = ({ name, state = 'idle', skilled = false, ...props }: WorkerSpriteProps) => {
+export const WorkerSprite = memo(({ name, state = 'idle', skilled = false, ...props }: WorkerSpriteProps) => {
     const [skin, hair, style, beard, hat, shirt, extra] = workerLooks[name] ?? fallbackLook(name);
     return (
         <WorkerPortrait data-skin={skin} data-hair={hair} data-style={style} data-state={state}
             data-skilled={skilled ? 'true' : 'false'}
             data-beard={beard} data-hat={hat} data-shirt={shirt} data-extra={extra} {...cleanSpriteProps(props)} />
     );
-};
+});

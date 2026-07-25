@@ -206,7 +206,7 @@ const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, wor
                         <label className="receipt-optional">
                             <input type="checkbox" checked={isManual}
                                 onChange={() => dispatch({ type: 'toggleManual', id: receipt.id })} />
-                            Выбрать трудяг вручную
+                            Выбрать трудяг списком
                         </label>
                         {isManual &&
                             <span className="receipt-mode-count">
