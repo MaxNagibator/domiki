@@ -1,6 +1,6 @@
 import type { DomikDto, DomikTypeDto, ExpeditionStateDto, OrderDto, ReceiptDto, ResourceDto, ResourceTypeDto, WorkerDto } from '../types/api';
 import { buildDomikNamer } from './domikNames';
-import { canAffordUpgrade, resourceShortfall } from './game';
+import { canAffordUpgrade, isWorkerFree, resourceShortfall } from './game';
 import { remainingSeconds } from './time';
 
 export const ORDER_SOON_HOURS = 3;
@@ -78,10 +78,12 @@ export interface HudSoonestOrder {
 export interface HudStandingShift {
     manufactureId: number;
     domikId: number;
+    domikLogicName: string;
     domikName: string;
     receiptId: number;
     receiptName: string;
     finishDate: string;
+    starving: boolean;
 }
 
 export interface HudDigest {
@@ -96,6 +98,10 @@ export interface HudDigest {
     sickEarliest: string | null;
     upgradeableBuildings: HudBuildingRef[];
     standingShifts: HudStandingShift[];
+    workersFree: number;
+    handsFreeEarliest: string | null;
+    runningShifts: number;
+    runningEarliest: string | null;
 }
 
 function isProductionCapable(domik: DomikDto, domikTypes: DomikTypeDto[]): boolean {
@@ -183,6 +189,10 @@ export function computeHudDigest(
     });
     upgradeableBuildings.sort(byLevelDescThenNameAsc);
 
+    const runningManufactures = domiks.flatMap(domik => domik.manufactures ?? []);
+    const producedSoon = new Set(runningManufactures.flatMap(manufacture =>
+        (receipts.find(r => r.id === manufacture.receiptId)?.outputResources ?? []).map(output => output.typeId)));
+
     const standingShifts: HudStandingShift[] = domiks.flatMap(domik => {
         const domikType = domikTypes.find(t => t.id === domik.typeId);
         if (domikType == null) {
@@ -196,13 +206,16 @@ export function computeHudDigest(
             if (receipt == null) {
                 return [];
             }
+            const missing = resourceShortfall(receipt.inputResources, resources);
             return [{
                 manufactureId: manufacture.id,
                 domikId: domik.id,
+                domikLogicName: domikType.logicName,
                 domikName: namer(domik.typeId, domik.id, domikType.name, domikType.logicName),
                 receiptId: receipt.id,
                 receiptName: receipt.name,
                 finishDate: manufacture.finishDate,
+                starving: missing.some(item => !producedSoon.has(item.typeId)),
             }];
         });
     });
@@ -228,6 +241,14 @@ export function computeHudDigest(
         (worker.sickUntil == null || remainingSeconds(worker.sickUntil, now) <= 0)
         && worker.restUntil != null && remainingSeconds(worker.restUntil, now) > 0);
 
+    const workersFree = workers.filter(worker => isWorkerFree(worker, now)).length;
+    const runningEarliest = earliestIso(runningManufactures.map(manufacture => manufacture.finishDate));
+    const handsFreeEarliest = workersFree > 0 ? null : earliestIso([
+        ...runningManufactures.map(manufacture => manufacture.finishDate),
+        ...(expeditions?.active ?? []).map(expedition => expedition.finishDate),
+        ...workers.flatMap(worker => worker.restUntil != null ? [worker.restUntil] : []),
+    ].filter(date => remainingSeconds(date, now) > 0));
+
     return {
         idleDomiks,
         soonestOrder,
@@ -240,5 +261,9 @@ export function computeHudDigest(
         sickEarliest: earliestIso(sickWorkers.flatMap(worker => worker.sickUntil != null ? [worker.sickUntil] : [])),
         upgradeableBuildings,
         standingShifts,
+        workersFree,
+        handsFreeEarliest,
+        runningShifts: runningManufactures.length,
+        runningEarliest,
     };
 }

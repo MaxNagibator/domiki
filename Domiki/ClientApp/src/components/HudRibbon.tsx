@@ -45,7 +45,7 @@ export const HudRibbon = ({ digest, onOpenHousehold }: HudRibbonProps) => {
         });
     }
 
-    if (digest.idleDomiks > 0) {
+    if (digest.idleDomiks > 0 && digest.workersFree > 0) {
         items.push({
             key: 'idle',
             text: `${digest.idleDomiks} ${pluralRu(digest.idleDomiks, 'домик', 'домика', 'домиков')} в простое`,

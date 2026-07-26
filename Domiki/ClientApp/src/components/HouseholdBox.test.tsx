@@ -20,6 +20,10 @@ const emptyDigest: HudDigest = {
     sickEarliest: null,
     upgradeableBuildings: [],
     standingShifts: [],
+    workersFree: 3,
+    handsFreeEarliest: null,
+    runningShifts: 0,
+    runningEarliest: null,
 };
 
 const NOW = Date.parse('2026-07-25T12:00:00.000Z');
@@ -76,6 +80,35 @@ describe('HouseholdBox idle building chip expander', () => {
     });
 });
 
+describe('HouseholdBox idle buildings without free hands', () => {
+    const idleBuildings = [{ domikId: 7, typeId: 10, logicName: 'forge', displayName: 'Кузница', level: 1 }];
+
+    it('replaces the idle address list with a calm line when nobody is free', () => {
+        const digest: HudDigest = {
+            ...emptyDigest, idleBuildings, workersFree: 0, handsFreeEarliest: '2026-07-25T12:40:00.000Z',
+        };
+        renderBox(digest);
+
+        expect(screen.getByText(/Свободных рук нет/)).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Кузница/ })).not.toBeInTheDocument();
+    });
+
+    it('keeps the idle address list while at least one трудяга is free', () => {
+        renderBox({ ...emptyDigest, idleBuildings, workersFree: 1 });
+
+        expect(screen.queryByText(/Свободных рук нет/)).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Кузница/ })).toBeInTheDocument();
+    });
+});
+
+describe('HouseholdBox running shifts summary', () => {
+    it('sums the running shifts into one row instead of listing them', () => {
+        renderBox({ ...emptyDigest, runningShifts: 4, runningEarliest: '2026-07-25T12:20:00.000Z' });
+
+        expect(screen.getByText(/В работе 4 смены, ближайшая поспеет в/)).toBeInTheDocument();
+    });
+});
+
 describe('HouseholdBox blocked building row', () => {
     it('names the missing resource and still navigates on click without lifting any наряд', () => {
         const digest: HudDigest = {
@@ -94,7 +127,7 @@ describe('HouseholdBox blocked building row', () => {
 });
 
 describe('HouseholdBox blocked building cap', () => {
-    it('caps blocked rows at 3 and shows a muted overflow line for the rest', () => {
+    it('caps blocked rows at 3 and reveals the rest via «ещё N»', () => {
         const blockedBuildings = Array.from({ length: 5 }, (_, i) => ({
             domikId: i + 1, typeId: 10, logicName: 'forge', displayName: `Домик ${i + 1}`, level: 1,
             missing: [{ typeId: 200, value: 1 }],
@@ -103,24 +136,51 @@ describe('HouseholdBox blocked building cap', () => {
         renderBox(digest);
 
         expect(screen.getAllByRole('button', { name: /стоит: не хватает/ })).toHaveLength(3);
-        expect(screen.getByText('ещё 2 построек стоят без припасов')).toBeInTheDocument();
+        const moreButton = screen.getByRole('button', { name: 'ещё 2 постройки стоят без припасов' });
+        expect(moreButton).toHaveAttribute('aria-expanded', 'false');
+
+        fireEvent.click(moreButton);
+
+        expect(screen.getAllByRole('button', { name: /стоит: не хватает/ })).toHaveLength(5);
+        expect(screen.getByRole('button', { name: /свернуть/ })).toHaveAttribute('aria-expanded', 'true');
     });
 });
 
 describe('HouseholdBox наряды block', () => {
+    const shiftDigest: HudDigest = {
+        ...emptyDigest,
+        standingShifts: [{
+            manufactureId: 5, domikId: 3, domikLogicName: 'pottery', domikName: 'Гончарня',
+            receiptId: 2, receiptName: 'Обжечь кирпич', finishDate: '2026-07-25T15:40:00.000Z', starving: false,
+        }],
+    };
+
     it('lets the player lift a standing наряд', () => {
-        const digest: HudDigest = {
-            ...emptyDigest,
-            standingShifts: [{
-                manufactureId: 5, domikId: 3, domikName: 'Гончарня',
-                receiptId: 2, receiptName: 'Обжечь кирпич', finishDate: '2026-07-25T15:40:00.000Z',
-            }],
-        };
-        const { onToggleRepeat } = renderBox(digest);
+        const { onToggleRepeat, onSelectDomik } = renderBox(shiftDigest);
 
         expect(screen.getByText(/Наряд: Обжечь кирпич · Гончарня · снова в/)).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', { name: 'Снять наряд' }));
         expect(onToggleRepeat).toHaveBeenCalledWith(5, false);
+        expect(onSelectDomik).not.toHaveBeenCalled();
+    });
+
+    it('warns that the наряд has nothing left for the next round', () => {
+        const digest: HudDigest = {
+            ...shiftDigest,
+            standingShifts: shiftDigest.standingShifts.map(shift => ({ ...shift, starving: true })),
+        };
+        renderBox(digest);
+
+        expect(screen.getByText('Припасов на следующий круг нет – и никто их сейчас не делает.')).toBeInTheDocument();
+    });
+
+    it('navigates to the building of the наряд without lifting it', () => {
+        const { onSelectDomik, onToggleRepeat } = renderBox(shiftDigest);
+
+        fireEvent.click(screen.getByRole('button', { name: /Наряд: Обжечь кирпич/ }));
+
+        expect(onSelectDomik).toHaveBeenCalledWith(3, 'pottery');
+        expect(onToggleRepeat).not.toHaveBeenCalled();
     });
 });

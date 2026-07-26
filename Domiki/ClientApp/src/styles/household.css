@@ -292,9 +292,58 @@ button.household-row {
     justify-content: space-between;
 }
 
+.household-shift-link {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    font: inherit;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+}
+
+    .household-shift-link:hover .household-row-text {
+        color: var(--pine-dark);
+    }
+
+    .household-shift-link:hover .household-row-go,
+    .household-shift-link:focus-visible .household-row-go {
+        color: var(--pine);
+    }
+
+    .household-shift-link:focus-visible {
+        outline: 3px solid var(--coin);
+        outline-offset: -2px;
+    }
+
+.household-shift-starving {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--roof);
+    font-weight: 700;
+}
+
 .household-shift-action {
     flex: none;
 }
+
+button.household-more-row {
+    grid-column: 1 / -1;
+    justify-content: center;
+    background: var(--plank-dark);
+    color: var(--pine-dark);
+}
+
+    button.household-more-row:hover {
+        background: #e4f0d5;
+        border-color: var(--pine);
+    }
 
 @media (max-width: 575px) {
     .household-row {

@@ -216,7 +216,7 @@ describe('computeHudDigest standing shifts', () => {
         const result = digest(domiks, [], null, [], [recipe]);
 
         expect(result.standingShifts).toEqual([{
-            manufactureId: 1, domikId: 1, domikName: 'Кузница', receiptId: 1, receiptName: 'Сковать инструмент', finishDate: manufacture.finishDate,
+            manufactureId: 1, domikId: 1, domikLogicName: 'forge', domikName: 'Кузница', receiptId: 1, receiptName: 'Сковать инструмент', finishDate: manufacture.finishDate, starving: false,
         }]);
     });
 
@@ -225,6 +225,57 @@ describe('computeHudDigest standing shifts', () => {
         const domiks = [domik(1, 10, { manufactures: [manufacture] })];
 
         expect(digest(domiks, [], null, [], [recipe]).standingShifts).toEqual([]);
+    });
+
+    it('calls a наряд starving when its inputs are short and nothing running makes them', () => {
+        const recipe = receipt(1, 'Сковать инструмент', [{ typeId: 200, value: 5 }]);
+        const domiks = [domik(1, 10, { manufactures: [{ ...manufacture, autoRepeat: true }] })];
+
+        expect(digest(domiks, [], null, [], [recipe], [{ typeId: 200, value: 2 }]).standingShifts[0]?.starving).toBe(true);
+    });
+
+    it('stays calm about a short наряд while a running shift produces the missing input', () => {
+        const smelting: ReceiptDto = { ...receipt(2, 'Выплавить железо'), outputResources: [{ typeId: 200, value: 3 }] };
+        const domiks = [
+            domik(1, 10, { manufactures: [{ ...manufacture, autoRepeat: true }] }),
+            domik(2, 10, { manufactures: [{ ...manufacture, id: 2, receiptId: 2 }] }),
+        ];
+        const recipes = [receipt(1, 'Сковать инструмент', [{ typeId: 200, value: 5 }]), smelting];
+
+        expect(digest(domiks, [], null, [], recipes, [{ typeId: 200, value: 2 }]).standingShifts[0]?.starving).toBe(false);
+    });
+});
+
+describe('computeHudDigest hands and running shifts', () => {
+    it('counts free hands and stays silent about the next free one while somebody is idle', () => {
+        const workers = [worker(1, {}), worker(2, { manufactureId: 1 })];
+
+        const result = digest([domik(1, 10, { manufactures: [manufacture] })], [], null, workers, [receipt(1, 'Сковать инструмент')]);
+
+        expect(result.workersFree).toBe(1);
+        expect(result.handsFreeEarliest).toBeNull();
+    });
+
+    it('names the earliest release when every трудяга is taken', () => {
+        const workers = [worker(1, { manufactureId: 1 }), worker(2, { restUntil: iso(5) })];
+        const domiks = [domik(1, 10, { manufactures: [manufacture] })];
+
+        const result = digest(domiks, [], expeditionState([expedition(1, iso(3))]), workers, [receipt(1, 'Сковать инструмент')]);
+
+        expect(result.workersFree).toBe(0);
+        expect(result.handsFreeEarliest).toBe(manufacture.finishDate);
+    });
+
+    it('sums running shifts across buildings and names the nearest finish', () => {
+        const domiks = [
+            domik(1, 10, { manufactures: [{ ...manufacture, finishDate: iso(4) }] }),
+            domik(2, 10, { manufactures: [{ ...manufacture, id: 2, finishDate: iso(1) }] }),
+        ];
+
+        const result = digest(domiks, [], null, [], [receipt(1, 'Сковать инструмент')]);
+
+        expect(result.runningShifts).toBe(2);
+        expect(result.runningEarliest).toBe(iso(1));
     });
 });
 

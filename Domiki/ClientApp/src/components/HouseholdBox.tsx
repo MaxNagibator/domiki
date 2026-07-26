@@ -7,7 +7,7 @@ import ChevronUpIcon from 'pixelarticons/svg/chevron-up.svg?react';
 import HomeIcon from 'pixelarticons/svg/home.svg?react';
 import RepeatIcon from 'pixelarticons/svg/repeat.svg?react';
 import type { ResourceTypeDto } from '../types/api';
-import type { HudBuildingRef, HudDigest } from '../utils/hud';
+import type { HudBlockedBuilding, HudBuildingRef, HudDigest } from '../utils/hud';
 import { formatTimeOfDay } from '../utils/time';
 import { pluralRu } from '../utils/plural';
 import { ActionButton } from './ActionButton';
@@ -67,8 +67,40 @@ const BuildingChips = ({ icon, label, buildings, onSelectDomik }: BuildingChipsP
     );
 };
 
+interface BlockedRowProps {
+    building: HudBlockedBuilding;
+    resourceTypes: ResourceTypeDto[];
+    onSelectDomik: (domikId: number, logicName: string) => void;
+}
+
+const BlockedRow = ({ building, resourceTypes, onSelectDomik }: BlockedRowProps) => {
+    const missingNames = building.missing
+        .map(item => resourceTypes.find(type => type.id === item.typeId)?.name)
+        .filter((name): name is string => name != null)
+        .join(', ');
+
+    return (
+        <button type="button" className="household-row household-row-button"
+            aria-label={`${building.displayName} стоит: не хватает ${missingNames}`}
+            onClick={() => onSelectDomik(building.domikId, building.logicName)}>
+            <DomikSprite logicName={building.logicName} className="household-row-ico" aria-hidden="true" />
+            <span className="household-row-text">{building.displayName} стоит: <span className="household-row-lack">не хватает</span></span>
+            <span className="household-row-chips">
+                {building.missing.map(item => {
+                    const resourceType = resourceTypes.find(type => type.id === item.typeId);
+                    return resourceType == null ? null : <ResourceChip key={item.typeId} resourceType={resourceType} value={item.value} />;
+                })}
+            </span>
+            <ChevronRightIcon className="household-row-go" aria-hidden="true" />
+        </button>
+    );
+};
+
 export const HouseholdBox = ({ digest, resourceTypes, now, onSelectDomik, onOpenTab, onToggleRepeat }: HouseholdBoxProps) => {
+    const [blockedExpanded, setBlockedExpanded] = useState(false);
+    const handsShort = digest.workersFree === 0 && digest.idleBuildings.length > 0;
     const hasNowRows = digest.idleBuildings.length > 0
+        || digest.runningShifts > 0
         || digest.blockedBuildings.length > 0
         || digest.soonestOrder != null
         || digest.expeditionsBack > 0
@@ -76,8 +108,11 @@ export const HouseholdBox = ({ digest, resourceTypes, now, onSelectDomik, onOpen
         || digest.workersSick > 0
         || digest.upgradeableBuildings.length > 0;
 
-    const handsNeeded = digest.idleBuildings.length + digest.blockedBuildings.length + digest.upgradeableBuildings.length;
+    const handsNeeded = (handsShort ? 0 : digest.idleBuildings.length) + digest.blockedBuildings.length + digest.upgradeableBuildings.length;
     const blockedOverflow = digest.blockedBuildings.length - BLOCKED_LIMIT;
+    const visibleBlocked = blockedExpanded || blockedOverflow <= 0
+        ? digest.blockedBuildings
+        : digest.blockedBuildings.slice(0, BLOCKED_LIMIT);
 
     return (
         <section className="household-panel pixel-panel">
@@ -100,37 +135,33 @@ export const HouseholdBox = ({ digest, resourceTypes, now, onSelectDomik, onOpen
                 }
                 {hasNowRows &&
                     <div className="household-rows">
-                        {digest.idleBuildings.length > 0 &&
+                        {handsShort &&
+                            <div className="household-row">
+                                <AbstractSprite logicName="smart_artel" size={24} className="household-row-ico" aria-hidden="true" />
+                                <span className="household-row-text">
+                                    Свободных рук нет{digest.handsFreeEarliest != null && <>: первый трудяга освободится в {formatTimeOfDay(digest.handsFreeEarliest, now)}</>}
+                                </span>
+                            </div>
+                        }
+
+                        {!handsShort && digest.idleBuildings.length > 0 &&
                             <BuildingChips icon={<HomeIcon className="household-row-ico" aria-hidden="true" />} label="В простое"
                                 buildings={digest.idleBuildings} onSelectDomik={onSelectDomik} />
                         }
 
-                        {digest.blockedBuildings.slice(0, BLOCKED_LIMIT).map(building => {
-                            const missingNames = building.missing
-                                .map(item => resourceTypes.find(type => type.id === item.typeId)?.name)
-                                .filter((name): name is string => name != null)
-                                .join(', ');
-                            return (
-                                <button key={building.domikId} type="button" className="household-row household-row-button"
-                                    aria-label={`${building.displayName} стоит: не хватает ${missingNames}`}
-                                    onClick={() => onSelectDomik(building.domikId, building.logicName)}>
-                                    <DomikSprite logicName={building.logicName} className="household-row-ico" aria-hidden="true" />
-                                    <span className="household-row-text">{building.displayName} стоит: <span className="household-row-lack">не хватает</span></span>
-                                    <span className="household-row-chips">
-                                        {building.missing.map(item => {
-                                            const resourceType = resourceTypes.find(type => type.id === item.typeId);
-                                            return resourceType == null ? null : <ResourceChip key={item.typeId} resourceType={resourceType} value={item.value} />;
-                                        })}
-                                    </span>
-                                    <ChevronRightIcon className="household-row-go" aria-hidden="true" />
-                                </button>
-                            );
-                        })}
+                        {visibleBlocked.map(building => (
+                            <BlockedRow key={building.domikId} building={building}
+                                resourceTypes={resourceTypes} onSelectDomik={onSelectDomik} />
+                        ))}
 
                         {blockedOverflow > 0 &&
-                            <div className="household-row household-more-btn">
-                                ещё {blockedOverflow} построек стоят без припасов
-                            </div>
+                            <button type="button" className="household-row household-more-btn household-more-row"
+                                aria-expanded={blockedExpanded}
+                                onClick={() => { setBlockedExpanded(value => !value); }}>
+                                {blockedExpanded
+                                    ? <>свернуть <ChevronUpIcon aria-hidden="true" /></>
+                                    : <>ещё {blockedOverflow} {pluralRu(blockedOverflow, 'постройка', 'постройки', 'построек')} {pluralRu(blockedOverflow, 'стоит', 'стоят', 'стоят')} без припасов <ChevronDownIcon aria-hidden="true" /></>}
+                            </button>
                         }
 
                         {digest.soonestOrder != null &&
@@ -153,6 +184,16 @@ export const HouseholdBox = ({ digest, resourceTypes, now, onSelectDomik, onOpen
                                 <span className="household-row-text">Поход вернулся: добыча не разобрана</span>
                                 <ChevronRightIcon className="household-row-go" aria-hidden="true" />
                             </button>
+                        }
+
+                        {digest.runningShifts > 0 &&
+                            <div className="household-row">
+                                <AbstractSprite logicName="production_recipe" size={24} className="household-row-ico" aria-hidden="true" />
+                                <span className="household-row-text">
+                                    В работе {digest.runningShifts} {pluralRu(digest.runningShifts, 'смена', 'смены', 'смен')}
+                                    {digest.runningEarliest != null && <>, ближайшая поспеет в {formatTimeOfDay(digest.runningEarliest, now)}</>}
+                                </span>
+                            </div>
                         }
 
                         {digest.workersResting > 0 && digest.restingEarliest != null &&
@@ -190,8 +231,15 @@ export const HouseholdBox = ({ digest, resourceTypes, now, onSelectDomik, onOpen
                     <div className="household-rows">
                         {digest.standingShifts.map(shift => (
                             <div key={shift.manufactureId} className="household-row household-shift-row">
-                                <RepeatIcon className="household-row-ico" aria-hidden="true" />
-                                <span className="household-row-text">Наряд: {shift.receiptName} · {shift.domikName} · снова в {formatTimeOfDay(shift.finishDate, now)}</span>
+                                <button type="button" className="household-shift-link"
+                                    onClick={() => onSelectDomik(shift.domikId, shift.domikLogicName)}>
+                                    <RepeatIcon className="household-row-ico" aria-hidden="true" />
+                                    <span className="household-row-text">
+                                        Наряд: {shift.receiptName} · {shift.domikName} · снова в {formatTimeOfDay(shift.finishDate, now)}
+                                        {shift.starving && <span className="household-shift-starving">Припасов на следующий круг нет – и никто их сейчас не делает.</span>}
+                                    </span>
+                                    <ChevronRightIcon className="household-row-go" aria-hidden="true" />
+                                </button>
                                 <ActionButton className="btn-game btn-ghost household-shift-action"
                                     onClick={() => onToggleRepeat(shift.manufactureId, false)}>
                                     Снять наряд
