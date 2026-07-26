@@ -899,13 +899,23 @@
 }
 
 .actions--empty {
-    display: none;
+    display: flex;
+    align-items: center;
+    align-self: flex-start;
+    min-height: 128px;
+    background: var(--plank-dark);
+    box-shadow: inset 0 -4px 0 rgba(51, 41, 26, .12);
 }
+
+    .actions--empty .hint {
+        font-size: 13px;
+        color: var(--ink-muted);
+        text-align: center;
+    }
 
 .actions {
     flex: 0 0 320px;
-    position: sticky;
-    top: var(--hud-sticky-offset, 76px);
+    align-self: stretch;
     scroll-margin-top: calc(var(--hud-sticky-offset, 76px) + 12px);
     padding: 18px;
     box-shadow: inset 0 -4px 0 var(--plank-dark);
@@ -929,12 +939,8 @@
 }
 
 .actions-heading {
-    position: sticky;
-    top: var(--hud-sticky-offset, 76px);
-    z-index: 2;
     margin: -4px -4px 0;
     padding: 4px 44px 10px 4px;
-    background: var(--plank);
     border-bottom: 2px solid rgba(51, 41, 26, .18);
 }
 
@@ -959,6 +965,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 6px 10px;
+    min-height: 14px;
     margin-top: 8px;
 }
 
@@ -989,6 +996,12 @@
     margin-top: 10px;
 }
 
+.panel-view-empty {
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--ink-muted);
+}
+
 .panel-tab {
     position: relative;
     display: inline-flex;
@@ -1013,6 +1026,17 @@
     color: var(--plank);
     background: var(--pine);
 }
+
+.panel-tab:disabled {
+    color: var(--ink-muted);
+    background: var(--plank-dark);
+    border-color: rgba(51, 41, 26, .35);
+    cursor: default;
+}
+
+    .panel-tab:disabled .panel-tab-ico {
+        opacity: .5;
+    }
 
 .panel-tab:focus-visible {
     outline: 3px solid var(--coin);
@@ -1211,10 +1235,6 @@
 }
 
 @media (max-width: 900px) {
-    .actions-heading {
-        top: 0;
-    }
-
     .game-tabs {
         position: fixed;
         left: 0;

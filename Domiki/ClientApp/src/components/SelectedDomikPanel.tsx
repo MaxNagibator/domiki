@@ -268,6 +268,7 @@ interface PanelTabsProps {
     onSelect: (view: PanelView) => void;
     workPip: boolean;
     growPip: GrowPip;
+    available: Record<PanelView, boolean>;
 }
 
 const growPipLabel: Record<GrowPip, string> = {
@@ -277,7 +278,7 @@ const growPipLabel: Record<GrowPip, string> = {
     building: ', идёт улучшение',
 };
 
-const PanelTabs = ({ active, onSelect, workPip, growPip }: PanelTabsProps) => {
+const PanelTabs = ({ active, onSelect, workPip, growPip, available }: PanelTabsProps) => {
     const order: PanelView[] = ['work', 'grow'];
     const onKey = (event: KeyboardEvent<HTMLButtonElement>, view: PanelView) => {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
@@ -286,6 +287,9 @@ const PanelTabs = ({ active, onSelect, workPip, growPip }: PanelTabsProps) => {
         event.preventDefault();
         const other: PanelView = view === 'work' ? 'grow' : 'work';
         const next: PanelView = event.key === 'Home' ? 'work' : event.key === 'End' ? 'grow' : other;
+        if (!available[next]) {
+            return;
+        }
         onSelect(next);
         requestAnimationFrame(() => document.getElementById(`panel-tab-${next}`)?.focus());
     };
@@ -295,17 +299,23 @@ const PanelTabs = ({ active, onSelect, workPip, growPip }: PanelTabsProps) => {
             {order.map(view => {
                 const isActive = view === active;
                 const isWork = view === 'work';
+                const isAvailable = available[view];
                 const showPip = !isActive && (isWork ? workPip : growPip !== 'none');
                 const pipClass = isWork ? 'panel-tab-pip--idle' : `panel-tab-pip--${growPip}`;
                 const label = isWork ? 'Дела' : 'Рост';
-                const ariaLabel = isWork
-                    ? workPip ? 'Дела, есть свободный слот' : undefined
-                    : growPip === 'none' ? undefined : `Рост${growPipLabel[growPip]}`;
+                const emptyTitle = isWork ? 'Дел на этом дворе пока нет' : 'Расти дальше некуда';
+                const ariaLabel = !isAvailable
+                    ? `${label}: ${emptyTitle}`
+                    : isWork
+                        ? workPip ? 'Дела, есть свободный слот' : undefined
+                        : growPip === 'none' ? undefined : `Рост${growPipLabel[growPip]}`;
                 return (
                     <button key={view} type="button" role="tab" id={`panel-tab-${view}`}
                         aria-selected={isActive}
                         aria-controls="panel-view"
                         aria-label={ariaLabel}
+                        disabled={!isAvailable}
+                        title={isAvailable ? undefined : emptyTitle}
                         tabIndex={isActive ? 0 : -1}
                         className={'panel-tab' + (isActive ? ' panel-tab-active' : '')}
                         onKeyDown={event => onKey(event, view)}
@@ -437,31 +447,31 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
                                 </span>
                             }
                         </h3>
-                        {(maxManufactures > 0 || statusTimer != null) &&
-                            <div className="panel-status">
-                                {maxManufactures > 0 &&
-                                    <span className={'panel-status-item' + (atManufactureCap ? ' panel-status-item--full' : '')}
-                                        title="Занятые слоты производства">
-                                        <AbstractSprite logicName="production_recipe" size={24} className="panel-status-ico" aria-hidden="true" />
-                                        {runningManufactures} / {maxManufactures}
-                                    </span>
-                                }
-                                {statusTimer != null &&
-                                    <span className="panel-status-item"
-                                        title={isBuilding ? 'До конца улучшения' : 'До ближайшей готовой смены'}>
-                                        {isBuilding
-                                            ? <ArrowUpIcon className="panel-status-ico" aria-hidden="true" />
-                                            : <ClockIcon className="panel-status-ico" aria-hidden="true" />}
-                                        {statusTimer}
-                                    </span>
-                                }
-                            </div>
-                        }
-                        {showTabs &&
-                            <PanelTabs active={activeView} onSelect={setTab} workPip={idlePip} growPip={growPip} />
-                        }
+                        <div className="panel-status">
+                            {maxManufactures > 0 &&
+                                <span className={'panel-status-item' + (atManufactureCap ? ' panel-status-item--full' : '')}
+                                    title="Занятые слоты производства">
+                                    <AbstractSprite logicName="production_recipe" size={24} className="panel-status-ico" aria-hidden="true" />
+                                    {runningManufactures} / {maxManufactures}
+                                </span>
+                            }
+                            {statusTimer != null &&
+                                <span className="panel-status-item"
+                                    title={isBuilding ? 'До конца улучшения' : 'До ближайшей готовой смены'}>
+                                    {isBuilding
+                                        ? <ArrowUpIcon className="panel-status-ico" aria-hidden="true" />
+                                        : <ClockIcon className="panel-status-ico" aria-hidden="true" />}
+                                    {statusTimer}
+                                </span>
+                            }
+                        </div>
+                        <PanelTabs active={activeView} onSelect={setTab} workPip={idlePip} growPip={growPip}
+                            available={{ work: hasWork, grow: hasGrow }} />
                     </div>
-                    <div className="panel-view" id="panel-view" role={showTabs ? 'tabpanel' : undefined}>
+                    <div className="panel-view" id="panel-view" role="tabpanel">
+                    {!hasWork && !hasGrow &&
+                        <p className="hint panel-view-empty">Постройка выросла до предела, и работы для неё нет.</p>
+                    }
                     {activeView === 'grow' && selected.upgrade != null &&
                         <div className="panel-block">
                             <div className="upgrade-row">

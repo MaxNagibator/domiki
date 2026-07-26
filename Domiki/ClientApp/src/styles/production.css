@@ -454,6 +454,10 @@ progress {
         padding-bottom: calc(18px + env(safe-area-inset-bottom));
     }
 
+    .actions--empty {
+        display: none;
+    }
+
     .actions-close {
         display: inline-flex;
     }

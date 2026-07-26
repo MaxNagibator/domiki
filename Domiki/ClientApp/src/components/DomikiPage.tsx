@@ -509,10 +509,14 @@ export const DomikiPage = () => {
                 friendNeighbor={friendNeighbor} />
             </PerfZone>
             <div className="workspace">
-                <PerfZone id="рельс">
-                    <WorkerRail workers={workers} domikTypes={domikTypes} now={now} skillDomikTypeId={railSkillDomikTypeId}
-                        heldWorkerId={assign.workerId} onGrab={assign.grab} onCancel={assign.cancel} />
-                </PerfZone>
+                <div className="worker-rail-slot">
+                    <div className="worker-rail-float">
+                        <PerfZone id="рельс">
+                            <WorkerRail workers={workers} domikTypes={domikTypes} now={now} skillDomikTypeId={railSkillDomikTypeId}
+                                heldWorkerId={assign.workerId} onGrab={assign.grab} onCancel={assign.cancel} />
+                        </PerfZone>
+                    </div>
+                </div>
                 <section className="village">
                     {shopVisible && purchaseDomikTypes != null &&
                         <ShopBox purchaseDomikTypes={purchaseDomikTypes} domikTypes={domikTypes} receipts={receipts}

@@ -128,9 +128,7 @@ export const WorkerRail = ({ workers, domikTypes, now, skillDomikTypeId, heldWor
                 <span className="worker-rail-title">Трудяги</span>
                 <span className="worker-rail-tally">{free.length} из {workers.length}</span>
             </div>
-            {skillTypeName != null &&
-                <p className="worker-rail-skill-of">Навык по «{skillTypeName}»</p>
-            }
+            <p className="worker-rail-skill-of" title={skillTypeName ?? undefined}>{skillTypeName == null ? '' : `Навык: ${skillTypeName}`}</p>
             {held != null &&
                 <div className="worker-rail-held">
                     <span>Приставить: <b>{held.name}</b></span>
