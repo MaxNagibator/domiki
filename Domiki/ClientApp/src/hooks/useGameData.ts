@@ -26,6 +26,7 @@ import {
     type RecapEventDto,
     type SickTypeDto,
     type TavernLarderDto,
+    type LedgerDto,
     type TolokaStateDto,
     type VillageDto,
     type VillageLevelDto,
@@ -63,6 +64,7 @@ export interface GameData {
     workers: WorkerDto[];
     cloaks: CloakStateDto;
     larder: TavernLarderDto | null;
+    ledger: LedgerDto | null;
     sickTypes: SickTypeDto[];
     purchaseDomikTypes: DomikTypeDto[] | null;
     now: number;
@@ -128,6 +130,7 @@ export function useGameData(): GameData {
     const [workers, setWorkers] = useState<WorkerDto[]>([]);
     const [cloaks, setCloaks] = useState<CloakStateDto>({ stock: 0, outOnShifts: 0, wearPoints: 0, lifetimeShifts: 0 });
     const [larder, setLarder] = useState<TavernLarderDto | null>(null);
+    const [ledger, setLedger] = useState<LedgerDto | null>(null);
     const [sickTypes, setSickTypes] = useState<SickTypeDto[]>([]);
     const [purchaseDomikTypes, setPurchaseDomikTypes] = useState<DomikTypeDto[] | null>(null);
     const [recap, setRecap] = useState<RecapDto | null>(null);
@@ -237,6 +240,7 @@ export function useGameData(): GameData {
         setWorkers(state.workers);
         setCloaks(state.cloaks);
         setLarder(state.larder);
+        setLedger(state.ledger ?? null);
         setSickTypes(state.sickTypes);
         setWeather(state.weather);
         setExpeditions(state.expeditions);
@@ -401,6 +405,7 @@ export function useGameData(): GameData {
                 setVillageProfiles(state.villageProfiles);
                 setWorkers(state.workers);
                 setLarder(state.larder);
+                setLedger(state.ledger ?? null);
                 setPurchaseDomikTypes(state.purchaseAvailableDomiks);
                 setWeather(state.weather);
                 setExpeditions(state.expeditions);
@@ -605,6 +610,7 @@ export function useGameData(): GameData {
         workers,
         cloaks,
         larder,
+        ledger,
         sickTypes,
         purchaseDomikTypes,
         now,

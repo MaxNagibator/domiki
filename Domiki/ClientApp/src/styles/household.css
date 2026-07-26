@@ -345,6 +345,47 @@ button.household-more-row {
         border-color: var(--pine);
     }
 
+.household-ledger-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: lowercase;
+    color: var(--pine-dark);
+}
+
+.household-ledger-value {
+    display: block;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.household-ledger-empty {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: rgba(51, 41, 26, .72);
+}
+
+.household-ledger-flows {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px 12px;
+    margin-top: 3px;
+}
+
+.household-ledger-flow {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+    .household-ledger-flow[data-sign="gain"] {
+        color: var(--pine-dark);
+    }
+
+    .household-ledger-flow[data-sign="spend"] {
+        color: var(--roof);
+    }
+
 @media (max-width: 575px) {
     .household-row {
         align-items: flex-start;

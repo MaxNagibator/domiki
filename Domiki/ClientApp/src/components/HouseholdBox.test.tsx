@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { ResourceTypeDto } from '../types/api';
+import type { LedgerDto, ResourceTypeDto } from '../types/api';
 import type { HudDigest } from '../utils/hud';
 import { HouseholdBox } from './HouseholdBox';
 
@@ -28,11 +28,11 @@ const emptyDigest: HudDigest = {
 
 const NOW = Date.parse('2026-07-25T12:00:00.000Z');
 
-const renderBox = (digest: HudDigest) => {
+const renderBox = (digest: HudDigest, ledger: LedgerDto | null = null) => {
     const onSelectDomik = vi.fn();
     const onOpenTab = vi.fn();
     const onToggleRepeat = vi.fn();
-    render(<HouseholdBox digest={digest} resourceTypes={resourceTypes} now={NOW}
+    render(<HouseholdBox digest={digest} resourceTypes={resourceTypes} ledger={ledger} now={NOW}
         onSelectDomik={onSelectDomik} onOpenTab={onOpenTab} onToggleRepeat={onToggleRepeat} />);
     return { onSelectDomik, onOpenTab, onToggleRepeat };
 };
@@ -182,5 +182,45 @@ describe('HouseholdBox наряды block', () => {
 
         expect(onSelectDomik).toHaveBeenCalledWith(3, 'pottery');
         expect(onToggleRepeat).not.toHaveBeenCalled();
+    });
+});
+
+describe('HouseholdBox счётная книга', () => {
+    const ledger: LedgerDto = {
+        level: 1,
+        hasEntries: true,
+        flows: [{ resourceTypeId: 200, gained: 60, spent: 20 }],
+        shortage: { resourceTypeId: 200, hours: 6 },
+        idlePercent: 41,
+    };
+
+    it('stays closed while the player has no Изба старосты', () => {
+        renderBox(emptyDigest);
+
+        expect(screen.queryByText('Счётная книга')).not.toBeInTheDocument();
+    });
+
+    it('shows the net flow, the first shortage and the idle share', () => {
+        renderBox(emptyDigest, ledger);
+
+        expect(screen.getByText('глина +40')).toBeInTheDocument();
+        expect(screen.getByText('Глина: хватит на 6 ч при нынешнем расходе')).toBeInTheDocument();
+        expect(screen.getByText('41 % суток')).toBeInTheDocument();
+    });
+
+    it('calls a spent resource that ran out already', () => {
+        renderBox(emptyDigest, { ...ledger, shortage: { resourceTypeId: 200, hours: 0 } });
+
+        expect(screen.getByText('Глина: уже на исходе')).toBeInTheDocument();
+    });
+
+    it.each([
+        ['книга только заведена', 41, 'Книга только заведена – староста считает с этого часа.'],
+        ['двор простоял сутки', 100, 'За сутки ни прихода, ни расхода – двор стоял.'],
+    ])('tells %s apart by the idle share', (_case, idlePercent, expected) => {
+        renderBox(emptyDigest, { ...ledger, hasEntries: false, flows: [], shortage: null, idlePercent });
+
+        expect(screen.getByText(expected)).toBeInTheDocument();
+        expect(screen.getByText('Ничего не убывает – припасов хватает на всё, что стоит нарядом.')).toBeInTheDocument();
     });
 });

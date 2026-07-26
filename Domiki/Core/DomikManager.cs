@@ -2,6 +2,7 @@
 using Domiki.Web.Core.Scheduling;
 using Domiki.Web.Data;
 using Domiki.Web.Data.Entities;
+using Domiki.Web.Economy;
 using Domiki.Web.Infrastructure;
 using Domiki.Web.Reference;
 using Domiki.Web.Village;
@@ -99,8 +100,9 @@ public class DomikManager
     private readonly GoalManager _goalManager;
     private readonly ILogger<DomikManager> _logger;
     private readonly IncidentManager _incidentManager;
+    private readonly ElderHouseManager _elderHouseManager;
 
-    public DomikManager(UnitOfWork uow, ApplicationDbContext context, ICalculator calculator, ResourceManager resourceManager, PlayerResourceManager playerResourceManager, WorkerManager workerManager, TavernManager tavernManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, TolokaManager tolokaManager, PlayerEventManager playerEventManager, GoalManager goalManager, ILogger<DomikManager> logger, IncidentManager incidentManager)
+    public DomikManager(UnitOfWork uow, ApplicationDbContext context, ICalculator calculator, ResourceManager resourceManager, PlayerResourceManager playerResourceManager, WorkerManager workerManager, TavernManager tavernManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, TolokaManager tolokaManager, PlayerEventManager playerEventManager, GoalManager goalManager, ILogger<DomikManager> logger, IncidentManager incidentManager, ElderHouseManager elderHouseManager)
     {
         _context = context;
         _calculator = calculator;
@@ -117,6 +119,7 @@ public class DomikManager
         _goalManager = goalManager;
         _logger = logger;
         _incidentManager = incidentManager;
+        _elderHouseManager = elderHouseManager;
     }
 
     public int GetPlayerId(string aspNetUserId)
@@ -791,6 +794,7 @@ public class DomikManager
             }
 
             _context.Manufactures.Remove(dbManufacture);
+            _elderHouseManager.RecordShift(playerId, dbManufacture.FinishDate, dbManufacture.DurationSeconds, 1);
             _playerEventManager.RecordManufactureFinished(calcInfo.PlayerId, dbDomik.TypeId, produced);
 
             var manufactureDomikName = _resourceManager.GetDomikTypes().First(x => x.Id == dbDomik.TypeId).Name;

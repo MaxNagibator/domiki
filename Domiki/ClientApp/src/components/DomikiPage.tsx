@@ -67,7 +67,7 @@ export const DomikiPage = () => {
     useEffect(() => { perfCommitProbe(); });
 
     const toast = useToast();
-    const { domiks, domikTypes, resourceTypes, receipts, resources, orders, errand, incident, domikIncident, reputation, blueprints, village, villageLevel, villageProfiles, weather, expeditions, decor, toloka, market, convoys, goals, workers, cloaks, larder, sickTypes, purchaseDomikTypes, now, loading, scheduleReload, refreshPurchaseTypes, setVillage, hurryManufacture, setManufactureAutoRepeat, hurryDomik, startExpedition, buyDecor, setFoodRule, contributeToloka, voteToloka, postLot, acceptLot, cancelLot, buyFromConvoy, recap, clearRecap, events } =
+    const { domiks, domikTypes, resourceTypes, receipts, resources, orders, errand, incident, domikIncident, reputation, blueprints, village, villageLevel, villageProfiles, weather, expeditions, decor, toloka, market, convoys, goals, workers, cloaks, larder, ledger, sickTypes, purchaseDomikTypes, now, loading, scheduleReload, refreshPurchaseTypes, setVillage, hurryManufacture, setManufactureAutoRepeat, hurryDomik, startExpedition, buyDecor, setFoodRule, contributeToloka, voteToloka, postLot, acceptLot, cancelLot, buyFromConvoy, recap, clearRecap, events } =
         useGameData();
 
     const [shopVisible, setShopVisible] = useState(false);
@@ -375,7 +375,7 @@ export const DomikiPage = () => {
     const gameTabs: GameTab[] = [
         {
             key: 'household', label: 'Хозяйство', icon: <AbstractSprite logicName="elder_order" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
-            node: () => <HouseholdBox digest={hudDigest} resourceTypes={resourceTypes} now={now} onSelectDomik={selectDomikFromBoard} onOpenTab={setActiveTab}
+            node: () => <HouseholdBox digest={hudDigest} resourceTypes={resourceTypes} ledger={ledger} now={now} onSelectDomik={selectDomikFromBoard} onOpenTab={setActiveTab}
                 onToggleRepeat={toggleManufactureAutoRepeat} />,
         },
         {

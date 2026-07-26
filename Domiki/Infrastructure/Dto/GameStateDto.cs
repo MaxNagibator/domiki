@@ -111,6 +111,14 @@ public sealed record GameStateDto
     public required TavernLarderDto Larder { get; init; }
 
     /// <summary>
+    /// Счётная книга Избы старосты за текущие сутки.
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – Избы у игрока нет, книга закрыта (см. <see cref="Economy.ElderHouseManager.GetLedger"/>).
+    /// </remarks>
+    public LedgerDto? Ledger { get; init; }
+
+    /// <summary>
     /// Справочник хворей, связанных с погодой.
     /// </summary>
     public required SickTypeDto[] SickTypes { get; init; }

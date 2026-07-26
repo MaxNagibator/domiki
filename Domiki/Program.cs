@@ -139,6 +139,7 @@ try
     builder.Services.AddScoped<PlayerResourceManager>();
     builder.Services.AddScoped<WorkerManager>();
     builder.Services.AddScoped<TavernManager>();
+    builder.Services.AddScoped<ElderHouseManager>();
     builder.Services.AddScoped<WorkerMilestoneManager>();
     builder.Services.AddScoped<WeatherManager>();
     builder.Services.AddScoped<BlueprintManager>();

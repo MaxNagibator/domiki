@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import ArrowUpIcon from 'pixelarticons/svg/arrow-up.svg?react';
+import ChartIcon from 'pixelarticons/svg/chart.svg?react';
 import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
 import ChevronRightIcon from 'pixelarticons/svg/chevron-right.svg?react';
 import ChevronUpIcon from 'pixelarticons/svg/chevron-up.svg?react';
+import ClockIcon from 'pixelarticons/svg/clock.svg?react';
 import HomeIcon from 'pixelarticons/svg/home.svg?react';
 import RepeatIcon from 'pixelarticons/svg/repeat.svg?react';
-import type { ResourceTypeDto } from '../types/api';
+import WarningIcon from 'pixelarticons/svg/warning-diamond.svg?react';
+import type { LedgerDto, ResourceTypeDto } from '../types/api';
 import type { HudBlockedBuilding, HudBuildingRef, HudDigest } from '../utils/hud';
 import { formatTimeOfDay } from '../utils/time';
 import { pluralRu } from '../utils/plural';
@@ -20,11 +23,80 @@ const BLOCKED_LIMIT = 3;
 interface HouseholdBoxProps {
     digest: HudDigest;
     resourceTypes: ResourceTypeDto[];
+    ledger: LedgerDto | null;
     now: number;
     onSelectDomik: (domikId: number, logicName: string) => void;
     onOpenTab: (tabKey: string) => void;
     onToggleRepeat: (manufactureId: number, next: boolean) => void;
 }
+
+interface LedgerBlockProps {
+    ledger: LedgerDto;
+    resourceTypes: ResourceTypeDto[];
+}
+
+const LedgerBlock = ({ ledger, resourceTypes }: LedgerBlockProps) => {
+    const resourceName = (typeId: number) => resourceTypes.find(type => type.id === typeId)?.name ?? 'припас';
+    const netFlows = ledger.flows
+        .map(flow => ({ typeId: flow.resourceTypeId, net: flow.gained - flow.spent }))
+        .filter(flow => flow.net !== 0)
+        .sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+    const shortage = ledger.shortage;
+
+    return (
+        <div className="household-block">
+            <span className="panel-label">Счётная книга</span>
+            <div className="household-rows">
+                <div className="household-row">
+                    <ChartIcon className="household-row-ico" aria-hidden="true" />
+                    <span className="household-row-text">
+                        <span className="household-ledger-label">За сутки</span>
+                        {netFlows.length > 0 &&
+                            <span className="household-ledger-flows">
+                                {netFlows.map(flow => (
+                                    <span key={flow.typeId} className="household-ledger-flow" data-sign={flow.net > 0 ? 'gain' : 'spend'}>
+                                        {resourceName(flow.typeId).toLocaleLowerCase('ru')} {flow.net > 0 ? '+' : '−'}{Math.abs(flow.net)}
+                                    </span>
+                                ))}
+                            </span>
+                        }
+                        {netFlows.length === 0 &&
+                            <span className="household-ledger-empty">
+                                {ledger.hasEntries || ledger.idlePercent === 100 || ledger.idlePercent == null
+                                    ? 'За сутки ни прихода, ни расхода – двор стоял.'
+                                    : 'Книга только заведена – староста считает с этого часа.'}
+                            </span>
+                        }
+                    </span>
+                </div>
+
+                <div className="household-row">
+                    <WarningIcon className="household-row-ico" aria-hidden="true" />
+                    <span className="household-row-text">
+                        <span className="household-ledger-label">Чего не хватит первым</span>
+                        <span className={shortage == null ? 'household-ledger-empty' : 'household-ledger-value'}>
+                            {shortage == null
+                                ? 'Ничего не убывает – припасов хватает на всё, что стоит нарядом.'
+                                : shortage.hours <= 0
+                                    ? `${resourceName(shortage.resourceTypeId)}: уже на исходе`
+                                    : `${resourceName(shortage.resourceTypeId)}: хватит на ${shortage.hours} ч при нынешнем расходе`}
+                        </span>
+                    </span>
+                </div>
+
+                {ledger.idlePercent != null &&
+                    <div className="household-row">
+                        <ClockIcon className="household-row-ico" aria-hidden="true" />
+                        <span className="household-row-text">
+                            <span className="household-ledger-label">Двор простоял</span>
+                            <span className="household-ledger-value">{ledger.idlePercent} % суток</span>
+                        </span>
+                    </div>
+                }
+            </div>
+        </div>
+    );
+};
 
 interface BuildingChipsProps {
     icon: ReactNode;
@@ -96,7 +168,7 @@ const BlockedRow = ({ building, resourceTypes, onSelectDomik }: BlockedRowProps)
     );
 };
 
-export const HouseholdBox = ({ digest, resourceTypes, now, onSelectDomik, onOpenTab, onToggleRepeat }: HouseholdBoxProps) => {
+export const HouseholdBox = ({ digest, resourceTypes, ledger, now, onSelectDomik, onOpenTab, onToggleRepeat }: HouseholdBoxProps) => {
     const [blockedExpanded, setBlockedExpanded] = useState(false);
     const handsShort = digest.workersFree === 0 && digest.idleBuildings.length > 0;
     const hasNowRows = digest.idleBuildings.length > 0
@@ -249,6 +321,8 @@ export const HouseholdBox = ({ digest, resourceTypes, now, onSelectDomik, onOpen
                     </div>
                 }
             </div>
+
+            {ledger != null && <LedgerBlock ledger={ledger} resourceTypes={resourceTypes} />}
         </section>
     );
 };

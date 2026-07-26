@@ -1,4 +1,5 @@
 ﻿using Domiki.Web.Data;
+using Domiki.Web.Economy;
 using Domiki.Web.Reference;
 using Domiki.Web.Reference.Models;
 using Microsoft.EntityFrameworkCore;
@@ -9,11 +10,13 @@ public class PlayerResourceManager
 {
     private readonly ApplicationDbContext _context;
     private readonly ResourceManager _resourceManager;
+    private readonly ElderHouseManager _elderHouseManager;
 
-    public PlayerResourceManager(UnitOfWork uow, ApplicationDbContext context, ResourceManager resourceManager)
+    public PlayerResourceManager(UnitOfWork uow, ApplicationDbContext context, ResourceManager resourceManager, ElderHouseManager elderHouseManager)
     {
         _context = context;
         _resourceManager = resourceManager;
+        _elderHouseManager = elderHouseManager;
     }
 
     /// <summary>
@@ -50,6 +53,7 @@ public class PlayerResourceManager
         {
             var dbResource = dbResources.First(x => x.TypeId == needResource.Type.Id);
             dbResource.Value -= needResource.Value;
+            _elderHouseManager.RecordSpend(playerId, needResource.Type.Id, needResource.Value);
         }
     }
 
@@ -88,6 +92,14 @@ public class PlayerResourceManager
         }
 
         dbResource.Value += value;
+        if (value > 0)
+        {
+            _elderHouseManager.RecordGain(playerId, typeId, value);
+        }
+        else
+        {
+            _elderHouseManager.RecordSpend(playerId, typeId, -value);
+        }
     }
 
     private string GetResourceName(Resource resource, ResourceType[] resourceTypes)

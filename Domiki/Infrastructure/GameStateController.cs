@@ -36,8 +36,9 @@ public class GameStateController : GameControllerBase
     private readonly ErrandManager _errandManager;
     private readonly IncidentManager _incidentManager;
     private readonly WorkerMilestoneManager _workerMilestoneManager;
+    private readonly ElderHouseManager _elderHouseManager;
 
-    public GameStateController(DomikManager domikManager, ResourceManager resourceManager, OrderManager orderManager, WorkerManager workerManager, TavernManager tavernManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, ExpeditionManager expeditionManager, DecorManager decorManager, TolokaManager tolokaManager, MarketManager marketManager, ConvoyManager convoyManager, GiftManager giftManager, PlayerEventManager playerEventManager, GoalManager goalManager, ErrandManager errandManager, IncidentManager incidentManager, WorkerMilestoneManager workerMilestoneManager)
+    public GameStateController(DomikManager domikManager, ResourceManager resourceManager, OrderManager orderManager, WorkerManager workerManager, TavernManager tavernManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, ExpeditionManager expeditionManager, DecorManager decorManager, TolokaManager tolokaManager, MarketManager marketManager, ConvoyManager convoyManager, GiftManager giftManager, PlayerEventManager playerEventManager, GoalManager goalManager, ErrandManager errandManager, IncidentManager incidentManager, WorkerMilestoneManager workerMilestoneManager, ElderHouseManager elderHouseManager)
         : base(domikManager)
     {
         _domikManager = domikManager;
@@ -59,6 +60,7 @@ public class GameStateController : GameControllerBase
         _errandManager = errandManager;
         _incidentManager = incidentManager;
         _workerMilestoneManager = workerMilestoneManager;
+        _elderHouseManager = elderHouseManager;
     }
 
     [HttpGet]
@@ -90,6 +92,7 @@ public class GameStateController : GameControllerBase
             Workers = _workerManager.GetWorkers(playerId).Select(x => x.ToDto()).ToArray(),
             Cloaks = _workerManager.GetCloakState(playerId).ToDto(),
             Larder = _tavernManager.GetRules(playerId).ToDto(),
+            Ledger = _elderHouseManager.GetLedger(playerId)?.ToDto(),
             SickTypes = _resourceManager.GetSickTypes().Select(x => x.ToDto()).ToArray(),
             PurchaseAvailableDomiks = _domikManager.GetPurchaseAvailableDomiks(playerId).Select(x => x.Type.ToDto(x.AvailableCount, blueprints.FirstOrDefault(b => b.DomikTypeId == x.Type.Id)?.Id, x.NextCountGateLevel)).ToArray(),
             Weather = _weatherManager.GetWeather(DateTimeHelper.GetNowDate()).ToDto(),

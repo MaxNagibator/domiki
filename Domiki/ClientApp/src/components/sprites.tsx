@@ -3,6 +3,7 @@ import type { FC, SVGProps } from 'react';
 import { prepareInlineSprite } from '../utils/inlineSprite';
 import BarracksSprite from '../assets/domikTypes/barracks.svg?react';
 import ClayMineSprite from '../assets/domikTypes/clay_mine.svg?react';
+import ElderHouseSprite from '../assets/domikTypes/elder_house.svg?react';
 import FieldSprite from '../assets/domikTypes/field.svg?react';
 import FairSprite from '../assets/domikTypes/fair.svg?react';
 import ForgeSprite from '../assets/domikTypes/forge.svg?react';
@@ -143,6 +144,7 @@ const domikSprites: Record<string, SpriteComponent> = {
     bakery: BakerySprite,
     barracks: BarracksSprite,
     clay_mine: ClayMineSprite,
+    elder_house: ElderHouseSprite,
     field: FieldSprite,
     fair: FairSprite,
     forge: ForgeSprite,

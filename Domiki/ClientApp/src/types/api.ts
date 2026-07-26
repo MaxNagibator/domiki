@@ -355,6 +355,28 @@ export const larderSchema = z.object({
 });
 export type TavernLarderDto = z.infer<typeof larderSchema>;
 
+export const ledgerFlowSchema = z.object({
+    resourceTypeId: z.number(),
+    gained: z.number(),
+    spent: z.number(),
+});
+export type LedgerFlowDto = z.infer<typeof ledgerFlowSchema>;
+
+export const ledgerShortageSchema = z.object({
+    resourceTypeId: z.number(),
+    hours: z.number(),
+});
+export type LedgerShortageDto = z.infer<typeof ledgerShortageSchema>;
+
+export const ledgerSchema = z.object({
+    level: z.number(),
+    hasEntries: z.boolean(),
+    flows: z.array(ledgerFlowSchema),
+    shortage: ledgerShortageSchema.nullish(),
+    idlePercent: z.number().nullish(),
+});
+export type LedgerDto = z.infer<typeof ledgerSchema>;
+
 export const cloakStateSchema = z.object({
     stock: z.number(),
     outOnShifts: z.number(),
@@ -590,6 +612,7 @@ export const gameStateSchema = z.object({
     workers: workerSchema.array(),
     cloaks: cloakStateSchema,
     larder: larderSchema,
+    ledger: ledgerSchema.nullish(),
     sickTypes: sickTypeSchema.array(),
     purchaseAvailableDomiks: domikTypeSchema.array(),
     weather: weatherStateSchema,
