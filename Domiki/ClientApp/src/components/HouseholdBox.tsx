@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import ArrowUpIcon from 'pixelarticons/svg/arrow-up.svg?react';
 import ChartIcon from 'pixelarticons/svg/chart.svg?react';
@@ -9,22 +9,27 @@ import ClockIcon from 'pixelarticons/svg/clock.svg?react';
 import HomeIcon from 'pixelarticons/svg/home.svg?react';
 import RepeatIcon from 'pixelarticons/svg/repeat.svg?react';
 import WarningIcon from 'pixelarticons/svg/warning-diamond.svg?react';
-import type { LedgerDto, ResourceTypeDto } from '../types/api';
+import type { LedgerDto, ResourceDto, ResourceReserveDto, ResourceTypeDto } from '../types/api';
 import type { HudBlockedBuilding, HudBuildingRef, HudDigest } from '../utils/hud';
 import { formatTimeOfDay } from '../utils/time';
 import { pluralRu } from '../utils/plural';
 import { ActionButton } from './ActionButton';
 import { ResourceChip } from './ResourceChip';
+import { ResourceNameChip } from './ResourceNameChip';
 import { AbstractSprite, DomikSprite, MechanicSprite, NeighborSprite } from './sprites';
 
 const CHIP_LIMIT = 5;
+const RESERVE_MIN_LEVEL = 3;
 const BLOCKED_LIMIT = 3;
 
 interface HouseholdBoxProps {
     digest: HudDigest;
     resourceTypes: ResourceTypeDto[];
+    resources: ResourceDto[];
+    reserves: ResourceReserveDto[];
     ledger: LedgerDto | null;
     now: number;
+    onSetReserve: (resourceTypeId: number, reserve: number) => void;
     onSelectDomik: (domikId: number, logicName: string) => void;
     onOpenTab: (tabKey: string) => void;
     onToggleRepeat: (manufactureId: number, next: boolean) => void;
@@ -168,8 +173,90 @@ const BlockedRow = ({ building, resourceTypes, onSelectDomik }: BlockedRowProps)
     );
 };
 
-export const HouseholdBox = ({ digest, resourceTypes, ledger, now, onSelectDomik, onOpenTab, onToggleRepeat }: HouseholdBoxProps) => {
+interface ReserveBlockProps {
+    resourceTypes: ResourceTypeDto[];
+    resources: ResourceDto[];
+    reserves: ResourceReserveDto[];
+    shiftInputTypeIds: number[];
+    onSetReserve: (resourceTypeId: number, reserve: number) => void;
+}
+
+interface ReserveRowProps {
+    resourceType: ResourceTypeDto;
+    stock: number;
+    reserve: number;
+    onSetReserve: (resourceTypeId: number, reserve: number) => void;
+}
+
+const ReserveRow = ({ resourceType, stock, reserve, onSetReserve }: ReserveRowProps) => {
+    const [input, setInput] = useState(String(reserve));
+    const savedRef = useRef(reserve);
+
+    const commit = () => {
+        const parsed = Math.trunc(Number(input));
+        const next = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+        setInput(String(next));
+        if (next === savedRef.current) {
+            return;
+        }
+
+        savedRef.current = next;
+        onSetReserve(resourceType.id, next);
+    };
+
+    return (
+        <div className="household-row household-reserve-row">
+            <ResourceNameChip resourceType={resourceType} />
+            <span className="household-reserve-stock">{stock} на складе</span>
+            <label className="household-reserve-field">
+                беречь
+                <input type="number" min={0} value={input}
+                    onChange={event => setInput(event.target.value)}
+                    onBlur={commit}
+                    onKeyDown={event => { if (event.key === 'Enter') { event.currentTarget.blur(); } }} />
+            </label>
+            <span className="household-reserve-hint">
+                {reserve > 0
+                    ? `Наряды остановятся, когда на складе останется ${reserve}.`
+                    : 'Не бережём – наряды берут всё, что нужно.'}
+            </span>
+        </div>
+    );
+};
+
+const ReserveBlock = ({ resourceTypes, resources, reserves, shiftInputTypeIds, onSetReserve }: ReserveBlockProps) => {
+    const rowTypeIds = [...new Set([...reserves.map(item => item.resourceTypeId), ...shiftInputTypeIds])];
+    const rows = rowTypeIds
+        .flatMap(typeId => {
+            const resourceType = resourceTypes.find(type => type.id === typeId);
+            return resourceType == null ? [] : [resourceType];
+        })
+        .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+
+    return (
+        <div className="household-block">
+            <span className="panel-label">Заповедный припас</span>
+            <p className="household-reserve-lead">Заповеданное наряды не тронут – запас под заказ и толоку остаётся цел.</p>
+            {rows.length === 0 &&
+                <p className="household-empty">Ничего не заповедано – наряды берут со склада всё, что нужно.</p>
+            }
+            {rows.length > 0 &&
+                <div className="household-rows">
+                    {rows.map(resourceType => (
+                        <ReserveRow key={resourceType.id} resourceType={resourceType}
+                            stock={resources.find(item => item.typeId === resourceType.id)?.value ?? 0}
+                            reserve={reserves.find(item => item.resourceTypeId === resourceType.id)?.reserve ?? 0}
+                            onSetReserve={onSetReserve} />
+                    ))}
+                </div>
+            }
+        </div>
+    );
+};
+
+export const HouseholdBox = ({ digest, resourceTypes, resources, reserves, ledger, now, onSetReserve, onSelectDomik, onOpenTab, onToggleRepeat }: HouseholdBoxProps) => {
     const [blockedExpanded, setBlockedExpanded] = useState(false);
+    const measureType = (typeId: number) => resourceTypes.find(type => type.id === typeId);
     const handsShort = digest.workersFree === 0 && digest.idleBuildings.length > 0;
     const hasNowRows = digest.idleBuildings.length > 0
         || digest.runningShifts > 0
@@ -307,7 +394,15 @@ export const HouseholdBox = ({ digest, resourceTypes, ledger, now, onSelectDomik
                                     onClick={() => onSelectDomik(shift.domikId, shift.domikLogicName)}>
                                     <RepeatIcon className="household-row-ico" aria-hidden="true" />
                                     <span className="household-row-text">
-                                        Наряд: {shift.receiptName} · {shift.domikName} · снова в {formatTimeOfDay(shift.finishDate, now)}
+                                        Наряд: {shift.receiptName} · {shift.domikName}
+                                        {(() => {
+                                            const measure = shift.measure;
+                                            const resourceType = measure == null ? undefined : measureType(measure.resourceTypeId);
+                                            return measure == null || resourceType == null
+                                                ? null
+                                                : <> · мера: <ResourceChip resourceType={resourceType} value={measure.value} /></>;
+                                        })()}
+                                        {' '}· снова в {formatTimeOfDay(shift.finishDate, now)}
                                         {shift.starving && <span className="household-shift-starving">Припасов на следующий круг нет – и никто их сейчас не делает.</span>}
                                     </span>
                                     <ChevronRightIcon className="household-row-go" aria-hidden="true" />
@@ -323,6 +418,12 @@ export const HouseholdBox = ({ digest, resourceTypes, ledger, now, onSelectDomik
             </div>
 
             {ledger != null && <LedgerBlock ledger={ledger} resourceTypes={resourceTypes} />}
+
+            {ledger != null && ledger.level >= RESERVE_MIN_LEVEL &&
+                <ReserveBlock resourceTypes={resourceTypes} resources={resources} reserves={reserves}
+                    shiftInputTypeIds={digest.standingShifts.flatMap(shift => shift.inputTypeIds)}
+                    onSetReserve={onSetReserve} />
+            }
         </section>
     );
 };

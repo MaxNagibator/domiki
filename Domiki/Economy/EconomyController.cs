@@ -12,14 +12,16 @@ public class EconomyController : GameControllerBase
     private readonly MarketManager _marketManager;
     private readonly ErrandManager _errandManager;
     private readonly ConvoyManager _convoyManager;
+    private readonly ElderHouseManager _elderHouseManager;
 
-    public EconomyController(DomikManager domikManager, OrderManager orderManager, MarketManager marketManager, ErrandManager errandManager, ConvoyManager convoyManager)
+    public EconomyController(DomikManager domikManager, OrderManager orderManager, MarketManager marketManager, ErrandManager errandManager, ConvoyManager convoyManager, ElderHouseManager elderHouseManager)
         : base(domikManager)
     {
         _orderManager = orderManager;
         _marketManager = marketManager;
         _errandManager = errandManager;
         _convoyManager = convoyManager;
+        _elderHouseManager = elderHouseManager;
     }
 
     [HttpGet]
@@ -127,5 +129,18 @@ public class EconomyController : GameControllerBase
     {
         var playerId = GetPlayerId();
         _errandManager.Cancel(playerId, errandId);
+    }
+
+    /// <summary>
+    /// Заповедует припас от нарядов либо снимает заповедь нулём.
+    /// </summary>
+    /// <param name="resourceTypeId">Тип ресурса.</param>
+    /// <param name="reserve">Сколько единиц отложить; <c>0</c> снимает заповедь.</param>
+    [HttpPost]
+    [Route("/Domiki/SetResourceReserve/{resourceTypeId}")]
+    public void SetResourceReserve(int resourceTypeId, [FromQuery] int reserve)
+    {
+        var playerId = GetPlayerId();
+        _elderHouseManager.SaveReserve(playerId, resourceTypeId, reserve);
     }
 }

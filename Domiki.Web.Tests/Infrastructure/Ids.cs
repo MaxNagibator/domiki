@@ -51,6 +51,11 @@ public static class DomikIds
     /// Корчма.
     /// </summary>
     public const int Tavern = 18;
+
+    /// <summary>
+    /// Изба старосты.
+    /// </summary>
+    public const int ElderHouse = 19;
 }
 
 /// <summary>

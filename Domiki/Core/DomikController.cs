@@ -92,4 +92,18 @@ public class DomikController : GameControllerBase
         var playerId = GetPlayerId();
         _domikManager.SetManufactureAutoRepeat(playerId, manufactureId, autoRepeat);
     }
+
+    /// <summary>
+    /// Назначает наряду меру или снимает её.
+    /// </summary>
+    /// <param name="manufactureId">Идентификатор смены, на которой стоит наряд.</param>
+    /// <param name="resourceTypeId">Тип ресурса меры; без него мера снимается.</param>
+    /// <param name="value">Сколько единиц набрать; без него мера снимается.</param>
+    [HttpPost]
+    [Route("/Domiki/SetManufactureMeasure/{manufactureId}")]
+    public void SetManufactureMeasure(int manufactureId, [FromQuery] int? resourceTypeId = null, [FromQuery] int? value = null)
+    {
+        var playerId = GetPlayerId();
+        _domikManager.SetManufactureMeasure(playerId, manufactureId, resourceTypeId, value);
+    }
 }

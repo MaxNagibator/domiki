@@ -21,6 +21,8 @@ import { ProgressBar } from './ProgressBar';
 import { ResourcesBox } from './ResourcesBox';
 import { AbstractSprite, ResourceSprite, WorkerSprite } from './sprites';
 
+const MEASURE_MIN_LEVEL = 2;
+
 interface ReceiptUiState {
     expandedId: number | null;
     optionalIds: ReadonlySet<number>;
@@ -347,9 +349,11 @@ interface SelectedDomikPanelProps {
     onStartManufacture: (domikId: number, receiptId: number, useOptional: boolean, autoRepeat: boolean, workerIds?: number[]) => Promise<boolean>;
     onHurryManufacture: (manufactureId: number) => void;
     onToggleManufactureRepeat: (manufactureId: number, next: boolean) => void;
+    elderHouseLevel: number;
+    onSetManufactureMeasure: (manufactureId: number, resourceTypeId: number | null, value: number | null) => void;
 }
 
-export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, receipts, workers, goals, villageLevel, currentWeather, now, goldValue, goldType, plodderFree, displayName, onClose, onUpgrade, onHurryDomik, onStartManufacture, onHurryManufacture, onToggleManufactureRepeat }: SelectedDomikPanelProps) => {
+export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, receipts, workers, goals, villageLevel, currentWeather, now, goldValue, goldType, plodderFree, displayName, onClose, onUpgrade, onHurryDomik, onStartManufacture, onHurryManufacture, onToggleManufactureRepeat, elderHouseLevel, onSetManufactureMeasure }: SelectedDomikPanelProps) => {
     const [ui, dispatch] = useReducer(receiptUiReducer, initialReceiptUiState);
     const [tab, setTab] = useState<PanelView>('work');
     const [tabbedDomikId, setTabbedDomikId] = useState(selected?.domik.id);
@@ -536,7 +540,9 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
                                     <ManufactureBox key={manufacture.id} manufacture={manufacture} receipt={receipt}
                                         now={now} remainingText={formatDuration(remainingSeconds(manufacture.finishDate, now))}
                                         goldValue={goldValue} goldType={goldType} onHurry={onHurryManufacture}
-                                        onToggleAutoRepeat={onToggleManufactureRepeat} />
+                                        onToggleAutoRepeat={onToggleManufactureRepeat}
+                                        resourceTypes={resourceTypes} measureUnlocked={elderHouseLevel >= MEASURE_MIN_LEVEL}
+                                        onSetMeasure={onSetManufactureMeasure} />
                                 );
                             })}
                         </div>

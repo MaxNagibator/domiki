@@ -115,6 +115,14 @@ export const hurryManufacture = (manufactureId: number, signal?: AbortSignal): P
 export const setManufactureAutoRepeat = (manufactureId: number, autoRepeat: boolean, signal?: AbortSignal): Promise<void> =>
     apiPost(`Domiki/SetManufactureAutoRepeat/${manufactureId}?autoRepeat=${String(autoRepeat)}`, signal);
 
+export const setManufactureMeasure = (manufactureId: number, resourceTypeId: number | null, value: number | null, signal?: AbortSignal): Promise<void> =>
+    apiPost(resourceTypeId == null || value == null
+        ? `Domiki/SetManufactureMeasure/${manufactureId}`
+        : `Domiki/SetManufactureMeasure/${manufactureId}?resourceTypeId=${resourceTypeId}&value=${value}`, signal);
+
+export const setResourceReserve = (resourceTypeId: number, reserve: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/SetResourceReserve/${resourceTypeId}?reserve=${reserve}`, signal);
+
 export const hurryDomik = (domikId: number, signal?: AbortSignal): Promise<void> =>
     apiPost(`Domiki/HurryDomik/${domikId}`, signal);
 

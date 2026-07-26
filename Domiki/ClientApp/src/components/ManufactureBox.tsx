@@ -6,6 +6,7 @@ import { canInstaFinish, instaFinishCost, manufactureProgressPercent } from '../
 import { formatTimeOfDay } from '../utils/time';
 import { ProgressBar } from './ProgressBar';
 import { ActionButton } from './ActionButton';
+import { ResourceNameChip } from './ResourceNameChip';
 import { AbstractSprite, ResourceSprite } from './sprites';
 
 interface ManufactureBoxProps {
@@ -15,12 +16,24 @@ interface ManufactureBoxProps {
     remainingText: string;
     goldValue: number;
     goldType?: ResourceTypeDto | undefined;
+    resourceTypes?: ResourceTypeDto[];
+    measureUnlocked?: boolean;
     onHurry: (manufactureId: number) => void;
     onToggleAutoRepeat: (manufactureId: number, next: boolean) => void;
+    onSetMeasure?: (manufactureId: number, resourceTypeId: number | null, value: number | null) => void;
 }
 
-export const ManufactureBox = ({ manufacture, receipt, now, remainingText, goldValue, goldType, onHurry, onToggleAutoRepeat }: ManufactureBoxProps) => {
+export const ManufactureBox = ({ manufacture, receipt, now, remainingText, goldValue, goldType, resourceTypes = [], measureUnlocked = false, onHurry, onToggleAutoRepeat, onSetMeasure }: ManufactureBoxProps) => {
     const [repeatExpanded, setRepeatExpanded] = useState(false);
+    const measureDefaultTypeId = manufacture.measureResourceTypeId
+        ?? receipt.outputResources[0]?.typeId
+        ?? resourceTypes[0]?.id
+        ?? 0;
+    const [measureTypeId, setMeasureTypeId] = useState(measureDefaultTypeId);
+    const [measureInput, setMeasureInput] = useState(String(manufacture.measureValue ?? ''));
+    const measureType = resourceTypes.find(type => type.id === (manufacture.measureResourceTypeId ?? measureTypeId));
+    const parsedMeasure = Math.trunc(Number(measureInput));
+    const measureReady = Number.isFinite(parsedMeasure) && parsedMeasure > 0;
     const percent = manufactureProgressPercent(manufacture, now);
     const hurryCost = instaFinishCost(manufacture.finishDate, now);
     const tooFar = !canInstaFinish(manufacture.finishDate, now);
@@ -72,6 +85,40 @@ export const ManufactureBox = ({ manufacture, receipt, now, remainingText, goldV
                         </ActionButton>
                         {manufacture.autoRepeat &&
                             <span className="manufacture-repeat-note">Текущая смена завершится как обычно</span>
+                        }
+                        {manufacture.autoRepeat && measureUnlocked && onSetMeasure != null &&
+                            <div className="manufacture-measure">
+                                <span className="panel-label">Мера наряда</span>
+                                {manufacture.measureValue != null && measureType != null &&
+                                    <p className="manufacture-measure-hint">
+                                        Наряд снимется сам, когда <ResourceNameChip resourceType={measureType} /> дойдёт до {manufacture.measureValue}.
+                                    </p>
+                                }
+                                {manufacture.measureValue == null &&
+                                    <p className="manufacture-measure-hint">Без меры – пока хватает припасов.</p>
+                                }
+                                <label className="manufacture-measure-row">
+                                    Повторять, пока
+                                    <select value={measureTypeId} onChange={event => setMeasureTypeId(Number(event.target.value))}>
+                                        {resourceTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
+                                    </select>
+                                    меньше
+                                    <input type="number" min={1} value={measureInput}
+                                        onChange={event => setMeasureInput(event.target.value)} />
+                                </label>
+                                <div className="manufacture-measure-actions">
+                                    <ActionButton className="btn-game btn-ghost" disabled={!measureReady}
+                                        onClick={() => onSetMeasure(manufacture.id, measureTypeId, parsedMeasure)}>
+                                        Поставить меру
+                                    </ActionButton>
+                                    {manufacture.measureValue != null &&
+                                        <ActionButton className="btn-game btn-ghost"
+                                            onClick={() => { setMeasureInput(''); onSetMeasure(manufacture.id, null, null); }}>
+                                            Снять меру
+                                        </ActionButton>
+                                    }
+                                </div>
+                            </div>
                         }
                     </div>
                 }

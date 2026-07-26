@@ -93,6 +93,7 @@ public class GameStateController : GameControllerBase
             Cloaks = _workerManager.GetCloakState(playerId).ToDto(),
             Larder = _tavernManager.GetRules(playerId).ToDto(),
             Ledger = _elderHouseManager.GetLedger(playerId)?.ToDto(),
+            Reserves = _elderHouseManager.GetReserves(playerId).Select(x => x.ToDto()).ToArray(),
             SickTypes = _resourceManager.GetSickTypes().Select(x => x.ToDto()).ToArray(),
             PurchaseAvailableDomiks = _domikManager.GetPurchaseAvailableDomiks(playerId).Select(x => x.Type.ToDto(x.AvailableCount, blueprints.FirstOrDefault(b => b.DomikTypeId == x.Type.Id)?.Id, x.NextCountGateLevel)).ToArray(),
             Weather = _weatherManager.GetWeather(DateTimeHelper.GetNowDate()).ToDto(),

@@ -119,6 +119,15 @@ public sealed record GameStateDto
     public LedgerDto? Ledger { get; init; }
 
     /// <summary>
+    /// Заповеданные от нарядов припасы игрока.
+    /// </summary>
+    /// <remarks>
+    /// Пусто, если ничего не заповедано или заповедный ларь ещё не открыт
+    /// (см. <see cref="Economy.ElderHouseManager.ReserveMinLevel"/>).
+    /// </remarks>
+    public required ResourceReserveDto[] Reserves { get; init; }
+
+    /// <summary>
     /// Справочник хворей, связанных с погодой.
     /// </summary>
     public required SickTypeDto[] SickTypes { get; init; }

@@ -57,6 +57,7 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
     const incidents = withStableKeys(view.incidents, incident => `${incident.kind}-${incident.workerName}-${incident.templateId}-${incident.clueId ?? ''}`);
     const domikIncidents = withStableKeys(view.domikIncidents, incident => `${incident.kind}-${incident.domikTypeId}-${incident.templateId}-${incident.clueId ?? ''}`);
     const manufactureRepeatFailures = withStableKeys(view.manufactureRepeatFailures, failure => `${failure.domikTypeId}-${failure.reason}`);
+    const manufactureStops = withStableKeys(view.manufactureStops, stop => `${stop.kind}-${stop.domikTypeId}-${stop.resourceTypeId}`);
 
     const trophies = useMemo(() => {
         const producedTotal = view.produced.reduce((sum, resource) => sum + resource.value, 0);
@@ -247,6 +248,29 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
                             <div key={key} className="recap-row">
                                 {domikType != null && <DomikSprite className="recap-domik-sprite" logicName={domikType.logicName} />}
                                 <span className="recap-line">{failure.reason}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            }
+            {manufactureStops.length > 0 &&
+                <div className="recap-section" data-tone="prod">
+                    <div className="recap-section-head">
+                        <span className="recap-section-badge"><AbstractSprite logicName="production_recipe" size={24} aria-hidden="true" /></span>
+                        <h3 className="recap-section-title">Наряды снялись сами</h3>
+                        <span className="recap-section-count">{manufactureStops.length}</span>
+                    </div>
+                    {manufactureStops.map(({ key, item: stop }) => {
+                        const domikType = domikTypes.find(type => type.id === stop.domikTypeId);
+                        const resourceName = resourceTypes.find(type => type.id === stop.resourceTypeId)?.name ?? 'припас';
+                        return (
+                            <div key={key} className="recap-row">
+                                {domikType != null && <DomikSprite className="recap-domik-sprite" logicName={domikType.logicName} />}
+                                <span className="recap-line">
+                                    {stop.kind === 'measure'
+                                        ? `${resourceName} дошёл до ${stop.value ?? 0} – наряд снят`
+                                        : `${resourceName} под заповедью – наряд встал`}
+                                </span>
                             </div>
                         );
                     })}

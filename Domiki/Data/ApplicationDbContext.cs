@@ -35,6 +35,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<PlayerFoodRule> PlayerFoodRules { get; set; }
     public DbSet<PlayerResourceFlow> PlayerResourceFlows { get; set; }
     public DbSet<PlayerLaborDay> PlayerLaborDays { get; set; }
+    public DbSet<PlayerResourceReserve> PlayerResourceReserves { get; set; }
 
     public DbSet<Receipt> Receipts { get; set; }
     public DbSet<ReceiptResource> ReceiptResources { get; set; }

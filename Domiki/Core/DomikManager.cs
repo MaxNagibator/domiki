@@ -259,6 +259,8 @@ public class DomikManager
                             PlodderCount = x.PlodderCount,
                             ReceiptId = x.ReceiptId,
                             AutoRepeat = x.AutoRepeat,
+                            MeasureResourceTypeId = x.MeasureResourceTypeId,
+                            MeasureValue = x.MeasureValue,
                         })
                         .ToArray() ?? [],
                 })
@@ -463,7 +465,7 @@ public class DomikManager
         };
     }
 
-    public void StartManufacture(int playerId, int domikId, int receiptId, bool useOptional = false, int[]? workerIds = null, bool autoRepeat = false)
+    public void StartManufacture(int playerId, int domikId, int receiptId, bool useOptional = false, int[]? workerIds = null, bool autoRepeat = false, int? measureResourceTypeId = null, int? measureValue = null)
     {
         var date = DateTimeHelper.GetNowDate();
 
@@ -618,6 +620,8 @@ public class DomikManager
             PlodderCount = needPlodderCount,
             OutputPercent = outputPercent,
             AutoRepeat = autoRepeat,
+            MeasureResourceTypeId = measureResourceTypeId,
+            MeasureValue = measureValue,
             UseOptional = useOptionalApplied,
             SickChance = sickChance,
             SickTypeId = sickType?.Id,
@@ -662,6 +666,8 @@ public class DomikManager
             var receiptId = dbManufacture.ReceiptId;
             var useOptional = dbManufacture.UseOptional;
             var autoRepeat = dbManufacture.AutoRepeat;
+            var measureResourceTypeId = dbManufacture.MeasureResourceTypeId;
+            var measureValue = dbManufacture.MeasureValue;
             var domikId = dbManufacture.DomikId;
             var playerId = calcInfo.PlayerId;
             var dbDomik = _context.Domiks.SingleOrDefault(x => x.PlayerId == calcInfo.PlayerId && x.Id == dbManufacture.DomikId);
@@ -840,9 +846,25 @@ public class DomikManager
             if (autoRepeat)
             {
                 _context.SaveChanges();
+                if (measureResourceTypeId is int measureType && measureValue is int measureTarget
+                    && _elderHouseManager.IsMeasureMet(playerId, measureType, measureTarget))
+                {
+                    _playerEventManager.Record(playerId, PlayerEventType.ManufactureMeasureMet, new { domikId, domikTypeId = dbDomik.TypeId, receiptId, resourceTypeId = measureType, value = measureTarget });
+                    return true;
+                }
+
+                var manufactureInputs = useOptional && recept.OptionalInputResources is { Length: > 0 }
+                    ? recept.InputResources.Concat(recept.OptionalInputResources).ToArray()
+                    : recept.InputResources;
+                if (_elderHouseManager.GetHeldResourceTypeId(playerId, manufactureInputs) is int heldResourceTypeId)
+                {
+                    _playerEventManager.Record(playerId, PlayerEventType.ManufactureReserveHeld, new { domikId, domikTypeId = dbDomik.TypeId, receiptId, resourceTypeId = heldResourceTypeId });
+                    return true;
+                }
+
                 try
                 {
-                    StartManufacture(playerId, domikId, receiptId, useOptional, freedWorkerIds.ToArray(), true);
+                    StartManufacture(playerId, domikId, receiptId, useOptional, freedWorkerIds.ToArray(), true, measureResourceTypeId, measureValue);
                 }
                 catch (BusinessException ex)
                 {
@@ -907,6 +929,64 @@ public class DomikManager
         }
 
         dbManufacture.AutoRepeat = autoRepeat;
+        if (!autoRepeat)
+        {
+            dbManufacture.MeasureResourceTypeId = null;
+            dbManufacture.MeasureValue = null;
+        }
+    }
+
+    /// <summary>
+    /// Назначает наряду меру или снимает её.
+    /// </summary>
+    /// <remarks>
+    /// Мера – ответ на вопрос «до каких пор повторять»: наряд снимется сам, когда запаса ресурса станет не меньше
+    /// <paramref name="value"/>. Открывается уровнем <see cref="ElderHouseManager.MeasureMinLevel"/> Избы старосты.
+    /// </remarks>
+    /// <param name="playerId">Идентификатор игрока.</param>
+    /// <param name="manufactureId">Идентификатор смены, на которой стоит наряд.</param>
+    /// <param name="resourceTypeId">Тип ресурса меры; <see langword="null"/> снимает меру.</param>
+    /// <param name="value">Сколько единиц набрать; <see langword="null"/> снимает меру.</param>
+    /// <exception cref="BusinessException">Смены нет, наряд не поставлен, Изба не доросла до меры либо мера бессмысленна.</exception>
+    public void SetManufactureMeasure(int playerId, int manufactureId, int? resourceTypeId, int? value)
+    {
+        _playerResourceManager.LockDbPlayerRow(playerId);
+
+        var dbManufacture = _context.Manufactures.SingleOrDefault(x => x.Id == manufactureId && x.DomikPlayerId == playerId);
+        if (dbManufacture == null)
+        {
+            throw new BusinessException("Производство не найдено");
+        }
+
+        if (resourceTypeId == null || value == null)
+        {
+            dbManufacture.MeasureResourceTypeId = null;
+            dbManufacture.MeasureValue = null;
+            return;
+        }
+
+        if (_elderHouseManager.GetLevel(playerId) < ElderHouseManager.MeasureMinLevel)
+        {
+            throw new BusinessException("Меру назначать нечем: в Избе старосты нет мерной рейки");
+        }
+
+        if (!dbManufacture.AutoRepeat)
+        {
+            throw new BusinessException("Мера ставится наряду: сперва поставьте наряд");
+        }
+
+        if (_resourceManager.GetResourceTypes().All(x => x.Id != resourceTypeId.Value))
+        {
+            throw new BusinessException("Такого припаса не бывает");
+        }
+
+        if (value.Value <= 0)
+        {
+            throw new BusinessException("Мера должна быть больше нуля");
+        }
+
+        dbManufacture.MeasureResourceTypeId = resourceTypeId.Value;
+        dbManufacture.MeasureValue = value.Value;
     }
 
     private void IncrementWorkerSkill(int workerId, int domikTypeId)

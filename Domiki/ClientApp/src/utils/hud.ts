@@ -75,6 +75,11 @@ export interface HudSoonestOrder {
     hours: number;
 }
 
+export interface HudMeasure {
+    resourceTypeId: number;
+    value: number;
+}
+
 export interface HudStandingShift {
     manufactureId: number;
     domikId: number;
@@ -84,6 +89,8 @@ export interface HudStandingShift {
     receiptName: string;
     finishDate: string;
     starving: boolean;
+    measure: HudMeasure | null;
+    inputTypeIds: number[];
 }
 
 export interface HudDigest {
@@ -216,6 +223,10 @@ export function computeHudDigest(
                 receiptName: receipt.name,
                 finishDate: manufacture.finishDate,
                 starving: missing.some(item => !producedSoon.has(item.typeId)),
+                measure: manufacture.measureResourceTypeId != null && manufacture.measureValue != null
+                    ? { resourceTypeId: manufacture.measureResourceTypeId, value: manufacture.measureValue }
+                    : null,
+                inputTypeIds: receipt.inputResources.map(input => input.typeId),
             }];
         });
     });

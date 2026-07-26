@@ -4,6 +4,7 @@ using Domiki.Web.Economy.Models;
 using Domiki.Web.Infrastructure;
 using Domiki.Web.Reference;
 using Microsoft.EntityFrameworkCore;
+using Resource = Domiki.Web.Reference.Models.Resource;
 
 namespace Domiki.Web.Economy;
 
@@ -262,6 +263,112 @@ public class ElderHouseManager
                      ?? 0;
 
         return (int)Math.Clamp(100 - worked * 100 / capacity, 0, 100);
+    }
+
+    /// <summary>
+    /// Возвращает заповеданные припасы игрока.
+    /// </summary>
+    /// <param name="playerId">Идентификатор игрока.</param>
+    /// <returns>Заповедь по каждому ресурсу, у которого она больше нуля.</returns>
+    public ResourceReserve[] GetReserves(int playerId)
+    {
+        return _context.PlayerResourceReserves
+            .Where(x => x.PlayerId == playerId && x.Reserve > 0)
+            .OrderBy(x => x.ResourceTypeId)
+            .Select(x => new ResourceReserve { ResourceTypeId = x.ResourceTypeId, Reserve = x.Reserve })
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Заповедует припас от нарядов либо снимает заповедь нулём.
+    /// </summary>
+    /// <param name="playerId">Идентификатор игрока.</param>
+    /// <param name="resourceTypeId">Тип ресурса.</param>
+    /// <param name="reserve">Сколько единиц отложить; <c>0</c> снимает заповедь.</param>
+    /// <exception cref="BusinessException">Изба не доросла до заповеди, ресурс неизвестен или число отрицательное.</exception>
+    public void SaveReserve(int playerId, int resourceTypeId, int reserve)
+    {
+        if (GetLevel(playerId) < ReserveMinLevel)
+        {
+            throw new BusinessException("Заповедать припас некому: в Избе старосты нет заповедного ларя");
+        }
+
+        if (_resourceManager.GetResourceTypes().All(x => x.Id != resourceTypeId))
+        {
+            throw new BusinessException("Такого припаса не бывает");
+        }
+
+        if (reserve < 0)
+        {
+            throw new BusinessException("Заповедь не может быть отрицательной");
+        }
+
+        var row = _context.PlayerResourceReserves.Local.FirstOrDefault(x => x.PlayerId == playerId && x.ResourceTypeId == resourceTypeId)
+                  ?? _context.PlayerResourceReserves.FirstOrDefault(x => x.PlayerId == playerId && x.ResourceTypeId == resourceTypeId);
+
+        if (row == null)
+        {
+            row = new() { PlayerId = playerId, ResourceTypeId = resourceTypeId };
+            _context.PlayerResourceReserves.Add(row);
+        }
+
+        row.Reserve = reserve;
+    }
+
+    /// <summary>
+    /// Проверяет, набралось ли меры наряда.
+    /// </summary>
+    /// <param name="playerId">Идентификатор игрока.</param>
+    /// <param name="resourceTypeId">Тип ресурса меры.</param>
+    /// <param name="value">Сколько единиц нужно набрать.</param>
+    /// <returns><see langword="true"/> – на складе уже не меньше <paramref name="value"/>, наряд отстоял меру.</returns>
+    public bool IsMeasureMet(int playerId, int resourceTypeId, int value)
+    {
+        return GetStock(playerId, resourceTypeId) >= value;
+    }
+
+    /// <summary>
+    /// Ищет припас, который наряд не вправе тронуть из-за заповеди.
+    /// </summary>
+    /// <remarks>
+    /// Заповедь смотрит на остаток после списания: наряд встаёт, если хоть один вход увёл бы запас ниже отложенного.
+    /// </remarks>
+    /// <param name="playerId">Идентификатор игрока.</param>
+    /// <param name="inputs">Входы рецепта вместе с опциональным, если он применяется.</param>
+    /// <returns>Тип первого упёршегося ресурса либо <see langword="null"/>, если заповедь наряду не мешает.</returns>
+    public int? GetHeldResourceTypeId(int playerId, Resource[] inputs)
+    {
+        if (GetLevel(playerId) < ReserveMinLevel)
+        {
+            return null;
+        }
+
+        var reserves = _context.PlayerResourceReserves
+            .Where(x => x.PlayerId == playerId && x.Reserve > 0)
+            .ToDictionary(x => x.ResourceTypeId, x => x.Reserve);
+
+        if (reserves.Count == 0)
+        {
+            return null;
+        }
+
+        foreach (var group in inputs.Where(x => x.Value > 0).GroupBy(x => x.Type.Id))
+        {
+            if (reserves.TryGetValue(group.Key, out var reserve)
+                && GetStock(playerId, group.Key) - group.Sum(x => x.Value) < reserve)
+            {
+                return group.Key;
+            }
+        }
+
+        return null;
+    }
+
+    private int GetStock(int playerId, int resourceTypeId)
+    {
+        return _context.Resources.Local.FirstOrDefault(x => x.PlayerId == playerId && x.TypeId == resourceTypeId)?.Value
+               ?? _context.Resources.Where(x => x.PlayerId == playerId && x.TypeId == resourceTypeId).Select(x => (int?)x.Value).FirstOrDefault()
+               ?? 0;
     }
 
     private PlayerResourceFlow GetOrCreateFlow(int playerId, int resourceTypeId)

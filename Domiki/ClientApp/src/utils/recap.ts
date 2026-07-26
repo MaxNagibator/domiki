@@ -28,6 +28,7 @@ export interface RecapView {
     incidents: { kind: 'missing' | 'resolved'; autoReturned?: boolean; workerName: string; workerGender: number; templateId: number; clueId?: number; resourceTypeId?: number; value?: number; traitUpgraded?: boolean; newTrait?: string; newTraitLogicName?: string }[];
     domikIncidents: { kind: 'started' | 'resolved'; autoResolved?: boolean; domikTypeId: number; templateId: number; clueId?: number; resourceTypeId?: number; value?: number; traitUpgraded?: boolean; newTrait?: string; newTraitLogicName?: string; heroWorkerName?: string; heroWorkerGender?: number; upgradedWorkerName?: string }[];
     manufactureRepeatFailures: { domikTypeId: number; reason: string }[];
+    manufactureStops: { kind: 'measure' | 'reserve'; domikTypeId: number; resourceTypeId: number; value?: number }[];
 }
 
 export const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
@@ -81,6 +82,7 @@ export function buildRecapView(events: RecapEventDto[]): RecapView {
     const incidents: RecapView['incidents'] = [];
     const domikIncidents: RecapView['domikIncidents'] = [];
     const manufactureRepeatFailures: RecapView['manufactureRepeatFailures'] = [];
+    const manufactureStops: RecapView['manufactureStops'] = [];
 
     for (const event of events) {
         if (!isRecord(event.data)) {
@@ -122,6 +124,20 @@ export function buildRecapView(events: RecapEventDto[]): RecapView {
                 continue;
             }
             manufactureRepeatFailures.push({ domikTypeId, reason });
+        }
+
+        if (event.type === 'ManufactureMeasureMet') {
+            const { domikTypeId, resourceTypeId, value } = event.data;
+            if (isNumber(domikTypeId) && isNumber(resourceTypeId) && isNumber(value)) {
+                manufactureStops.push({ kind: 'measure', domikTypeId, resourceTypeId, value });
+            }
+        }
+
+        if (event.type === 'ManufactureReserveHeld') {
+            const { domikTypeId, resourceTypeId } = event.data;
+            if (isNumber(domikTypeId) && isNumber(resourceTypeId)) {
+                manufactureStops.push({ kind: 'reserve', domikTypeId, resourceTypeId });
+            }
         }
 
         if (event.type === 'DomikUpgraded' && isNumber(event.data.domikTypeId) && isNumber(event.data.level)) {
@@ -219,5 +235,6 @@ export function buildRecapView(events: RecapEventDto[]): RecapView {
         incidents,
         domikIncidents,
         manufactureRepeatFailures,
+        manufactureStops,
     };
 }

@@ -22,6 +22,8 @@ public static class DomikDtoExtensions
                     PlodderCount = x.PlodderCount,
                     ReceiptId = x.ReceiptId,
                     AutoRepeat = x.AutoRepeat,
+                    MeasureResourceTypeId = x.MeasureResourceTypeId,
+                    MeasureValue = x.MeasureValue,
                 })
                 .ToArray(),
         };

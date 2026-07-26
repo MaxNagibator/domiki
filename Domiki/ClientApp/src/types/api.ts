@@ -27,6 +27,8 @@ export const manufactureSchema = z.object({
     plodderCount: z.number(),
     receiptId: z.number(),
     autoRepeat: z.boolean(),
+    measureResourceTypeId: z.number().nullish(),
+    measureValue: z.number().nullish(),
 });
 export type ManufactureDto = z.infer<typeof manufactureSchema>;
 
@@ -377,6 +379,12 @@ export const ledgerSchema = z.object({
 });
 export type LedgerDto = z.infer<typeof ledgerSchema>;
 
+export const resourceReserveSchema = z.object({
+    resourceTypeId: z.number(),
+    reserve: z.number(),
+});
+export type ResourceReserveDto = z.infer<typeof resourceReserveSchema>;
+
 export const cloakStateSchema = z.object({
     stock: z.number(),
     outOnShifts: z.number(),
@@ -613,6 +621,7 @@ export const gameStateSchema = z.object({
     cloaks: cloakStateSchema,
     larder: larderSchema,
     ledger: ledgerSchema.nullish(),
+    reserves: z.array(resourceReserveSchema).optional().default([]),
     sickTypes: sickTypeSchema.array(),
     purchaseAvailableDomiks: domikTypeSchema.array(),
     weather: weatherStateSchema,

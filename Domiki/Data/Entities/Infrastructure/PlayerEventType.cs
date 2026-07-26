@@ -136,4 +136,21 @@ public enum PlayerEventType
     /// См. <see cref="Core.DomikManager.FinishManufacture"/>.
     /// </remarks>
     ManufactureRepeatFailed = 19,
+
+    /// <summary>
+    /// Наряд отстоял назначенную меру и снялся сам.
+    /// </summary>
+    /// <remarks>
+    /// Плановый конец наряда, отдельный от <see cref="ManufactureRepeatFailed"/>: иначе он читался бы как «наряды опять
+    /// пропадают сами». См. <see cref="Core.DomikManager.FinishManufacture"/>.
+    /// </remarks>
+    ManufactureMeasureMet = 20,
+
+    /// <summary>
+    /// Наряд встал, потому что входной припас заповедан от нарядов.
+    /// </summary>
+    /// <remarks>
+    /// См. <see cref="Economy.ElderHouseManager.GetHeldResourceTypeId"/>.
+    /// </remarks>
+    ManufactureReserveHeld = 21,
 }

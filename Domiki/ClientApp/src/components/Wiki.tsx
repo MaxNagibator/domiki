@@ -37,6 +37,8 @@ interface Mechanic {
     name: string;
     teaser: string;
     description: string;
+    /** Постройка, чей спрайт заменяет значок механики: у механик-надстроек своего значка нет. */
+    domikLogic?: string;
 }
 
 const MECHANICS: Mechanic[] = [
@@ -109,6 +111,14 @@ const MECHANICS: Mechanic[] = [
         name: 'Корчма',
         teaser: 'обед, котомки и тёплый угол',
         description: 'Корчма открывается на обжитости 16 и стоит 300 монет. У неё три ступени: «котёл» – уставшие трудяги обедают из запаса, и отдых вдвое короче; «котомки в дорогу» – еда в поход собирается сама; «тёплый угол» – хворые встают на четверть быстрее.\n\nОбед берёт любую еду, дешёвую первой: хлеб из пекарни или сыр из овчарни. Без корчмы обеда нет вовсе.\n\nКладовая: против каждой еды можно поставить заповедный запас – корчмарь берёт только то, что сверх него, а помеченное «не подавать» не тронет ни к обеду, ни в котомки.',
+    },
+    {
+        key: 'elder_house',
+        logic: 'elder_house',
+        domikLogic: 'elder_house',
+        name: 'Изба старосты',
+        teaser: 'книга, мера, заповедь',
+        description: 'Изба ничего не производит – она считает. Ставится с обжитости 32, одна на деревню, и открывается лестницей: сперва книга, потом мера, потом заповедь. Доска «Хозяйство» и без избы отвечает, чего сейчас нет; изба добавляет числа и сутки.\n\nСчётная книга (1 ур.). За сутки видно, что добыто, что потрачено и сколько двор простоял, а ещё – чего не хватит первым при нынешнем расходе. Книга ведётся с часа постройки, задним числом староста не считает, и держит записи за 8 суток. Монеты и золото в прогноз не берутся: они уходят покупками разом, и ровного расхода у них нет.\n\nМера наряда (2 ур.). Наряду можно назначить меру: повторять, пока кирпича меньше 50, – дальше он снимется сам. Мера переносится на каждый круг, а снятие по мере попадает в журнал своей записью, чтобы плановый конец не читался как заглохший наряд.\n\nЗаповедный припас (3 ур.). Метка на ларе: ниже отложенного наряды не тронут – запас под заказ цел. Заповедь связывает только наряды; смену, запущенную руками, она не остановит.',
     },
     {
         key: 'weather',
@@ -453,7 +463,9 @@ const WikiMechanicsSection = ({ villageLevel, weather, decor, domikTypes, convoy
                     return (
                         <div key={m.key} className={'wiki-building pixel-panel' + (open ? ' receipt-open' : '')}>
                             <button type="button" className="wiki-building-head" aria-expanded={open} onClick={() => toggleMechanic(m.key)}>
-                                <MechanicSprite logicName={m.logic} size={24} className="wiki-mech-ico" aria-hidden="true" />
+                                {m.domikLogic != null
+                                    ? <DomikSprite logicName={m.domikLogic} level={3} className="wiki-mech-ico" aria-hidden="true" />
+                                    : <MechanicSprite logicName={m.logic} size={24} className="wiki-mech-ico" aria-hidden="true" />}
                                 <span className="wiki-building-titles">
                                     <span className="wiki-building-name">{m.name}</span>
                                     <span className="wiki-building-meta">{m.teaser}</span>

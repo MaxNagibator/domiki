@@ -486,3 +486,48 @@ progress {
         animation: none;
     }
 }
+
+.manufacture-measure {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    width: 100%;
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 2px dashed var(--plank-dark);
+}
+
+.manufacture-measure-hint {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--ink-muted);
+}
+
+.manufacture-measure-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 12px;
+}
+
+    .manufacture-measure-row select {
+        max-width: 140px;
+    }
+
+    .manufacture-measure-row input {
+        width: 72px;
+    }
+
+.manufacture-measure-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.resource-chip-name {
+    gap: 4px;
+    font-weight: 700;
+}

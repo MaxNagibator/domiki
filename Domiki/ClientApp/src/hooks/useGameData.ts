@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { acceptLot as acceptLotApi, apiGet, ApiError, buyDecor as buyDecorApi, buyFromConvoy as buyFromConvoyApi, cancelLot as cancelLotApi, contributeToloka as contributeTolokaApi, getDecor, getGameState, getMarket, getToloka, getVillage, hurryDomik as hurryDomikApi, hurryManufacture as hurryManufactureApi, postLot as postLotApi, setFoodRule as setFoodRuleApi, setManufactureAutoRepeat as setManufactureAutoRepeatApi, setVillage as setVillageApi, startExpedition as startExpeditionApi, voteToloka as voteTolokaApi } from '../services/api';
+import { acceptLot as acceptLotApi, apiGet, ApiError, buyDecor as buyDecorApi, buyFromConvoy as buyFromConvoyApi, cancelLot as cancelLotApi, contributeToloka as contributeTolokaApi, getDecor, getGameState, getMarket, getToloka, getVillage, hurryDomik as hurryDomikApi, hurryManufacture as hurryManufactureApi, postLot as postLotApi, setFoodRule as setFoodRuleApi, setManufactureAutoRepeat as setManufactureAutoRepeatApi, setManufactureMeasure as setManufactureMeasureApi, setResourceReserve as setResourceReserveApi, setVillage as setVillageApi, startExpedition as startExpeditionApi, voteToloka as voteTolokaApi } from '../services/api';
 import { useToast } from '../services/toastContext';
 import {
     domikTypeSchema,
@@ -27,6 +27,7 @@ import {
     type SickTypeDto,
     type TavernLarderDto,
     type LedgerDto,
+    type ResourceReserveDto,
     type TolokaStateDto,
     type VillageDto,
     type VillageLevelDto,
@@ -65,6 +66,7 @@ export interface GameData {
     cloaks: CloakStateDto;
     larder: TavernLarderDto | null;
     ledger: LedgerDto | null;
+    reserves: ResourceReserveDto[];
     sickTypes: SickTypeDto[];
     purchaseDomikTypes: DomikTypeDto[] | null;
     now: number;
@@ -74,6 +76,8 @@ export interface GameData {
     setVillage: (name: string, crestIcon: number, crestColor: number) => Promise<void>;
     hurryManufacture: (manufactureId: number) => Promise<void>;
     setManufactureAutoRepeat: (manufactureId: number, autoRepeat: boolean) => Promise<void>;
+    setManufactureMeasure: (manufactureId: number, resourceTypeId: number | null, value: number | null) => Promise<void>;
+    setResourceReserve: (resourceTypeId: number, reserve: number) => Promise<void>;
     hurryDomik: (domikId: number) => Promise<void>;
     startExpedition: (expeditionTypeId: number, workerIds?: number[], provisions?: boolean) => Promise<void>;
     buyDecor: (decorTypeId: number) => Promise<void>;
@@ -131,6 +135,7 @@ export function useGameData(): GameData {
     const [cloaks, setCloaks] = useState<CloakStateDto>({ stock: 0, outOnShifts: 0, wearPoints: 0, lifetimeShifts: 0 });
     const [larder, setLarder] = useState<TavernLarderDto | null>(null);
     const [ledger, setLedger] = useState<LedgerDto | null>(null);
+    const [reserves, setReserves] = useState<ResourceReserveDto[]>([]);
     const [sickTypes, setSickTypes] = useState<SickTypeDto[]>([]);
     const [purchaseDomikTypes, setPurchaseDomikTypes] = useState<DomikTypeDto[] | null>(null);
     const [recap, setRecap] = useState<RecapDto | null>(null);
@@ -241,6 +246,7 @@ export function useGameData(): GameData {
         setCloaks(state.cloaks);
         setLarder(state.larder);
         setLedger(state.ledger ?? null);
+        setReserves(state.reserves);
         setSickTypes(state.sickTypes);
         setWeather(state.weather);
         setExpeditions(state.expeditions);
@@ -301,6 +307,16 @@ export function useGameData(): GameData {
 
     const setManufactureAutoRepeat = useCallback(async (manufactureId: number, autoRepeat: boolean) => {
         await setManufactureAutoRepeatApi(manufactureId, autoRepeat);
+        scheduleReload();
+    }, [scheduleReload]);
+
+    const setManufactureMeasure = useCallback(async (manufactureId: number, resourceTypeId: number | null, value: number | null) => {
+        await setManufactureMeasureApi(manufactureId, resourceTypeId, value);
+        scheduleReload();
+    }, [scheduleReload]);
+
+    const setResourceReserve = useCallback(async (resourceTypeId: number, reserve: number) => {
+        await setResourceReserveApi(resourceTypeId, reserve);
         scheduleReload();
     }, [scheduleReload]);
 
@@ -406,6 +422,7 @@ export function useGameData(): GameData {
                 setWorkers(state.workers);
                 setLarder(state.larder);
                 setLedger(state.ledger ?? null);
+                setReserves(state.reserves);
                 setPurchaseDomikTypes(state.purchaseAvailableDomiks);
                 setWeather(state.weather);
                 setExpeditions(state.expeditions);
@@ -611,6 +628,7 @@ export function useGameData(): GameData {
         cloaks,
         larder,
         ledger,
+        reserves,
         sickTypes,
         purchaseDomikTypes,
         now,
@@ -621,6 +639,8 @@ export function useGameData(): GameData {
         setVillage,
         hurryManufacture,
         setManufactureAutoRepeat,
+        setManufactureMeasure,
+        setResourceReserve,
         hurryDomik,
         startExpedition,
         buyDecor,

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { LedgerDto, ResourceTypeDto } from '../types/api';
+import type { LedgerDto, ResourceReserveDto, ResourceTypeDto } from '../types/api';
 import type { HudDigest } from '../utils/hud';
 import { HouseholdBox } from './HouseholdBox';
 
@@ -28,13 +28,15 @@ const emptyDigest: HudDigest = {
 
 const NOW = Date.parse('2026-07-25T12:00:00.000Z');
 
-const renderBox = (digest: HudDigest, ledger: LedgerDto | null = null) => {
+const renderBox = (digest: HudDigest, ledger: LedgerDto | null = null, reserves: ResourceReserveDto[] = []) => {
     const onSelectDomik = vi.fn();
     const onOpenTab = vi.fn();
     const onToggleRepeat = vi.fn();
-    render(<HouseholdBox digest={digest} resourceTypes={resourceTypes} ledger={ledger} now={NOW}
+    const onSetReserve = vi.fn();
+    render(<HouseholdBox digest={digest} resourceTypes={resourceTypes} resources={[{ typeId: 200, value: 240 }]}
+        reserves={reserves} ledger={ledger} now={NOW} onSetReserve={onSetReserve}
         onSelectDomik={onSelectDomik} onOpenTab={onOpenTab} onToggleRepeat={onToggleRepeat} />);
-    return { onSelectDomik, onOpenTab, onToggleRepeat };
+    return { onSelectDomik, onOpenTab, onToggleRepeat, onSetReserve };
 };
 
 describe('HouseholdBox empty states', () => {
@@ -152,6 +154,7 @@ describe('HouseholdBox наряды block', () => {
         standingShifts: [{
             manufactureId: 5, domikId: 3, domikLogicName: 'pottery', domikName: 'Гончарня',
             receiptId: 2, receiptName: 'Обжечь кирпич', finishDate: '2026-07-25T15:40:00.000Z', starving: false,
+            measure: null, inputTypeIds: [200],
         }],
     };
 

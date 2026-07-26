@@ -43,4 +43,20 @@ public sealed record ManufactureDto
     /// Работает, пока хватает ресурсов и свободных трудяг.
     /// </remarks>
     public required bool AutoRepeat { get; init; }
+
+    /// <summary>
+    /// Мера наряда: ресурс, по запасу которого наряд снимается сам.
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – меры нет, наряд идёт, пока хватает припасов.
+    /// </remarks>
+    public int? MeasureResourceTypeId { get; init; }
+
+    /// <summary>
+    /// Мера наряда: сколько единиц ресурса нужно набрать.
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – меры нет.
+    /// </remarks>
+    public int? MeasureValue { get; init; }
 }

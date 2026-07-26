@@ -217,6 +217,7 @@ describe('computeHudDigest standing shifts', () => {
 
         expect(result.standingShifts).toEqual([{
             manufactureId: 1, domikId: 1, domikLogicName: 'forge', domikName: 'Кузница', receiptId: 1, receiptName: 'Сковать инструмент', finishDate: manufacture.finishDate, starving: false,
+            measure: null, inputTypeIds: [],
         }]);
     });
 

@@ -46,4 +46,20 @@ public class Manufacture
     /// Работает, пока хватает ресурсов и свободных трудяг.
     /// </remarks>
     public bool AutoRepeat { get; set; }
+
+    /// <summary>
+    /// Мера наряда: ресурс, по запасу которого наряд снимается сам.
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – меры нет.
+    /// </remarks>
+    public int? MeasureResourceTypeId { get; set; }
+
+    /// <summary>
+    /// Мера наряда: сколько единиц ресурса нужно набрать.
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – меры нет.
+    /// </remarks>
+    public int? MeasureValue { get; set; }
 }

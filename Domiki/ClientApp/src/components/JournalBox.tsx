@@ -111,6 +111,38 @@ const renderContent = (event: RecapEventDto, resourceTypes: ResourceTypeDto[], d
         };
     }
 
+    if (event.type === 'ManufactureMeasureMet' && isNumber(data.domikTypeId) && isNumber(data.resourceTypeId) && isNumber(data.value)) {
+        const domikType = domikTypes.find(x => x.id === data.domikTypeId);
+        const resourceType = findResourceType(resourceTypes, data.resourceTypeId);
+        return {
+            tone: 'prod',
+            Icon: abstractIcon('production_recipe'),
+            body: (
+                <>
+                    {domikType != null && <DomikSprite logicName={domikType.logicName} aria-hidden="true" />}
+                    <span className="journal-text">
+                        Наряд отстоял меру: {resourceType?.name ?? 'припас'} дошёл до {data.value} – наряд снят.
+                    </span>
+                </>
+            ),
+        };
+    }
+
+    if (event.type === 'ManufactureReserveHeld' && isNumber(data.domikTypeId) && isNumber(data.resourceTypeId)) {
+        const domikType = domikTypes.find(x => x.id === data.domikTypeId);
+        const resourceType = findResourceType(resourceTypes, data.resourceTypeId);
+        return {
+            tone: 'prod',
+            Icon: abstractIcon('production_recipe'),
+            body: (
+                <>
+                    {domikType != null && <DomikSprite logicName={domikType.logicName} aria-hidden="true" />}
+                    <span className="journal-text">Наряд встал: {resourceType?.name ?? 'припас'} под заповедью.</span>
+                </>
+            ),
+        };
+    }
+
     if (event.type === 'DomikUpgraded' && isNumber(data.domikTypeId) && isNumber(data.level)) {
         const domikType = domikTypes.find(x => x.id === data.domikTypeId);
         return {

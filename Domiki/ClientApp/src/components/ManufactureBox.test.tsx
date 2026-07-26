@@ -16,6 +16,8 @@ const receipt = {
     id: 4,
     name: 'Обжечь кирпич',
     durationSeconds: 3600,
+    inputResources: [{ typeId: 200, value: 2 }],
+    outputResources: [{ typeId: 201, value: 1 }],
 } as ReceiptDto;
 
 const renderBox = (value: ManufactureDto, onToggle = vi.fn()) => {
