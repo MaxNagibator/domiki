@@ -381,7 +381,7 @@ export const DomikiPage = () => {
 
     const gameTabs: GameTab[] = [
         {
-            key: 'household', label: 'Хозяйство', icon: <AbstractSprite logicName="elder_order" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
+            key: 'household', label: 'Хозяйство', icon: <AbstractSprite logicName="household" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
             node: () => <HouseholdBox digest={hudDigest} resourceTypes={resourceTypes} resources={resources} reserves={reserves} ledger={ledger} now={now}
                 onSetReserve={setResourceReserveAction} onSelectDomik={selectDomikFromBoard} onOpenTab={setActiveTab}
                 onToggleRepeat={toggleManufactureAutoRepeat} />,

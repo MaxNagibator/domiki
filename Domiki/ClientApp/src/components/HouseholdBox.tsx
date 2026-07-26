@@ -276,7 +276,7 @@ export const HouseholdBox = ({ digest, resourceTypes, resources, reserves, ledge
     return (
         <section className="household-panel pixel-panel">
             <header className="household-hero">
-                <span className="household-hero-emblem" aria-hidden="true"><AbstractSprite logicName="elder_order" size={40} /></span>
+                <span className="household-hero-emblem" aria-hidden="true"><AbstractSprite logicName="household" size={40} /></span>
                 <div className="household-hero-text">
                     <h3 className="panel-title household-hero-title">Хозяйство</h3>
                     <p className="household-hero-sub">Здесь видно, что в деревне просит рук – а дела правятся на дворе.</p>

@@ -72,6 +72,7 @@ import BlueprintSprite from '../assets/abstract/blueprint.svg?react';
 import UntouchedDepositsSprite from '../assets/abstract/untouched_deposits.svg?react';
 import JournalAbstractSprite from '../assets/abstract/journal.svg?react';
 import ElderOrderSprite from '../assets/abstract/elder_order.svg?react';
+import HouseholdAbstractSprite from '../assets/abstract/household.svg?react';
 import SmartArtelSprite from '../assets/abstract/smart_artel.svg?react';
 import HurrySprite from '../assets/abstract/hurry.svg?react';
 import IncidentSprite from '../assets/abstract/incident.svg?react';
@@ -228,6 +229,7 @@ const abstractSprites: Record<string, SpriteComponent> = {
     untouched_deposits: UntouchedDepositsSprite,
     journal: JournalAbstractSprite,
     elder_order: ElderOrderSprite,
+    household: HouseholdAbstractSprite,
     smart_artel: SmartArtelSprite,
     hurry: HurrySprite,
     incident: IncidentSprite,
