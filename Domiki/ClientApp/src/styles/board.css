@@ -835,15 +835,6 @@
     image-rendering: pixelated;
 }
 
-.domik-level {
-    font-family: var(--pixel);
-    font-size: 11px;
-    padding: 4px 7px 3px;
-    color: var(--plank);
-    background: var(--pine);
-    font-variant-numeric: tabular-nums;
-}
-
 .lore-tip {
     display: inline-flex;
     vertical-align: middle;
@@ -898,11 +889,40 @@
     font-variant-numeric: tabular-nums;
 }
 
+.actions {
+    flex: 0 0 320px;
+    align-self: flex-start;
+    position: sticky;
+    top: var(--hud-sticky-offset, 76px);
+    max-height: calc(100vh - var(--hud-sticky-offset, 76px) - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--pine) var(--plank-dark);
+    scroll-margin-top: calc(var(--hud-sticky-offset, 76px) + 12px);
+    padding: 0 18px 18px;
+    box-shadow: inset 0 -4px 0 var(--plank-dark);
+}
+
+    .actions::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .actions::-webkit-scrollbar-track {
+        background: var(--plank-dark);
+        border-left: 2px solid var(--ink);
+    }
+
+    .actions::-webkit-scrollbar-thumb {
+        background: var(--pine);
+        border: 2px solid var(--ink);
+    }
+
 .actions--empty {
     display: flex;
     align-items: center;
-    align-self: flex-start;
-    min-height: 128px;
+    min-height: 112px;
+    padding-top: 18px;
     background: var(--plank-dark);
     box-shadow: inset 0 -4px 0 rgba(51, 41, 26, .12);
 }
@@ -912,14 +932,6 @@
         color: var(--ink-muted);
         text-align: center;
     }
-
-.actions {
-    flex: 0 0 320px;
-    align-self: stretch;
-    scroll-margin-top: calc(var(--hud-sticky-offset, 76px) + 12px);
-    padding: 18px;
-    box-shadow: inset 0 -4px 0 var(--plank-dark);
-}
 
 .actions-close {
     display: none;
@@ -939,9 +951,66 @@
 }
 
 .actions-heading {
-    margin: -4px -4px 0;
-    padding: 4px 44px 10px 4px;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    margin: 0 -18px;
+    padding: 16px 44px 10px 18px;
+    background: var(--plank);
     border-bottom: 2px solid rgba(51, 41, 26, .18);
+}
+
+.panel-crest {
+    width: 64px;
+    height: 64px;
+    align-self: start;
+    image-rendering: pixelated;
+    background: var(--grass);
+    border: 2px solid var(--ink);
+    box-shadow: inset 0 -4px 0 rgba(51, 41, 26, .18);
+}
+
+.panel-ident {
+    min-width: 0;
+}
+
+.panel-level {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.panel-level-value {
+    font-family: var(--pixel);
+    font-size: 11px;
+    color: var(--pine-dark);
+    font-variant-numeric: tabular-nums;
+}
+
+.panel-notches {
+    display: inline-flex;
+    gap: 3px;
+}
+
+.panel-notch {
+    width: 8px;
+    height: 10px;
+    background: transparent;
+    border: 2px solid rgba(51, 41, 26, .35);
+}
+
+.panel-notch--cut {
+    background: var(--pine);
+    border-color: var(--ink);
+}
+
+.actions-heading .panel-tabs {
+    grid-column: 1 / -1;
 }
 
     .actions-heading + .panel-block,
@@ -955,26 +1024,21 @@
     margin-bottom: 0;
 }
 
-.actions-heading .domik-level {
-    display: inline-block;
-    vertical-align: middle;
-    margin-left: 8px;
-}
-
 .panel-status {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px 10px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
     min-height: 14px;
-    margin-top: 8px;
+    margin-top: 5px;
 }
 
 .panel-status-item {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    font-family: var(--pixel);
-    font-size: 11px;
+    font-size: 12px;
+    font-weight: 700;
     color: var(--pine-dark);
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
@@ -1214,11 +1278,62 @@
         box-shadow: none;
     }
 
-.hurry-cost-ico {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-    image-rendering: pixelated;
+.btn-game.hurry-btn {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    width: 100%;
+    margin-top: 10px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.hurry-btn-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex: none;
+    padding: 6px 10px;
+    font-size: 13px;
+    color: var(--ink);
+    background: #fffaec;
+    font-variant-numeric: tabular-nums;
+}
+
+    .btn-game.hurry-btn .hurry-btn-cell .px-sprite {
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        background: none;
+        image-rendering: pixelated;
+    }
+
+.hurry-btn-ico {
+    border-right: 2px solid var(--ink);
+}
+
+.hurry-btn-price {
+    border-left: 2px solid var(--ink);
+}
+
+.hurry-btn-price--short {
+    color: var(--roof);
+}
+
+.hurry-btn-label {
+    flex: 1 1 auto;
+    align-self: center;
+    padding: 6px 10px;
+    text-align: center;
+}
+
+.btn-game.hurry-btn:disabled .hurry-btn-cell {
+    color: var(--ink-muted);
+    background: var(--plank);
+}
+
+.btn-game.hurry-btn:disabled .hurry-btn-price--short {
+    color: var(--roof);
 }
 
 

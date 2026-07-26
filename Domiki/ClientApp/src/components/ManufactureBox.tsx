@@ -2,12 +2,12 @@ import { useState } from 'react';
 import RepeatIcon from 'pixelarticons/svg/repeat.svg?react';
 import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
 import type { ManufactureDto, ReceiptDto, ResourceTypeDto } from '../types/api';
-import { canInstaFinish, instaFinishCost, manufactureProgressPercent } from '../utils/game';
+import { manufactureProgressPercent } from '../utils/game';
 import { formatTimeOfDay } from '../utils/time';
 import { ProgressBar } from './ProgressBar';
 import { ActionButton } from './ActionButton';
+import { HurryButton } from './HurryButton';
 import { ResourceNameChip } from './ResourceNameChip';
-import { AbstractSprite, ResourceSprite } from './sprites';
 
 interface ManufactureBoxProps {
     manufacture: ManufactureDto;
@@ -35,12 +35,6 @@ export const ManufactureBox = ({ manufacture, receipt, now, remainingText, goldV
     const parsedMeasure = Math.trunc(Number(measureInput));
     const measureReady = Number.isFinite(parsedMeasure) && parsedMeasure > 0;
     const percent = manufactureProgressPercent(manufacture, now);
-    const hurryCost = instaFinishCost(manufacture.finishDate, now);
-    const tooFar = !canInstaFinish(manufacture.finishDate, now);
-    const notEnoughGold = goldValue < hurryCost;
-    const hurryTitle = tooFar
-        ? `До конца ${remainingText}; ускорение доступно в последние 6 ч`
-        : notEnoughGold ? `Не хватает золота: ${hurryCost - goldValue}` : undefined;
     const repeatAt = formatTimeOfDay(manufacture.finishDate, now);
 
     return (
@@ -53,16 +47,8 @@ export const ManufactureBox = ({ manufacture, receipt, now, remainingText, goldV
                     <span className="resource-value">{manufacture.plodderCount}</span>
                 </span>
             </div>
-            <ActionButton className="btn-game"
-                disabled={tooFar || notEnoughGold}
-                title={hurryTitle}
-                onClick={() => onHurry(manufacture.id)}>
-                <AbstractSprite logicName="hurry" size={24} className="btn-ico" aria-hidden="true" />
-                Поторопить – {Math.max(1, hurryCost)}
-                {goldType != null &&
-                    <ResourceSprite logicName={goldType.logicName} className="hurry-cost-ico" aria-hidden="true" />
-                }
-            </ActionButton>
+            <HurryButton finishDate={manufacture.finishDate} now={now} goldValue={goldValue} goldType={goldType}
+                remainingText={remainingText} onHurry={() => { onHurry(manufacture.id); }} />
             <div className={'manufacture-repeat' + (manufacture.autoRepeat ? ' manufacture-repeat-on' : '')}>
                 <button type="button" className="manufacture-repeat-toggle"
                     aria-expanded={repeatExpanded}

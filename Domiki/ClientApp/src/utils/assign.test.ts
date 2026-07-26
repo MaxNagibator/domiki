@@ -75,7 +75,7 @@ describe('buildAssignTarget', () => {
     it('называет нехватку трудяг, когда припасов хватает, а свободных нет', () => {
         const target = buildAssignTarget(domik(), domikType([2]), receipts, [{ typeId: 4, value: 5 }], [held], held);
 
-        expect(target.reason).toBe('не хватает трудяг');
+        expect(target.reason).toBe('нет трудяг');
         expect(target.options[0]?.reason).toBe('нужно трудяг: 2');
     });
 

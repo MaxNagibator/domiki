@@ -82,7 +82,7 @@ export function buildAssignTarget(
                 shortfall,
                 canRun: shortfall.length === 0 && enoughCrew,
                 reason: shortfall.length > 0
-                    ? 'не хватает припасов'
+                    ? 'нет припасов'
                     : enoughCrew ? null : `нужно трудяг: ${receipt.plodderCount}`,
             };
         });
@@ -97,7 +97,7 @@ export function buildAssignTarget(
 
     return {
         eligible: false,
-        reason: options.every(option => option.shortfall.length === 0) ? 'не хватает трудяг' : 'нет припасов',
+        reason: options.every(option => option.shortfall.length === 0) ? 'нет трудяг' : 'нет припасов',
         options,
     };
 }

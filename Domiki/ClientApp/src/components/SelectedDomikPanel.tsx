@@ -9,19 +9,21 @@ import InfoBoxIcon from 'pixelarticons/svg/info-box.svg?react';
 import PlayIcon from 'pixelarticons/svg/play.svg?react';
 import type { DomikTypeDto, GoalsStateDto, ReceiptDto, ResourceDto, ResourceTypeDto, SelectedDomikView, VillageLevelDto, WeatherEffectDto, WeatherPeriodDto, WorkerDto } from '../types/api';
 import type { DomikNamer } from '../utils/domikNames';
-import { SICK_CHANCE_PERCENT, SICK_MIN_VILLAGE_LEVEL, canInstaFinish, computeReceiptView, instaFinishCost, isWorkerFree, progressPercent, resourceShortfall, workerFitness } from '../utils/game';
+import { SICK_CHANCE_PERCENT, SICK_MIN_VILLAGE_LEVEL, computeReceiptView, isWorkerFree, progressPercent, resourceShortfall, workerFitness } from '../utils/game';
 import { formatDuration, remainingSeconds } from '../utils/time';
 import { domikLore } from '../utils/domikLore';
 import { pluralRu } from '../utils/plural';
 import { isSkilledWorker } from '../utils/worker';
 import { ManufactureBox } from './ManufactureBox';
 import { ActionButton } from './ActionButton';
+import { HurryButton } from './HurryButton';
 import { StatChip } from './StatChip';
 import { ProgressBar } from './ProgressBar';
 import { ResourcesBox } from './ResourcesBox';
-import { AbstractSprite, ResourceSprite, WorkerSprite } from './sprites';
+import { AbstractSprite, DomikSprite, ResourceSprite, WorkerSprite } from './sprites';
 
 const MEASURE_MIN_LEVEL = 2;
+const SHOWN_OUTPUTS = 2;
 
 interface ReceiptUiState {
     expandedId: number | null;
@@ -115,7 +117,7 @@ const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, wor
     const missingResources = resourceShortfall(view.inputs, resources);
     const missingResourcesText = formatShortfall(view.inputs);
     const automaticWorkerShortfall = Math.max(0, receipt.plodderCount - plodderFree);
-    const capReason = atManufactureCap ? `Все слоты заняты: ${runningManufactures} / ${maxManufactures}` : null;
+    const capReason = atManufactureCap ? `Все места заняты: ${runningManufactures} из ${maxManufactures}` : null;
     const canRun = (isManual
         ? view.hasResources && validSelectedIds.length === receipt.plodderCount
         : view.canRun) && !atManufactureCap;
@@ -141,25 +143,40 @@ const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, wor
             }
         });
 
+    const lackLabel = !view.hasResources ? 'нет припасов' : !view.hasPlodders ? 'нет трудяг' : null;
+
     return (
         <div className={'receipt-row' + (expanded ? ' receipt-open' : '') + (view.canRun ? '' : ' receipt-blocked')}>
             <button type="button" className="receipt-head"
                 aria-expanded={expanded}
                 onClick={() => dispatch({ type: 'toggleExpand', id: receipt.id })}>
-                <span className="receipt-name">{receipt.name}</span>
-                <span className="receipt-cost">
-                    {!view.canRun &&
-                        <img className="receipt-warn" src="/images/upgrade_no_resources.png"
-                            alt="" title={summaryBlockTitle} />
-                    }
-                    <span className="resource-box" title="Трудяги">
-                        <img src="/images/modificatorTypes/plodder.png" alt="Трудяги" />
-                        <span className="resource-value">{receipt.plodderCount}</span>
+                {receipt.outputResources.length > 0 &&
+                    <span className="receipt-yield">
+                        {receipt.outputResources.slice(0, SHOWN_OUTPUTS).map(output => {
+                            const outputType = resourceTypes.find(type => type.id === output.typeId);
+                            return outputType == null ? null : (
+                                <span key={output.typeId} className="receipt-yield-item"
+                                    aria-label={`даёт ${outputType.name}: ${output.value}`}>
+                                    <ResourceSprite logicName={outputType.logicName} size={24} aria-hidden="true" />
+                                    <span className="receipt-yield-value">×{output.value}</span>
+                                </span>
+                            );
+                        })}
                     </span>
-                    <span className="timer">{formatDuration(view.effectiveDurationSeconds)}</span>
-                    {view.zealMultiplier > 1 && <span className="receipt-zeal">×{view.zealMultiplier}</span>}
-                    <ChevronDownIcon className="receipt-caret" aria-hidden="true" />
+                }
+                <span className="receipt-main">
+                    <span className="receipt-name">{receipt.name}</span>
+                    <span className="receipt-meta">
+                        <span className="resource-box" title="Трудяги">
+                            <img src="/images/modificatorTypes/plodder.png" alt="Трудяги" />
+                            <span className="resource-value">{receipt.plodderCount}</span>
+                        </span>
+                        <span className="timer">{formatDuration(view.effectiveDurationSeconds)}</span>
+                        {view.zealMultiplier > 1 && <span className="receipt-zeal">×{view.zealMultiplier}</span>}
+                        {lackLabel != null && <span className="receipt-lack" title={summaryBlockTitle}>{lackLabel}</span>}
+                    </span>
                 </span>
+                <ChevronDownIcon className="receipt-caret" aria-hidden="true" />
             </button>
             {expanded &&
                 <div className="receipt-body">
@@ -170,7 +187,7 @@ const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, wor
                                 <ResourcesBox resources={view.inputs} resourceTypes={resourceTypes} have={resources} />
                             </div>
                         }
-                        {receipt.outputResources.length > 0 &&
+                        {receipt.outputResources.length > SHOWN_OUTPUTS &&
                             <div className="receipt-io-row">
                                 <span className="receipt-io-label">Даёт</span>
                                 <ResourcesBox resources={receipt.outputResources} resourceTypes={resourceTypes} />
@@ -307,7 +324,7 @@ const PanelTabs = ({ active, onSelect, workPip, growPip, available }: PanelTabsP
                 const ariaLabel = !isAvailable
                     ? `${label}: ${emptyTitle}`
                     : isWork
-                        ? workPip ? 'Дела, есть свободный слот' : undefined
+                        ? workPip ? 'Дела, есть свободное место' : undefined
                         : growPip === 'none' ? undefined : `Рост${growPipLabel[growPip]}`;
                 return (
                     <button key={view} type="button" role="tab" id={`panel-tab-${view}`}
@@ -425,6 +442,43 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
     const statusTimer = isBuilding
         ? selected.remainingText ?? null
         : soonestManufacture != null ? formatDuration(soonestManufacture) : null;
+    const freeSlots = maxManufactures - runningManufactures;
+    const slotsText = atManufactureCap
+        ? 'все места заняты'
+        : `свободно ${freeSlots} ${pluralRu(freeSlots, 'место', 'места', 'мест')}`;
+    const readyReceipts: ReceiptDto[] = [];
+    const blockedReceipts: ReceiptDto[] = [];
+    for (const receipt of selected?.receipts ?? []) {
+        const canRun = computeReceiptView(receipt, resources, plodderFree, false, goals?.zealCharges, selected?.domikType).canRun;
+        (canRun ? readyReceipts : blockedReceipts).push(receipt);
+    }
+
+    const renderReceipt = (receipt: ReceiptDto, view: SelectedDomikView) =>
+        <ReceiptRow key={receipt.id}
+            receipt={receipt}
+            domikId={view.domik.id}
+            domikType={view.domikType}
+            resources={resources}
+            resourceTypes={resourceTypes}
+            workers={workers}
+            goals={goals}
+            villageLevel={villageLevel}
+            weatherEffect={weatherEffect}
+            now={now}
+            plodderFree={plodderFree}
+            atManufactureCap={atManufactureCap}
+            runningManufactures={runningManufactures}
+            maxManufactures={maxManufactures}
+            ui={{
+                expanded: ui.expandedId === receipt.id,
+                useOptional: ui.optionalIds.has(receipt.id),
+                autoRepeat: ui.autoRepeatIds.has(receipt.id),
+                isManual: ui.manualIds.has(receipt.id),
+                selectedWorkerIds: ui.workersByReceipt[receipt.id] ?? [],
+            }}
+            dispatch={dispatch}
+            onStart={onStartManufacture}
+            formatShortfall={formatShortfall} />;
 
     return (
         <aside ref={ref} className={'actions pixel-panel' + (selected == null ? ' actions--empty' : '')}>
@@ -437,9 +491,11 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
             {selected != null &&
                 <div>
                     <div className="actions-heading">
+                        <DomikSprite className="panel-crest" logicName={selected.domikType.logicName}
+                            level={selected.domik.level} working={runningManufactures > 0} aria-hidden="true" />
+                        <div className="panel-ident">
                         <h3 className="panel-title">
                             {displayName(selected.domik.typeId, selected.domik.id, selected.domikType.name, selected.domikType.logicName)}
-                            <span className="domik-level">ур. {selected.domik.level}</span>
                             {domikLore[selected.domikType.logicName] != null &&
                                 <span className="lore-tip" tabIndex={0} aria-label="Описание постройки">
                                     <InfoBoxIcon className="lore-tip-ico" aria-hidden="true" />
@@ -447,12 +503,19 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
                                 </span>
                             }
                         </h3>
+                        <div className="panel-level" aria-label={`Уровень ${selected.domik.level} из ${selected.domikType.maxLevel}`}>
+                            <span className="panel-level-value">ур. {selected.domik.level}</span>
+                            <span className="panel-notches" aria-hidden="true">
+                                {Array.from({ length: selected.domikType.maxLevel }, (_, index) =>
+                                    <span key={index} className={'panel-notch' + (index < selected.domik.level ? ' panel-notch--cut' : '')} />)}
+                            </span>
+                        </div>
                         <div className="panel-status">
                             {maxManufactures > 0 &&
                                 <span className={'panel-status-item' + (atManufactureCap ? ' panel-status-item--full' : '')}
-                                    title="Занятые слоты производства">
+                                    title="Места для одновременных смен">
                                     <AbstractSprite logicName="production_recipe" size={24} className="panel-status-ico" aria-hidden="true" />
-                                    {runningManufactures} / {maxManufactures}
+                                    {slotsText}
                                 </span>
                             }
                             {statusTimer != null &&
@@ -464,6 +527,7 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
                                     {statusTimer}
                                 </span>
                             }
+                        </div>
                         </div>
                         <PanelTabs active={activeView} onSelect={setTab} workPip={idlePip} growPip={growPip}
                             available={{ work: hasWork, grow: hasGrow }} />
@@ -511,30 +575,9 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
                     }
                     {activeView === 'grow' && selected.domik.finishDate != null &&
                         <div className="panel-block">
-                            {(() => {
-                                const hurryCost = instaFinishCost(selected.domik.finishDate, now);
-                                const tooFar = !canInstaFinish(selected.domik.finishDate, now);
-                                const notEnoughGold = goldValue < hurryCost;
-                                const hurryTitle = tooFar
-                                    ? `До конца ${selected.remainingText ?? ''}; ускорение доступно в последние 6 ч`
-                                    : notEnoughGold ? `Не хватает золота: ${hurryCost - goldValue}` : undefined;
-
-                                return (
-                                    <>
-                                        <ProgressBar value={progressPercent(selected.domik.finishDate, selected.domik.upgradeSeconds ?? 0, now)} max={100} label={selected.remainingText ?? ''} />
-                                        <ActionButton className="btn-game"
-                                            disabled={tooFar || notEnoughGold}
-                                            title={hurryTitle}
-                                            onClick={() => onHurryDomik(selected.domik.id)}>
-                                            <AbstractSprite logicName="hurry" size={24} className="btn-ico" aria-hidden="true" />
-                                            Поторопить – {Math.max(1, hurryCost)}
-                                            {goldType != null &&
-                                                <ResourceSprite logicName={goldType.logicName} className="hurry-cost-ico" aria-hidden="true" />
-                                            }
-                                        </ActionButton>
-                                    </>
-                                );
-                            })()}
+                            <ProgressBar value={progressPercent(selected.domik.finishDate, selected.domik.upgradeSeconds ?? 0, now)} max={100} label={selected.remainingText ?? ''} />
+                            <HurryButton finishDate={selected.domik.finishDate} now={now} goldValue={goldValue} goldType={goldType}
+                                remainingText={selected.remainingText ?? ''} onHurry={() => { onHurryDomik(selected.domik.id); }} />
                         </div>
                     }
                     {activeView === 'work' && selected.domik.manufactures != null && selected.domik.manufactures.length > 0 &&
@@ -561,33 +604,11 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
                         <div className="panel-block">
                             <span className="panel-label">Запустить производство</span>
                             <div className="receipt-list">
-                                {selected.receipts.map(receipt =>
-                                    <ReceiptRow key={receipt.id}
-                                        receipt={receipt}
-                                        domikId={selected.domik.id}
-                                        domikType={selected.domikType}
-                                        resources={resources}
-                                        resourceTypes={resourceTypes}
-                                        workers={workers}
-                                        goals={goals}
-                                        villageLevel={villageLevel}
-                                        weatherEffect={weatherEffect}
-                                        now={now}
-                                        plodderFree={plodderFree}
-                                        atManufactureCap={atManufactureCap}
-                                        runningManufactures={runningManufactures}
-                                        maxManufactures={maxManufactures}
-                                        ui={{
-                                            expanded: ui.expandedId === receipt.id,
-                                            useOptional: ui.optionalIds.has(receipt.id),
-                                            autoRepeat: ui.autoRepeatIds.has(receipt.id),
-                                            isManual: ui.manualIds.has(receipt.id),
-                                            selectedWorkerIds: ui.workersByReceipt[receipt.id] ?? [],
-                                        }}
-                                        dispatch={dispatch}
-                                        onStart={onStartManufacture}
-                                        formatShortfall={formatShortfall} />,
-                                )}
+                                {readyReceipts.map(receipt => renderReceipt(receipt, selected))}
+                                {blockedReceipts.length > 0 &&
+                                    <p className="receipt-divider">пока не берутся</p>
+                                }
+                                {blockedReceipts.map(receipt => renderReceipt(receipt, selected))}
                             </div>
                         </div>
                     }
