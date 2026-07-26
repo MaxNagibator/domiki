@@ -1,4 +1,5 @@
-﻿using Domiki.Web.Core.Scheduling;
+﻿using System.Globalization;
+using Domiki.Web.Core.Scheduling;
 using Domiki.Web.Data;
 using Domiki.Web.Data.Entities;
 using Domiki.Web.Infrastructure;
@@ -9,6 +10,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Npgsql;
 
 namespace Domiki.Web.Tests;
 
@@ -19,6 +21,7 @@ public sealed class TestAppSetup
     public void OneTimeSetUp()
     {
         App.Initialize();
+        App.SweepAbandoned();
     }
 
     [OneTimeTearDown]
@@ -32,7 +35,31 @@ public static class App
 {
     private static WebApplicationFactory<Program>? _factory;
 
-    public static string RunId { get; } = Guid.NewGuid().ToString("N")[..8];
+    private const string RunStampFormat = "yyyyMMddHHmmss";
+
+    private const string TestUserPrefix = "testUser_";
+
+    /// <summary>
+    /// Возраст прогона, после которого его игроки считаются брошенными. С запасом больше самого долгого прогона.
+    /// </summary>
+    private static readonly TimeSpan AbandonedAfter = TimeSpan.FromHours(3);
+
+    /// <summary>
+    /// Метка прогона в имени тестового игрока. Начинается со штампа времени старта, поэтому брошенных игроков
+    /// прерванного прогона можно отличить от игроков соседнего живого прогона – см. <see cref="SweepAbandoned"/>.
+    /// </summary>
+    public static string RunId { get; } =
+        DateTime.UtcNow.ToString(RunStampFormat) + "-" + Guid.NewGuid().ToString("N")[..6];
+
+    /// <summary>
+    /// Число повторов в конкурентных стресс-тестах. По умолчанию 25 – гонка на блокировке строки игрока
+    /// воспроизводится в первом же десятке итераций, а каждая итерация стоит десяти сериализованных транзакций.
+    /// Полный объём задаётся переменной окружения DOMIKI_STRESS_ITERATIONS.
+    /// </summary>
+    public static int StressIterations { get; } =
+        int.TryParse(Environment.GetEnvironmentVariable("DOMIKI_STRESS_ITERATIONS"), out var iterations) && iterations > 0
+            ? iterations
+            : 25;
 
     public static IServiceProvider Services => _factory!.Services;
 
@@ -83,7 +110,7 @@ public static class App
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
-            builder.UseSetting("ConnectionStrings:DefaultConnection", config.ConnectionStrings.DefaultConnection);
+            builder.UseSetting("ConnectionStrings:DefaultConnection", PinPool(config.ConnectionStrings.DefaultConnection));
             builder.UseSetting("Demo:UserName", "demo-tester");
             builder.UseSetting("Demo:Email", "demo-tester@test.local");
             builder.UseSetting("Demo:Password", "Demo#Test1");
@@ -93,6 +120,63 @@ public static class App
                 services.AddSingleton<ICalculator>(sp => new TestCalculator(sp));
             });
         });
+    }
+
+    /// <summary>
+    /// Закрепляет пул соединений на весь прогон: физическое подключение к Postgres на порядки дороже запроса
+    /// (проброшенный порт Docker отдаёт первый обмен на новом сокете за сотни миллисекунд, тогда как запрос
+    /// по живому соединению – за доли), а пересоздание тысяч соединений изнашивает релей. Минимум держит
+    /// сокеты открытыми под всплески <c>Parallel.ForEach</c> в конкурентных тестах, срок простоя снят,
+    /// чтобы пул не подрезал их между тестами.
+    /// </summary>
+    /// <param name="connectionString">Исходная строка подключения из конфигурации.</param>
+    private static string PinPool(string connectionString)
+    {
+        return new NpgsqlConnectionStringBuilder(connectionString)
+        {
+            MinPoolSize = 8,
+            MaxPoolSize = 32,
+            ConnectionIdleLifetime = 3600,
+        }.ConnectionString;
+    }
+
+    /// <summary>
+    /// Убирает игроков брошенных прогонов. Прогон, прерванный по Ctrl+C или упавший вместе с процессом, не доходит
+    /// до <see cref="Cleanup"/> и оставляет своих игроков в dev-БД навсегда – накопленные тысячи засоряют выборки
+    /// и очередь планировщика. Удаляются только игроки, чей штамп времени в имени старше <see cref="AbandonedAfter"/>,
+    /// поэтому игроки соседнего живого прогона остаются нетронутыми.
+    /// </summary>
+    internal static void SweepAbandoned()
+    {
+        using var scope = Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var threshold = DateTime.UtcNow - AbandonedAfter;
+        var abandoned = context.Players
+            .Where(player => EF.Functions.Like(player.AspNetUserId, "testUser_%"))
+            .Select(player => new { player.Id, player.AspNetUserId })
+            .ToArray()
+            .Where(player => IsAbandoned(player.AspNetUserId, threshold))
+            .Select(player => player.Id)
+            .ToArray();
+
+        if (abandoned.Length > 0)
+        {
+            DeletePlayers(context, abandoned);
+        }
+    }
+
+    /// <summary>
+    /// Считает игрока брошенным: либо его прогон стартовал раньше порога, либо имя вообще без штампа времени
+    /// (формат до введения штампа – такой игрок заведомо остался от давнего прогона).
+    /// </summary>
+    /// <param name="aspNetUserId">Имя пользователя тестового игрока – <c>testUser_&lt;RunId&gt;_&lt;Guid&gt;</c>.</param>
+    /// <param name="threshold">Время, раньше которого стартовавший прогон считается брошенным.</param>
+    private static bool IsAbandoned(string aspNetUserId, DateTime threshold)
+    {
+        var tail = aspNetUserId.AsSpan(TestUserPrefix.Length);
+        return tail.Length < RunStampFormat.Length
+               || !DateTime.TryParseExact(tail[..RunStampFormat.Length], RunStampFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var started)
+               || started < threshold;
     }
 
     internal static void Cleanup()

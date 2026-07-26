@@ -73,7 +73,7 @@ public sealed class DomiksTests
     [Test]
     public void ConcurrencyBuyDomikTest()
     {
-        for (var i = 1; i <= 217; i++)
+        for (var i = 1; i <= App.StressIterations; i++)
         {
             var player = TestPlayer.Create();
             var types = player.DomikTypes();
@@ -105,7 +105,7 @@ public sealed class DomiksTests
     [Test]
     public void ConcurrencyUpgradeDomikTest()
     {
-        for (var i = 1; i <= 217; i++)
+        for (var i = 1; i <= App.StressIterations; i++)
         {
             var player = TestPlayer.Create();
             var types = player.DomikTypes();

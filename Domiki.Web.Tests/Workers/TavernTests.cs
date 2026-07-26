@@ -177,7 +177,7 @@ public sealed class TavernTests
     [Test]
     public void ConcurrencySaveRuleTest()
     {
-        for (var i = 1; i <= 217; i++)
+        for (var i = 1; i <= App.StressIterations; i++)
         {
             var player = TestPlayer.Create();
 
