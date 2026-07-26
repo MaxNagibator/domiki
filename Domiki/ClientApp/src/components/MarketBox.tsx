@@ -320,10 +320,10 @@ export const MarketBox = ({ market, resourceTypes, resources, now, onPost, onAcc
                                     {affordable ? (
                                         <p className="market-afford"><CheckIcon className="btn-ico" aria-hidden="true" />по карману</p>
                                     ) : (
-                                        <p className="note-warn market-shortfall">
+                                        <div className="note-warn market-shortfall">
                                             не хватает
                                             <ResourcesBox resources={shortfall} resourceTypes={resourceTypes} />
-                                        </p>
+                                        </div>
                                     )}
                                     <ActionButton className="btn-game" disabled={!canAccept}
                                         title={affordable ? undefined : 'Не хватает ' + getResourceName(resourceTypes, lot.wantResourceTypeId)}
