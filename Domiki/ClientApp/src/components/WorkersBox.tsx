@@ -408,14 +408,8 @@ export const WorkersBox = ({ workers, domikTypes, domiks, receipts, expeditions,
                                     {stateKey === 'resting' && <AbstractSprite logicName="fatigue_rest" size={24} className="worker-badge-ico" aria-hidden="true" />}
                                     {stateLabel}
                                 </span>
-                                {workplace != null &&
-                                    <span className="worker-workplace" title={`Работает в постройке «${workplace.name}»`}>
-                                        <DomikSprite logicName={workplace.logicName} className="worker-workplace-ico" aria-hidden="true" />
-                                        {workplace.name} (ур. {workplace.level}) · {workplace.receiptName} · до {workplace.finishTime}
-                                        {workplace.autoRepeat &&
-                                            <span className="worker-shift-badge">наряд</span>
-                                        }
-                                    </span>
+                                {workplace?.autoRepeat === true &&
+                                    <span className="worker-shift-badge" title="Наряд: работа повторяется сама">наряд</span>
                                 }
                                 {timer != null &&
                                     <span className="worker-timer" title={timer.full}>
@@ -459,6 +453,15 @@ export const WorkersBox = ({ workers, domikTypes, domiks, receipts, expeditions,
                                     }
                                 </div>
                             </div>
+                            {workplace != null &&
+                                <div className="worker-shift" title={`«${workplace.name}» (ур. ${String(workplace.level)}) · ${workplace.receiptName} · до ${workplace.finishTime}`}>
+                                    <DomikSprite logicName={workplace.logicName} className="worker-shift-ico" aria-hidden="true" />
+                                    <span className="worker-shift-text">
+                                        <span className="worker-shift-name">{workplace.name}<i className="worker-shift-level">ур. {workplace.level}</i></span>
+                                        <span className="worker-shift-task">{workplace.receiptName} · до {workplace.finishTime}</span>
+                                    </span>
+                                </div>
+                            }
                         </article>
                     );
                 })}
