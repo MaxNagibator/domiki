@@ -26,7 +26,7 @@ const MEASURE_MIN_LEVEL = 2;
 const SHOWN_OUTPUTS = 2;
 
 interface ReceiptUiState {
-    expandedId: number | null;
+    expandedIds: ReadonlySet<number>;
     optionalIds: ReadonlySet<number>;
     autoRepeatIds: ReadonlySet<number>;
     manualIds: ReadonlySet<number>;
@@ -42,7 +42,7 @@ type ReceiptUiAction =
     | { type: 'clearWorkers'; id: number };
 
 const initialReceiptUiState: ReceiptUiState = {
-    expandedId: null,
+    expandedIds: new Set(),
     optionalIds: new Set(),
     autoRepeatIds: new Set(),
     manualIds: new Set(),
@@ -62,7 +62,7 @@ const toggledSet = (set: ReadonlySet<number>, id: number): ReadonlySet<number> =
 const receiptUiReducer = (state: ReceiptUiState, action: ReceiptUiAction): ReceiptUiState => {
     switch (action.type) {
         case 'toggleExpand':
-            return { ...state, expandedId: state.expandedId === action.id ? null : action.id };
+            return { ...state, expandedIds: toggledSet(state.expandedIds, action.id) };
         case 'toggleOptional':
             return { ...state, optionalIds: toggledSet(state.optionalIds, action.id) };
         case 'toggleAutoRepeat':
@@ -167,11 +167,14 @@ const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, wor
                 <span className="receipt-main">
                     <span className="receipt-name">{receipt.name}</span>
                     <span className="receipt-meta">
-                        <span className="resource-box" title="Трудяги">
+                        <span className="receipt-stat" title="Трудяги на смену">
                             <img src="/images/modificatorTypes/plodder.png" alt="Трудяги" />
-                            <span className="resource-value">{receipt.plodderCount}</span>
+                            {receipt.plodderCount}
                         </span>
-                        <span className="timer">{formatDuration(view.effectiveDurationSeconds)}</span>
+                        <span className="receipt-stat" title="Длительность смены">
+                            <ClockIcon aria-hidden="true" />
+                            {formatDuration(view.effectiveDurationSeconds)}
+                        </span>
                         {view.zealMultiplier > 1 && <span className="receipt-zeal">×{view.zealMultiplier}</span>}
                         {lackLabel != null && <span className="receipt-lack" title={summaryBlockTitle}>{lackLabel}</span>}
                     </span>
@@ -194,23 +197,6 @@ const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, wor
                             </div>
                         }
                     </div>
-                    {hasOptional &&
-                        <label className="receipt-optional">
-                            <input type="checkbox" checked={useOptional}
-                                onChange={() => dispatch({ type: 'toggleOptional', id: receipt.id })} />
-                            с инструментом (+{receipt.outputBonusPercent}% выхода)
-                        </label>
-                    }
-                    <label className="receipt-optional">
-                        <input type="checkbox" checked={autoRepeat}
-                            onChange={() => dispatch({ type: 'toggleAutoRepeat', id: receipt.id })} />
-                        Поставить наряд на смену
-                    </label>
-                    {autoRepeat &&
-                        <p className="receipt-repeat-hint">
-                            По наряду смена возобновится сама, пока хватает припасов и трудяги могут работать.
-                        </p>
-                    }
                     {weatherEffect != null &&
                         <p className="weather-modifier">
                             Погода: {weatherEffect.outputPercent >= 100 ? '+' : ''}{weatherEffect.outputPercent - 100} % выход
@@ -221,17 +207,34 @@ const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, wor
                             Риск простуды {SICK_CHANCE_PERCENT} %
                         </p>
                     }
-                    <div className="receipt-mode">
+                    <div className="receipt-options">
+                        {hasOptional &&
+                            <label className="receipt-optional">
+                                <input type="checkbox" checked={useOptional}
+                                    onChange={() => dispatch({ type: 'toggleOptional', id: receipt.id })} />
+                                с инструментом (+{receipt.outputBonusPercent}% выхода)
+                            </label>
+                        }
+                        <label className="receipt-optional">
+                            <input type="checkbox" checked={autoRepeat}
+                                onChange={() => dispatch({ type: 'toggleAutoRepeat', id: receipt.id })} />
+                            Поставить наряд на смену
+                        </label>
+                        {autoRepeat &&
+                            <p className="receipt-repeat-hint">
+                                По наряду смена возобновится сама, пока хватает припасов и трудяги могут работать.
+                            </p>
+                        }
                         <label className="receipt-optional">
                             <input type="checkbox" checked={isManual}
                                 onChange={() => dispatch({ type: 'toggleManual', id: receipt.id })} />
                             Выбрать трудяг списком
+                            {isManual &&
+                                <span className="receipt-mode-count">
+                                    выбрано {validSelectedIds.length} / {receipt.plodderCount}
+                                </span>
+                            }
                         </label>
-                        {isManual &&
-                            <span className="receipt-mode-count">
-                                выбрано {validSelectedIds.length} / {receipt.plodderCount}
-                            </span>
-                        }
                     </div>
                     {isManual &&
                         <div className="worker-picker">
@@ -261,10 +264,9 @@ const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, wor
                         <PlayIcon className="btn-ico" aria-hidden="true" />
                         Запустить
                     </ActionButton>
-                     {!canRun &&
+                     {!canRun && (!view.hasResources || workerBlockReason != null) &&
                         <div className="note-warn resource-shortfall">
                             <img src="/images/upgrade_no_resources.png" alt="" />
-                            {capReason != null && <span>{capReason}</span>}
                             {!view.hasResources
                                 ? <><span>Не хватает</span><ResourcesBox resources={missingResources} resourceTypes={resourceTypes} showNames /></>
                                 : null}
@@ -443,9 +445,7 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
         ? selected.remainingText ?? null
         : soonestManufacture != null ? formatDuration(soonestManufacture) : null;
     const freeSlots = maxManufactures - runningManufactures;
-    const slotsText = atManufactureCap
-        ? 'все места заняты'
-        : `свободно ${freeSlots} ${pluralRu(freeSlots, 'место', 'места', 'мест')}`;
+    const slotsText = `${freeSlots}/${maxManufactures} свободно`;
     const readyReceipts: ReceiptDto[] = [];
     const blockedReceipts: ReceiptDto[] = [];
     for (const receipt of selected?.receipts ?? []) {
@@ -470,7 +470,7 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
             runningManufactures={runningManufactures}
             maxManufactures={maxManufactures}
             ui={{
-                expanded: ui.expandedId === receipt.id,
+                expanded: ui.expandedIds.has(receipt.id),
                 useOptional: ui.optionalIds.has(receipt.id),
                 autoRepeat: ui.autoRepeatIds.has(receipt.id),
                 isManual: ui.manualIds.has(receipt.id),
@@ -580,6 +580,18 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
                                 remainingText={selected.remainingText ?? ''} onHurry={() => { onHurryDomik(selected.domik.id); }} />
                         </div>
                     }
+                    {activeView === 'work' && selected.receipts.length > 0 &&
+                        <div className="panel-block">
+                            <span className="panel-label">Запустить производство</span>
+                            <div className="receipt-list">
+                                {readyReceipts.map(receipt => renderReceipt(receipt, selected))}
+                                {blockedReceipts.length > 0 &&
+                                    <p className="receipt-divider">пока не берутся</p>
+                                }
+                                {blockedReceipts.map(receipt => renderReceipt(receipt, selected))}
+                            </div>
+                        </div>
+                    }
                     {activeView === 'work' && selected.domik.manufactures != null && selected.domik.manufactures.length > 0 &&
                         <div className="panel-block">
                             <span className="panel-label">Идёт сейчас</span>
@@ -598,18 +610,6 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
                                         onSetMeasure={onSetManufactureMeasure} />
                                 );
                             })}
-                        </div>
-                    }
-                    {activeView === 'work' && selected.receipts.length > 0 &&
-                        <div className="panel-block">
-                            <span className="panel-label">Запустить производство</span>
-                            <div className="receipt-list">
-                                {readyReceipts.map(receipt => renderReceipt(receipt, selected))}
-                                {blockedReceipts.length > 0 &&
-                                    <p className="receipt-divider">пока не берутся</p>
-                                }
-                                {blockedReceipts.map(receipt => renderReceipt(receipt, selected))}
-                            </div>
                         </div>
                     }
                     </div>
