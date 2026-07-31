@@ -106,7 +106,7 @@
 
 .household-rows {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(430px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(430px, 100%), 1fr));
     gap: 8px;
     align-items: start;
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import BuildingIcon from 'pixelarticons/svg/building.svg?react';
+import { useElementHeightVar } from '../hooks/useElementHeightVar';
 
 interface GameTabEntry {
     key: string;
@@ -19,6 +20,8 @@ export const GameTabsNav = ({ tabs, activeKey, onSelect, onScrollToPanel }: Game
     const gameTabsRef = useRef<HTMLDivElement>(null);
     const dragRef = useRef({ active: false, startX: 0, startScroll: 0, moved: false });
     const [tabsOverflow, setTabsOverflow] = useState({ left: false, right: false });
+
+    useElementHeightVar(gameTabsRef, '--game-tabs-height');
 
     useEffect(() => {
         const tabsEl = gameTabsRef.current;

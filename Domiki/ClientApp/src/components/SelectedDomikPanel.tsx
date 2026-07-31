@@ -482,15 +482,15 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
 
     return (
         <aside ref={ref} className={'actions pixel-panel' + (selected == null ? ' actions--empty' : '')}>
-            <button type="button" className="actions-close" title="Закрыть" onClick={onClose}>
-                <CloseIcon className="btn-ico" aria-hidden="true" />
-            </button>
             {selected == null &&
                 <p className="hint">Выберите домик в деревне – здесь появятся улучшение и производство.</p>
             }
             {selected != null &&
                 <div>
                     <div className="actions-heading">
+                        <button type="button" className="actions-close" title="Закрыть" onClick={onClose}>
+                            <CloseIcon className="btn-ico" aria-hidden="true" />
+                        </button>
                         <DomikSprite className="panel-crest" logicName={selected.domikType.logicName}
                             level={selected.domik.level} working={runningManufactures > 0} aria-hidden="true" />
                         <div className="panel-ident">

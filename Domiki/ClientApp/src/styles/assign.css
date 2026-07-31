@@ -134,6 +134,7 @@
     background: #fffaec;
     border: 2px solid var(--ink);
     clip-path: var(--cut);
+    box-shadow: inset 4px 0 0 var(--rail-mark, transparent);
     touch-action: none;
     cursor: grab;
 }
@@ -148,24 +149,25 @@
 }
 
 .rail-card--free {
-    box-shadow: inset 4px 0 0 var(--pine);
+    --rail-mark: var(--pine);
 }
 
 .rail-card--busy {
-    box-shadow: inset 4px 0 0 var(--roof);
+    --rail-mark: var(--roof);
 }
 
 .rail-card--resting {
-    box-shadow: inset 4px 0 0 #517ea6;
+    --rail-mark: #517ea6;
 }
 
 .rail-card--sick {
-    box-shadow: inset 4px 0 0 #8a5fb0;
+    --rail-mark: #8a5fb0;
 }
 
 .rail-card--away {
-    box-shadow: inset 4px 0 0 #b8860b;
+    --rail-mark: #b8860b;
 }
+
 
 .rail-card--held {
     border-color: var(--coin);
@@ -417,27 +419,151 @@ body.assign-active .actions-scrim {
 
     .worker-rail {
         position: fixed;
+        top: auto;
         left: 0;
         right: 0;
-        bottom: calc(76px + env(safe-area-inset-bottom));
+        bottom: var(--game-tabs-height, 76px);
         z-index: 840;
         flex: none;
         width: auto;
-        max-height: none;
+        max-height: 45vh;
+        gap: 6px;
+        padding: 8px 10px 10px;
         border-width: 3px 0 0;
         clip-path: none;
+    }
+
+    .worker-rail[data-open='false'] {
+        padding-bottom: 8px;
+    }
+
+        .worker-rail[data-open='false'] .worker-rail-list,
+        .worker-rail[data-open='false'] .worker-rail-skill-of,
+        .worker-rail-skill-of:empty {
+            display: none;
+        }
+
+    .worker-rail-held {
+        position: static;
+    }
+
+    .worker-rail-head {
+        align-items: center;
+    }
+
+    .worker-rail-toggle {
+        width: 100%;
+        min-height: 34px;
+        padding: 0;
+        font: inherit;
+        color: inherit;
+        text-align: left;
+        background: none;
+        border: 0;
+        cursor: pointer;
+    }
+
+        .worker-rail-toggle:focus-visible {
+            outline: 3px solid var(--coin);
+            outline-offset: -3px;
+        }
+
+    .worker-rail-stack {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        margin-left: 6px;
+    }
+
+        .worker-rail-stack svg {
+            width: 28px;
+            height: 28px;
+            background: #fffaec;
+            border: 2px solid var(--ink);
+            clip-path: var(--cut);
+            image-rendering: pixelated;
+        }
+
+        .worker-rail-stack svg + svg {
+            margin-left: -4px;
+        }
+
+    .worker-rail-caret {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        color: var(--pine-dark);
     }
 
     .worker-rail-list {
         flex-direction: row;
         overflow-x: auto;
         overflow-y: hidden;
+        scroll-snap-type: x proximity;
         scrollbar-gutter: auto;
     }
 
     .rail-card {
+        position: relative;
         flex: 0 0 auto;
-        width: 132px;
+        flex-direction: column;
+        gap: 3px;
+        width: 88px;
+        min-height: 0;
+        padding: 5px 4px 6px;
+        box-shadow: inset 0 -4px 0 var(--rail-mark, transparent);
+        scroll-snap-align: start;
+    }
+
+    .rail-card-portrait svg {
+        width: 40px;
+        height: 40px;
+    }
+
+    .rail-card-text {
+        align-items: center;
+        gap: 3px;
+        width: 100%;
+    }
+
+    .rail-card-skill {
+        justify-content: center;
+        gap: 2px;
+        width: 100%;
+        padding: 1px;
+        overflow: hidden;
+        font-size: 9px;
+        color: #fff8e6;
+        background: var(--pine);
+        clip-path: var(--cut);
+    }
+
+    .rail-card-skill--some {
+        color: #fff8e6;
+        background: var(--pine-dark);
+    }
+
+    .rail-card-skill--none {
+        color: var(--ink-muted);
+        background: var(--plank-dark);
+    }
+
+    .rail-card-skill-ico {
+        width: 12px;
+        height: 12px;
+    }
+
+    .rail-card-trait {
+        padding: 0 2px;
+        font-size: 8px;
+        color: inherit;
+        background: rgba(0, 0, 0, .22);
+    }
+
+    .rail-card-name {
+        width: 100%;
+        font-size: 11px;
+        text-align: center;
     }
 
     .worker-rail-group {
@@ -446,18 +572,24 @@ body.assign-active .actions-scrim {
 
     .worker-rail-group-head {
         position: static;
+        align-self: stretch;
+        padding: 6px 10px;
+        text-align: center;
         white-space: nowrap;
+        background: none;
+        border: 2px dashed rgba(51, 41, 26, .32);
+        clip-path: var(--cut);
     }
 
     .game {
-        padding-bottom: calc(168px + env(safe-area-inset-bottom));
+        padding-bottom: calc(var(--worker-rail-height, 130px) + var(--game-tabs-height, 76px) + 12px);
     }
 
     .domik-pager {
-        scroll-margin-bottom: 180px;
+        scroll-margin-bottom: calc(var(--worker-rail-height, 130px) + var(--game-tabs-height, 76px) + 24px);
     }
 
     .toast-container {
-        bottom: calc(180px + env(safe-area-inset-bottom));
+        bottom: calc(var(--worker-rail-height, 130px) + var(--game-tabs-height, 76px) + 12px);
     }
 }

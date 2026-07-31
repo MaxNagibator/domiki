@@ -1,9 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
+import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
+import ChevronUpIcon from 'pixelarticons/svg/chevron-up.svg?react';
 import type { DomikTypeDto, WorkerDto } from '../types/api';
 import { isWorkerFree } from '../utils/game';
 import { bestSkill, workerSkillPercent } from '../utils/assign';
 import { isSkilledWorker } from '../utils/worker';
+import { useElementHeightVar } from '../hooks/useElementHeightVar';
 import { remainingSeconds } from '../utils/time';
 import { DomikSprite, WorkerSprite } from './sprites';
 
@@ -19,6 +22,20 @@ const GROUP_LABELS: Record<Exclude<RailState, 'free'>, string> = {
 const GROUP_ORDER: Exclude<RailState, 'free'>[] = ['busy', 'resting', 'sick', 'away'];
 
 const GROUPS_AFTER_FREE = 1000;
+
+const RAIL_NARROW_QUERY = '(max-width: 900px)';
+
+const RAIL_STACK_LIMIT = 4;
+
+function subscribeNarrowRail(onChange: () => void): () => void {
+    const query = window.matchMedia(RAIL_NARROW_QUERY);
+    query.addEventListener('change', onChange);
+    return () => { query.removeEventListener('change', onChange); };
+}
+
+function useNarrowRail(): boolean {
+    return useSyncExternalStore(subscribeNarrowRail, () => window.matchMedia(RAIL_NARROW_QUERY).matches);
+}
 
 function railState(worker: WorkerDto, now: number): RailState {
     if (worker.sickUntil != null && remainingSeconds(worker.sickUntil, now) > 0) {
@@ -92,6 +109,11 @@ interface WorkerRailProps {
 
 export const WorkerRail = ({ workers, domikTypes, now, skillDomikTypeId, heldWorkerId, onGrab, onCancel }: WorkerRailProps) => {
     const [openGroups, setOpenGroups] = useState<RailState[]>([]);
+    const [railOpen, setRailOpen] = useState(false);
+    const narrow = useNarrowRail();
+    const railRef = useRef<HTMLElement>(null);
+
+    useElementHeightVar(railRef, '--worker-rail-height');
 
     const byState = useMemo(() => {
         const groups = new Map<RailState, WorkerDto[]>();
@@ -122,12 +144,35 @@ export const WorkerRail = ({ workers, domikTypes, now, skillDomikTypeId, heldWor
     const toggleGroup = (state: RailState) =>
         { setOpenGroups(prev => prev.includes(state) ? prev.filter(item => item !== state) : [...prev, state]); };
 
+    const expanded = !narrow || railOpen || held != null;
+
+    const headBody = (
+        <>
+            <span className="worker-rail-title">Трудяги</span>
+            {narrow && !expanded &&
+                <span className="worker-rail-stack" aria-hidden="true">
+                    {free.slice(0, RAIL_STACK_LIMIT).map(worker =>
+                        <WorkerSprite key={worker.id} name={worker.name} state="idle" skilled={isSkilledWorker(worker)} />,
+                    )}
+                </span>
+            }
+            <span className="worker-rail-tally">{free.length} из {workers.length}</span>
+        </>
+    );
+
     return (
-        <aside className="worker-rail" aria-label="Трудяги деревни">
-            <div className="worker-rail-head">
-                <span className="worker-rail-title">Трудяги</span>
-                <span className="worker-rail-tally">{free.length} из {workers.length}</span>
-            </div>
+        <aside ref={railRef} className="worker-rail" aria-label="Трудяги деревни" data-open={expanded}>
+            {narrow && held == null
+                ? <button type="button" className="worker-rail-head worker-rail-toggle" aria-expanded={expanded}
+                    onClick={() => { setRailOpen(prev => !prev); }}>
+                    {headBody}
+                    {expanded
+                        ? <ChevronDownIcon className="worker-rail-caret" aria-hidden="true" />
+                        : <ChevronUpIcon className="worker-rail-caret" aria-hidden="true" />
+                    }
+                </button>
+                : <div className="worker-rail-head">{headBody}</div>
+            }
             <p className="worker-rail-skill-of" title={skillTypeName ?? undefined}>{skillTypeName == null ? '' : `Навык: ${skillTypeName}`}</p>
             {held != null &&
                 <div className="worker-rail-held">
