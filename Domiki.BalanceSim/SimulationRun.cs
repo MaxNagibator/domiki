@@ -439,7 +439,8 @@ internal sealed class SimulationRun
                 continue;
             }
 
-            if (_state.Domiks.Count(x => x.Type.Id == type.Id) < type.MaxCount)
+            var built = _state.Domiks.Count(x => x.Type.Id == type.Id);
+            if (built < type.MaxCount && IsCountGateOpen(type.Id, built + 1, villageLevel))
             {
                 yield return new DomikCandidate(type, null, type.Levels.Single(x => x.Value == 1));
             }
@@ -1113,7 +1114,13 @@ internal sealed class SimulationRun
 
     private int GetCapacity()
     {
-        return _state.Domiks.Where(x => x.Level > 0).Sum(x => GetCapacity(x.Type, GetDomikLevel(x)));
+        var beds = _state.Domiks.Where(x => x.Level > 0).Sum(x => GetCapacity(x.Type, GetDomikLevel(x)));
+        return Math.Min(WorkerManager.MaxCapacity, beds);
+    }
+
+    private bool IsCountGateOpen(int domikTypeId, int ordinal, int villageLevel)
+    {
+        return !_data.CountGateLevelByKey.TryGetValue((domikTypeId, ordinal), out var gateLevel) || gateLevel <= villageLevel;
     }
 
     private HashSet<int> GetProducibleResourceTypeIds()

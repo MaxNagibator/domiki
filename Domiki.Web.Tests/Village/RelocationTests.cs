@@ -263,9 +263,9 @@ public sealed class RelocationTests
     /// </summary>
     /// <param name="level">Обжитость деревни на день отъезда.</param>
     /// <param name="knots">Сколько узелков даст такая обжитость.</param>
-    [TestCase(UnlockLevel, 5)]
-    [TestCase(UnlockLevel + LevelStep, 6)]
-    [TestCase(VillageLevelCalculator.RelocationMaxUnlockLevel, 8)]
+    [TestCase(UnlockLevel, 7)]
+    [TestCase(UnlockLevel + LevelStep, 8)]
+    [TestCase(VillageLevelCalculator.RelocationMaxUnlockLevel, 10)]
     [TestCase(LevelStep - 1, 0)]
     public void KnotsGrowWithVillageLevelTest(int level, int knots)
     {
@@ -318,7 +318,7 @@ public sealed class RelocationTests
     }
 
     /// <summary>
-    /// Порог следующего переезда растёт шагом 50 от 250 и упирается в потолок 400.
+    /// Порог следующего переезда растёт шагом 50 от 350 и упирается в потолок 500.
     /// </summary>
     /// <param name="relocationCount">Число уже совершённых переездов.</param>
     /// <param name="threshold">Порог обжитости для следующего переезда.</param>
@@ -514,11 +514,13 @@ public sealed class RelocationTests
     }
 
     /// <summary>
-    /// Запасная койка добавляет жителя деревне, но общий потолок артели в 25 трудяг не двигает.
+    /// Запасная койка добавляет жителя деревне, но общий потолок артели в 35 трудяг не двигает.
     /// </summary>
     [Test]
     public void SpareBunkAddsBedWithinArtelCapTest()
     {
+        const int barracksForCap = 8;
+
         var spareBunk = PerkManager.Perks.Single(x => x.Type == RelocationPerkType.SpareBunk);
         var player = TestPlayer.Create();
         var baseCapacity = Capacity(player.Id);
@@ -527,7 +529,7 @@ public sealed class RelocationTests
         var withPerk = Capacity(player.Id);
 
         var capped = TestPlayer.Create();
-        for (var i = 0; i < 5; i++)
+        for (var i = 0; i < barracksForCap; i++)
         {
             capped.WithDomik(DomikIds.Barrack, MaxDomikLevel);
         }

@@ -318,7 +318,7 @@ export const WorkersBox = ({ workers, domikTypes, domiks, receipts, expeditions,
             }
             <div className="workers-list">
                 {workers.length === 0 &&
-                    <span className="hint">Постройте барак, чтобы поселить трудяг.</span>
+                    <span className="hint">Поставьте артельную избу, чтобы поселить трудяг.</span>
                 }
                 {workers.map(worker => {
                     const restingSeconds = worker.restUntil == null ? 0 : remainingSeconds(worker.restUntil, now);

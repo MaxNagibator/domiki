@@ -29,6 +29,7 @@ public sealed class SimulationData
     public required Dictionary<int, WeatherType> WeatherTypeById { get; init; }
     public required Dictionary<int, Trait> TraitById { get; init; }
     public required Dictionary<(int NeighborId, int DomikTypeId), int> VillageProfileDurationPercentByKey { get; init; }
+    public required Dictionary<(int DomikTypeId, int Ordinal), int> CountGateLevelByKey { get; init; }
     public required int PlodderModificatorId { get; init; }
 
     public static SimulationData Load(ResourceManager resourceManager)
@@ -44,6 +45,7 @@ public sealed class SimulationData
         var traits = resourceManager.GetTraits().OrderBy(x => x.Id).ToArray();
         var modificatorTypes = resourceManager.GetModificatorTypes().OrderBy(x => x.Id).ToArray();
         var starterGoals = resourceManager.GetStarterGoals().OrderBy(x => x.Ordinal).ToArray();
+        var countGates = resourceManager.GetDomikTypeCountGates().OrderBy(x => x.DomikTypeId).ThenBy(x => x.Ordinal).ToArray();
         var plodder = modificatorTypes.Single(x => x.LogicName == "plodder").Id;
 
         return new SimulationData
@@ -66,6 +68,7 @@ public sealed class SimulationData
             WeatherTypeById = weatherTypes.ToDictionary(x => x.Id),
             TraitById = traits.ToDictionary(x => x.Id),
             VillageProfileDurationPercentByKey = villageProfileEffects.ToDictionary(x => (x.NeighborId, x.DomikTypeId), x => x.DurationPercent),
+            CountGateLevelByKey = countGates.ToDictionary(x => (x.DomikTypeId, x.Ordinal), x => x.UnlockLevel),
             PlodderModificatorId = plodder,
         };
     }

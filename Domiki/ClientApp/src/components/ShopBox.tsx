@@ -57,7 +57,7 @@ export const ShopBox = ({ purchaseDomikTypes, domikTypes, receipts, resourceType
                         : blueprintLocked
                             ? `Нужен чертёж соседа ${blueprint.neighborName}`
                             : countGateLocked
-                                ? `Ещё один – при обжитости ${domikType.nextCountGateLevel}`
+                                ? `Поставить ещё – при обжитости ${domikType.nextCountGateLevel}`
                                 : undefined;
                     const lockHint = blueprintLocked
                         ? `Репутация ${blueprint.reputationThreshold}: бери заказы соседа или ищи чертёж в экспедиции`

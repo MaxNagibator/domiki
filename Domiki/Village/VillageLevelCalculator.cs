@@ -16,9 +16,9 @@ public class VillageLevelCalculator
     public const int ComfortHabitabilityCap = 50;
     public const int ReputationPointsPerMilestone = 10;
     public const int SmartAutoUnlockLevel = 8;
-    public const int RelocationUnlockLevel = 250;
+    public const int RelocationUnlockLevel = 350;
     public const int RelocationLevelStep = 50;
-    public const int RelocationMaxUnlockLevel = 400;
+    public const int RelocationMaxUnlockLevel = 500;
     public const int RelocationCooldownDays = 7;
 
     private readonly ApplicationDbContext _context;
@@ -117,6 +117,25 @@ public class VillageLevelCalculator
                 LogicName = x.LogicName,
             });
 
+        var builtCounts = _context.Domiks
+            .Where(x => x.PlayerId == playerId)
+            .GroupBy(x => x.TypeId)
+            .Select(x => new { TypeId = x.Key, Count = x.Count() })
+            .ToDictionary(x => x.TypeId, x => x.Count);
+
+        var domikTypesById = _resourceManager.GetDomikTypes().ToDictionary(x => x.Id);
+        var countGateUnlocks = _resourceManager.GetDomikTypeCountGates()
+            .Where(x => domikTypesById.ContainsKey(x.DomikTypeId) && x.Ordinal > builtCounts.GetValueOrDefault(x.DomikTypeId))
+            .Select(x => new VillageLevelUnlock
+            {
+                Level = x.UnlockLevel,
+                Label = $"{domikTypesById[x.DomikTypeId].Name} ×{x.Ordinal}",
+                Requirement = null,
+                Unlocked = level >= x.UnlockLevel,
+                Kind = "building",
+                LogicName = domikTypesById[x.DomikTypeId].LogicName,
+            });
+
         var neighborUnlocks = _resourceManager.GetNeighbors()
             .Where(x => x.UnlockLevel > 0)
             .Select(x => new VillageLevelUnlock
@@ -174,6 +193,7 @@ public class VillageLevelCalculator
             });
 
         return domikUnlocks
+            .Concat(countGateUnlocks)
             .Concat(neighborUnlocks)
             .Concat(smartArtel)
             .Concat(villageProfile)
