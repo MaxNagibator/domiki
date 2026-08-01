@@ -100,6 +100,15 @@ public class Worker
     public int? SickTypeId { get; set; }
 
     /// <summary>
+    /// Числится ли трудяга в отходе – коек в деревне меньше, чем трудяг.
+    /// </summary>
+    /// <remarks>
+    /// Такой трудяга не берёт работу и выходит на неё, как только койка появится
+    /// (см. <see cref="Workers.WorkerManager.GetAwayWorkerIds"/>).
+    /// </remarks>
+    public bool IsAway { get; set; }
+
+    /// <summary>
     /// Наработанные навыки трудяги по типам построек.
     /// </summary>
     public WorkerSkill[] Skills { get; set; } = [];

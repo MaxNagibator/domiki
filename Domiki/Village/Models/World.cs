@@ -133,6 +133,14 @@ public class WorldVillage
     /// Совпадает с <see cref="VillageLevel.Comfort"/>.
     /// </remarks>
     public int Comfort { get; set; }
+
+    /// <summary>
+    /// Число переездов хозяина деревни в новую долину.
+    /// </summary>
+    /// <remarks>
+    /// Единственное, что памятный столб показывает публично в каталоге (GAMEDESIGN.md §3.7).
+    /// </remarks>
+    public int RelocationCount { get; set; }
 }
 
 /// <summary>
@@ -177,6 +185,16 @@ public class VillageVisit
     /// <see cref="Data.Entities.Player.ProfileNeighborId"/>.
     /// </remarks>
     public string? ProfileLogicName { get; set; }
+
+    /// <summary>
+    /// Сколько раз хозяин переезжал в новую долину.
+    /// </summary>
+    public int RelocationCount { get; set; }
+
+    /// <summary>
+    /// Суммарная обжитость всех прожитых хозяином деревень на дни их отъездов.
+    /// </summary>
+    public int ChronicleLevelSum { get; set; }
 }
 
 /// <summary>

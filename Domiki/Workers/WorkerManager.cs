@@ -2,23 +2,35 @@
 using Domiki.Web.Data.Entities;
 using Domiki.Web.Infrastructure;
 using Domiki.Web.Reference;
+using Domiki.Web.Village;
 using WorkerSkill = Domiki.Web.Workers.Models.WorkerSkill;
 
 namespace Domiki.Web.Workers;
 
 public class WorkerManager
 {
+    /// <summary>
+    /// Потолок числа трудяг одного игрока.
+    /// </summary>
+    /// <remarks>
+    /// Предохранитель GAMEDESIGN.md §4.4: усталость троттлит артель мягко, кап держит её сверху жёстко. Койки барака
+    /// доходят до потолка ровно, поэтому «Запасная койка» (<see cref="PerkManager.SpareBunkBedsPerStep"/>) в него упирается.
+    /// </remarks>
+    public const int MaxCapacity = 25;
+
     private const int PlodderModificatorId = 1;
 
     private readonly ApplicationDbContext _context;
     private readonly ResourceManager _resourceManager;
     private readonly PlayerResourceManager _playerResourceManager;
+    private readonly PerkManager _perkManager;
 
-    public WorkerManager(ApplicationDbContext context, ResourceManager resourceManager, PlayerResourceManager playerResourceManager)
+    public WorkerManager(ApplicationDbContext context, ResourceManager resourceManager, PlayerResourceManager playerResourceManager, PerkManager perkManager)
     {
         _context = context;
         _resourceManager = resourceManager;
         _playerResourceManager = playerResourceManager;
+        _perkManager = perkManager;
     }
 
     public static bool IsFree(Worker worker, DateTime now)
@@ -108,7 +120,27 @@ public class WorkerManager
             capacity += level.Modificators.FirstOrDefault(x => x.Type.Id == PlodderModificatorId)?.Value ?? 0;
         }
 
-        return capacity;
+        return Math.Min(MaxCapacity, capacity + _perkManager.GetBedBonus(playerId));
+    }
+
+    /// <summary>
+    /// Возвращает трудяг, которым не хватило коек и которые числятся в отходе.
+    /// </summary>
+    /// <param name="playerId">Идентификатор игрока.</param>
+    /// <returns>Идентификаторы трудяг в отходе, самые поздние по найму.</returns>
+    /// <remarks>
+    /// Артель переезжает целиком, а двор новой деревни пуст, поэтому трудяг оказывается больше коек. Их не теряют:
+    /// они выходят на работу, как только койка появится (GAMEDESIGN.md §3 Слой 4).
+    /// </remarks>
+    public int[] GetAwayWorkerIds(int playerId)
+    {
+        var capacity = GetCapacity(playerId);
+        return _context.Workers.Where(x => x.PlayerId == playerId)
+            .OrderBy(x => x.Id)
+            .Select(x => x.Id)
+            .ToArray()
+            .Skip(capacity)
+            .ToArray();
     }
 
     private string GetWorkerName(HashSet<string> usedNames, int ordinal)
@@ -132,6 +164,8 @@ public class WorkerManager
 
     private void ReconcileManufactures(int playerId, Worker[] currentWorkers, DateTime now)
     {
+        var awayIds = GetAwayWorkerIds(playerId).ToHashSet();
+        currentWorkers = currentWorkers.Where(x => !awayIds.Contains(x.Id)).ToArray();
         var manufactures = _context.Manufactures.Where(x => x.DomikPlayerId == playerId).OrderBy(x => x.Id).ToArray();
         foreach (var manufacture in manufactures)
         {
@@ -154,6 +188,7 @@ public class WorkerManager
     {
         var traits = _resourceManager.GetTraits().ToDictionary(x => x.Id, x => x);
         var workers = _context.Workers.Where(x => x.PlayerId == playerId).OrderBy(x => x.Id).ToArray();
+        var awayIds = GetAwayWorkerIds(playerId).ToHashSet();
         var workerIds = workers.Select(x => x.Id).ToArray();
         var skills = _context.WorkerSkills.Where(x => workerIds.Contains(x.WorkerId))
             .ToArray()
@@ -180,6 +215,7 @@ public class WorkerManager
                 RestUntil = x.RestUntil,
                 SickUntil = x.SickUntil,
                 SickTypeId = x.SickTypeId,
+                IsAway = awayIds.Contains(x.Id),
                 Skills = skills.GetValueOrDefault(x.Id, Array.Empty<WorkerSkill>()),
             })
             .ToArray();

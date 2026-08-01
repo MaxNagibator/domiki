@@ -138,6 +138,15 @@ public sealed record WorkerDto
     public int? SickTypeId { get; init; }
 
     /// <summary>
+    /// Числится ли трудяга в отходе – коек в деревне меньше, чем трудяг.
+    /// </summary>
+    /// <remarks>
+    /// Такой трудяга не берёт работу и выходит на неё, как только койка появится; в отходе оказывается артель сразу
+    /// после переезда в новую долину (см. <see cref="Workers.WorkerManager.GetAwayWorkerIds"/>).
+    /// </remarks>
+    public required bool IsAway { get; init; }
+
+    /// <summary>
     /// Наработанные навыки трудяги по типам построек.
     /// </summary>
     public required WorkerSkillDto[] Skills { get; init; }

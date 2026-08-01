@@ -211,4 +211,13 @@ public sealed record GameStateDto
     /// См. <see cref="Reference.ResourceManager.GetVillageProfileEffects"/>.
     /// </remarks>
     public required VillageProfileDto[] VillageProfiles { get; init; }
+
+    /// <summary>
+    /// Переезд в новую долину: гейт, сводка сборов, узелки памяти и лесенка перков.
+    /// </summary>
+    /// <remarks>
+    /// Памятный столб в снимок не входит – он берётся отдельным запросом
+    /// (см. <see cref="Village.RelocationController.GetMemorialPost"/>).
+    /// </remarks>
+    public required RelocationDto Relocation { get; init; }
 }

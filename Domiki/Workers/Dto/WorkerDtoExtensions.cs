@@ -26,6 +26,7 @@ public static class WorkerDtoExtensions
             RestUntil = DateTimeHelper.AsUtc(worker.RestUntil),
             SickUntil = DateTimeHelper.AsUtc(worker.SickUntil),
             SickTypeId = worker.SickTypeId,
+            IsAway = worker.IsAway,
             Skills = worker.Skills.Select(x => new WorkerSkillDto
                 {
                     DomikTypeId = x.DomikTypeId,

@@ -33,6 +33,7 @@ public static class WorldDtoExtensions
             SeasonToloka = village.SeasonToloka,
             SeasonExpeditions = village.SeasonExpeditions,
             Comfort = village.Comfort,
+            RelocationCount = village.RelocationCount,
         };
     }
 
@@ -55,6 +56,8 @@ public static class WorldDtoExtensions
             HostCapReached = help.HostCapReached,
             HasActiveWork = help.HasActiveWork,
             HelpUnlockLevel = help.UnlockLevel,
+            RelocationCount = visit.RelocationCount,
+            ChronicleLevelSum = visit.ChronicleLevelSum,
         };
     }
 

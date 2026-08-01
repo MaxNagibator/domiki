@@ -77,6 +77,7 @@ public class WorldManager
                     SeasonToloka = counters.GetValueOrDefault((x.Id, SeasonMetric.Toloka)),
                     SeasonExpeditions = counters.GetValueOrDefault((x.Id, SeasonMetric.Expeditions)),
                     Comfort = level.Comfort,
+                    RelocationCount = x.RelocationCount,
                 };
             })
             .Concat(GetNpcVillages())
@@ -116,6 +117,8 @@ public class WorldManager
                 })
                 .ToArray(),
             ProfileLogicName = ResolveProfileLogicName(neighborLogicById, player.ProfileNeighborId),
+            RelocationCount = player.RelocationCount,
+            ChronicleLevelSum = _context.VillageChronicles.Where(x => x.PlayerId == targetPlayerId).Sum(x => (int?)x.VillageLevel) ?? 0,
         };
     }
 

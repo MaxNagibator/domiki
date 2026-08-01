@@ -37,8 +37,9 @@ public class GameStateController : GameControllerBase
     private readonly IncidentManager _incidentManager;
     private readonly WorkerMilestoneManager _workerMilestoneManager;
     private readonly ElderHouseManager _elderHouseManager;
+    private readonly RelocationManager _relocationManager;
 
-    public GameStateController(DomikManager domikManager, ResourceManager resourceManager, OrderManager orderManager, WorkerManager workerManager, TavernManager tavernManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, ExpeditionManager expeditionManager, DecorManager decorManager, TolokaManager tolokaManager, MarketManager marketManager, ConvoyManager convoyManager, GiftManager giftManager, PlayerEventManager playerEventManager, GoalManager goalManager, ErrandManager errandManager, IncidentManager incidentManager, WorkerMilestoneManager workerMilestoneManager, ElderHouseManager elderHouseManager)
+    public GameStateController(DomikManager domikManager, ResourceManager resourceManager, OrderManager orderManager, WorkerManager workerManager, TavernManager tavernManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, ExpeditionManager expeditionManager, DecorManager decorManager, TolokaManager tolokaManager, MarketManager marketManager, ConvoyManager convoyManager, GiftManager giftManager, PlayerEventManager playerEventManager, GoalManager goalManager, ErrandManager errandManager, IncidentManager incidentManager, WorkerMilestoneManager workerMilestoneManager, ElderHouseManager elderHouseManager, RelocationManager relocationManager)
         : base(domikManager)
     {
         _domikManager = domikManager;
@@ -61,6 +62,7 @@ public class GameStateController : GameControllerBase
         _incidentManager = incidentManager;
         _workerMilestoneManager = workerMilestoneManager;
         _elderHouseManager = elderHouseManager;
+        _relocationManager = relocationManager;
     }
 
     [HttpGet]
@@ -112,6 +114,7 @@ public class GameStateController : GameControllerBase
             Events = _playerEventManager.GetRecentEvents(playerId).Select(x => x.ToDto()).ToArray(),
             Goals = goals.ToDto(),
             VillageProfiles = _resourceManager.GetVillageProfileEffects().Select(x => x.ToDto()).ToArray(),
+            Relocation = _relocationManager.GetState(playerId, villageLevel.Level).ToDto(),
         };
 
         return content;

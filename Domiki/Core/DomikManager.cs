@@ -101,8 +101,9 @@ public class DomikManager
     private readonly ILogger<DomikManager> _logger;
     private readonly IncidentManager _incidentManager;
     private readonly ElderHouseManager _elderHouseManager;
+    private readonly PerkManager _perkManager;
 
-    public DomikManager(UnitOfWork uow, ApplicationDbContext context, ICalculator calculator, ResourceManager resourceManager, PlayerResourceManager playerResourceManager, WorkerManager workerManager, TavernManager tavernManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, TolokaManager tolokaManager, PlayerEventManager playerEventManager, GoalManager goalManager, ILogger<DomikManager> logger, IncidentManager incidentManager, ElderHouseManager elderHouseManager)
+    public DomikManager(UnitOfWork uow, ApplicationDbContext context, ICalculator calculator, ResourceManager resourceManager, PlayerResourceManager playerResourceManager, WorkerManager workerManager, TavernManager tavernManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, TolokaManager tolokaManager, PlayerEventManager playerEventManager, GoalManager goalManager, ILogger<DomikManager> logger, IncidentManager incidentManager, ElderHouseManager elderHouseManager, PerkManager perkManager)
     {
         _context = context;
         _calculator = calculator;
@@ -120,6 +121,7 @@ public class DomikManager
         _logger = logger;
         _incidentManager = incidentManager;
         _elderHouseManager = elderHouseManager;
+        _perkManager = perkManager;
     }
 
     public int GetPlayerId(string aspNetUserId)
@@ -131,6 +133,7 @@ public class DomikManager
             {
                 AspNetUserId = aspNetUserId,
                 Name = "Держатель домиков",
+                VillageStartedDate = DateTimeHelper.GetNowDate(),
             };
 
             _context.Players.Add(dbPlayer);
@@ -475,7 +478,8 @@ public class DomikManager
         var currentManufactureCount = dbManufactures.Where(x => x.DomikId == domikId).Count();
 
         var workers = _workerManager.EnsureWorkers(playerId);
-        var freeWorkers = workers.Where(x => WorkerManager.IsFree(x, date)).OrderBy(x => x.Id).ToArray();
+        var awayWorkerIds = _workerManager.GetAwayWorkerIds(playerId).ToHashSet();
+        var freeWorkers = workers.Where(x => WorkerManager.IsFree(x, date) && !awayWorkerIds.Contains(x.Id)).OrderBy(x => x.Id).ToArray();
 
         var domiks = _context.Domiks.Where(x => x.PlayerId == playerId).ToArray();
         var domikTypes = _resourceManager.GetDomikTypes();
@@ -563,6 +567,7 @@ public class DomikManager
             ? _resourceManager.GetVillageProfileEffects().FirstOrDefault(x => x.NeighborId == profileNeighborId && x.DomikTypeId == domikType.Id)?.DurationPercent ?? 100
             : 100;
         duration = (int)Math.Ceiling(duration * profilePercent / 100.0);
+        duration = (int)Math.Ceiling(duration * _perkManager.GetDurationPercent(playerId) / 100.0);
 
         duration = Math.Max(duration, (int)Math.Ceiling(receipt.DurationSeconds * 0.6));
 
