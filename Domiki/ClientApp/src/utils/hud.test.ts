@@ -37,7 +37,7 @@ const order = (over: Partial<OrderDto>): OrderDto => ({
 const worker = (id: number, over: Partial<WorkerDto>): WorkerDto => ({
     id, name: `w${id}`, gender: 0, traitId: 0, traitName: '', traitLogicName: '', traitDurationPercent: 0,
     noFatigue: false, noSick: false, manufactureId: null, expeditionId: null, errandId: null, incidentId: null,
-    workedSeconds: 0, restUntil: null, sickUntil: null, sickTypeId: null, skills: [], ...over,
+    workedSeconds: 0, restUntil: null, sickUntil: null, sickTypeId: null, isAway: false, skills: [], ...over,
 });
 
 const expeditionState = (active: ExpeditionStateDto['active']): ExpeditionStateDto => ({

@@ -25,6 +25,7 @@ const baseWorker: WorkerDto = {
     restUntil: null,
     sickUntil: null,
     sickTypeId: null,
+    isAway: false,
     skills: [],
 };
 

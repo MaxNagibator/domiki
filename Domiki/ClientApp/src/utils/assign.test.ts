@@ -26,7 +26,7 @@ const worker = (id: number, traitDurationPercent: number, skills: { domikTypeId:
     id, name: `w${id}`, gender: 1, traitId: 1, traitName: 'Проворный', traitLogicName: 'swift',
     traitDurationPercent, noFatigue: false, noSick: false,
     manufactureId: null, expeditionId: null, errandId: null, incidentId: null,
-    workedSeconds: 0, restUntil: null, sickUntil: null, sickTypeId: null,
+    workedSeconds: 0, restUntil: null, sickUntil: null, sickTypeId: null, isAway: false,
     skills: skills.map(skill => ({ ...skill, uses: 10 })),
 });
 

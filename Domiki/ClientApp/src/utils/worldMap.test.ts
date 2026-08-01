@@ -17,6 +17,7 @@ const village = (name: string, level: number, overrides?: Partial<WorldVillageDt
     seasonToloka: 0,
     seasonExpeditions: 0,
     comfort: 0,
+    relocationCount: 0,
     ...overrides,
 });
 
