@@ -227,7 +227,9 @@ public static class App
         {
             var aliasCounter = 0;
             var predicate = OwnedPredicate(entityType, playerType, owned, "t", ref aliasCounter);
+#pragma warning disable EF1002
             context.Database.ExecuteSqlRaw($"DELETE FROM {QuoteTable(entityType)} AS t WHERE {predicate}", new object[] { playerIds });
+#pragma warning restore EF1002
         }
     }
 
