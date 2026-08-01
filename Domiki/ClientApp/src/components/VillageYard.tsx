@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DecorStateDto, DomikDto, DomikTypeDto, VillageLevelDto, WeatherPeriodDto, WorkerDto } from '../types/api';
+import { workIntensity } from '../utils/game';
 import { hashString } from '../utils/worldMap';
 import { layoutYard, YARD_H, type YardGreen, type YardSpot } from '../utils/yardMap';
 import { DecorSprite, DomikSprite, MechanicSprite, NeighborSprite, SheepSprite } from './sprites';
@@ -272,6 +273,7 @@ export const VillageYard = ({ domiks, domikTypes, decor, workers, villageLevel, 
                                     return null;
                                 }
                                 const selected = selectedDomikId === spot.domik.id;
+                                const intensity = workIntensity(spot.domik, domikType);
                                 return (
                                     <g key={spot.domik.id} className={'yard-domik' + (selected ? ' yard-domik-selected' : '')}
                                         role="button" tabIndex={0} aria-label={displayName(spot.domik)}
@@ -285,6 +287,7 @@ export const VillageYard = ({ domiks, domikTypes, decor, workers, villageLevel, 
                                         <DomikSprite logicName={domikType.logicName} level={spot.domik.level}
                                             working={(spot.domik.manufactures?.length ?? 0) > 0}
                                             weather={currentWeather?.logicName}
+                                            data-motion={intensity === 'normal' ? undefined : intensity}
                                             x={spot.x - 32} y={spot.y - 46} width={64} height={64} />
                                         {selected && <SelectionBrackets x={spot.x} y={spot.y} />}
                                     </g>

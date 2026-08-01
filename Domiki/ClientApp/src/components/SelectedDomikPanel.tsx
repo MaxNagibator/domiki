@@ -9,7 +9,7 @@ import InfoBoxIcon from 'pixelarticons/svg/info-box.svg?react';
 import PlayIcon from 'pixelarticons/svg/play.svg?react';
 import type { DomikTypeDto, GoalsStateDto, ReceiptDto, ResourceDto, ResourceTypeDto, SelectedDomikView, VillageLevelDto, WeatherEffectDto, WeatherPeriodDto, WorkerDto } from '../types/api';
 import type { DomikNamer } from '../utils/domikNames';
-import { SICK_CHANCE_PERCENT, SICK_MIN_VILLAGE_LEVEL, computeReceiptView, isWorkerFree, progressPercent, resourceShortfall, workerFitness } from '../utils/game';
+import { SICK_CHANCE_PERCENT, SICK_MIN_VILLAGE_LEVEL, computeReceiptView, isWorkerFree, progressPercent, resourceShortfall, workIntensity, workerFitness } from '../utils/game';
 import { formatDuration, remainingSeconds } from '../utils/time';
 import { domikLore } from '../utils/domikLore';
 import { pluralRu } from '../utils/plural';
@@ -419,6 +419,7 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
     const maxManufactures = selected?.domikType.levels.find(level => level.value === selected.domik.level)?.maxManufactureCount ?? 0;
     const runningManufactures = selected?.domik.manufactures?.length ?? 0;
     const atManufactureCap = maxManufactures > 0 && runningManufactures >= maxManufactures;
+    const crestIntensity = selected == null ? 'normal' : workIntensity(selected.domik, selected.domikType);
     const weatherEffect = selected == null
         ? null
         : currentWeather?.effects.find(effect => effect.domikTypeId === selected.domikType.id) ?? null;
@@ -492,7 +493,8 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
                             <CloseIcon className="btn-ico" aria-hidden="true" />
                         </button>
                         <DomikSprite className="panel-crest" logicName={selected.domikType.logicName}
-                            level={selected.domik.level} working={runningManufactures > 0} aria-hidden="true" />
+                            level={selected.domik.level} working={runningManufactures > 0}
+                            data-motion={crestIntensity === 'normal' ? undefined : crestIntensity} aria-hidden="true" />
                         <div className="panel-ident">
                         <h3 className="panel-title">
                             {displayName(selected.domik.typeId, selected.domik.id, selected.domikType.name, selected.domikType.logicName)}

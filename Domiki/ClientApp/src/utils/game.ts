@@ -245,6 +245,19 @@ export function canInstaFinish(finishDate: string, now: number): boolean {
 
 export type DomikStatus = 'upgradeReady' | 'upgrading' | 'producing' | 'idle';
 export type DomikSortMode = 'attention' | 'type' | 'level';
+export type WorkIntensity = 'slow' | 'normal' | 'fast';
+
+export function workIntensity(domik: DomikDto, domikType: DomikTypeDto): WorkIntensity {
+    const active = domik.manufactures?.length ?? 0;
+    const maxSlots = domikType.levels.find(level => level.value === domik.level)?.maxManufactureCount;
+    if (active === 0 || maxSlots == null || maxSlots <= 1) {
+        return 'normal';
+    }
+    if (active >= maxSlots) {
+        return 'fast';
+    }
+    return active === 1 ? 'slow' : 'normal';
+}
 
 export function domikStatus(domik: DomikDto, domikType: DomikTypeDto, resources: ResourceDto[]): DomikStatus {
     if (domik.finishDate != null) {

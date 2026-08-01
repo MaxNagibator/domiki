@@ -9,7 +9,7 @@ import BellIcon from 'pixelarticons/svg/bell.svg?react';
 import GridIcon from 'pixelarticons/svg/grid-3x3.svg?react';
 import type { DomikDto, DomikTypeDto, ManufactureDto, ReceiptDto, ResourceDto, ResourceTypeDto, WeatherPeriodDto, WorkerDto } from '../types/api';
 import type { DomikNamer } from '../utils/domikNames';
-import { canAffordUpgrade, manufactureProgressPercent, progressPercent, sortDomiks } from '../utils/game';
+import { canAffordUpgrade, manufactureProgressPercent, progressPercent, sortDomiks, workIntensity } from '../utils/game';
 import type { DomikSortMode } from '../utils/game';
 import type { AssignTarget } from '../utils/assign';
 import { formatClock, remainingSeconds } from '../utils/time';
@@ -232,14 +232,7 @@ export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, reso
 
                         const hasManufacture = domik.manufactures != null && domik.manufactures.length > 0;
                         const activeCount = domik.manufactures?.length ?? 0;
-                        const maxSlots = domikType.levels.find(level => level.value === domik.level)?.maxManufactureCount;
-                        const intensity = maxSlots == null
-                            ? 'normal'
-                            : activeCount >= maxSlots
-                                ? 'fast'
-                                : maxSlots > 1 && activeCount === 1
-                                    ? 'slow'
-                                    : 'normal';
+                        const intensity = workIntensity(domik, domikType);
                         const repeatedRecipeNames = (domik.manufactures ?? []).flatMap(manufacture => {
                             if (!manufacture.autoRepeat) {
                                 return [];
