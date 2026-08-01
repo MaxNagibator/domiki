@@ -460,10 +460,12 @@ export const DomikiPage = () => {
                 </div>
             }
             {villageSlot != null && createPortal(
-                <button type="button" className="village-identity" title="Настроить деревню" onClick={openIdentity}>
-                    <Crest icon={currentCrestIcon} color={currentCrestColor} />
-                    <span className="section-title village-name">{villageName}</span>
-                </button>,
+                <h1 className="village-title">
+                    <button type="button" className="village-identity" title="Настроить деревню" onClick={openIdentity}>
+                        <Crest icon={currentCrestIcon} color={currentCrestColor} />
+                        <span className="section-title village-name">{villageName}</span>
+                    </button>
+                </h1>,
                 villageSlot)}
             <PerfZone id="шапка">
             <VillageHud resources={resources} resourceTypes={resourceTypes} domikTypes={domikTypes} plodder={plodder} digest={hudDigest}

@@ -686,6 +686,12 @@
     color: #8f3a1e;
 }
 
+.village-title {
+    display: inline-flex;
+    margin: 0;
+    font: inherit;
+}
+
 .village-identity {
     display: inline-flex;
     align-items: center;
@@ -761,25 +767,31 @@
         border-color: var(--pine);
     }
 
-.modal-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 900;
-    display: grid;
-    place-items: center;
-    padding: 16px;
-    background: rgba(51, 41, 26, .42);
-}
-
 .identity-modal {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    width: min(460px, 100%);
+    width: min(460px, calc(100vw - 32px));
     max-height: calc(100vh - 32px);
     overflow: auto;
     padding: 18px;
     box-shadow: inset 0 -4px 0 var(--plank-dark);
+}
+
+dialog.identity-modal {
+    margin: auto;
+    color: var(--ink);
+}
+
+dialog.identity-modal:not([open]) {
+    display: none;
+}
+
+dialog.identity-modal::backdrop {
+    background: rgba(51, 41, 26, .42);
+}
+
+.identity-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
 .identity-modal-head {
