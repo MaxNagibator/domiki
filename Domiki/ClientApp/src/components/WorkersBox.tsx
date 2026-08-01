@@ -10,7 +10,7 @@ import { describeWorker, describeWorkerParts, isSkilledWorker, rankedSkills } fr
 import { AbstractSprite, DomikSprite, MechanicSprite, ResourceSprite, TraitSprite, WorkerSprite } from './sprites';
 import { genderForm, traitLabel } from '../utils/gender';
 
-type WorkerState = 'expedition' | 'errand' | 'incidentMissing' | 'incidentSearch' | 'domikIncidentSearch' | 'busy' | 'resting' | 'free';
+type WorkerState = 'expedition' | 'errand' | 'incidentMissing' | 'incidentSearch' | 'domikIncidentSearch' | 'busy' | 'resting' | 'away' | 'free';
 
 interface WorkersBoxProps {
     workers: WorkerDto[];
@@ -31,9 +31,10 @@ interface WorkersBoxProps {
     now: number;
 }
 
-const stateLabels: Record<WorkerState, string> = { expedition: 'В экспедиции', errand: 'В поручении', incidentMissing: 'Задержался', incidentSearch: 'В поисках', domikIncidentSearch: 'Разбирается', busy: 'Работает', resting: 'Отдыхает', free: 'Свободен' };
-const tallyLabels: Record<WorkerState, string> = { expedition: 'в пути', errand: 'в поручении', incidentMissing: 'задержались', incidentSearch: 'в поисках', domikIncidentSearch: 'разбираются', busy: 'за работой', resting: 'отдыхают', free: 'свободны' };
-const tallyOrder: WorkerState[] = ['free', 'busy', 'resting', 'incidentMissing', 'incidentSearch', 'domikIncidentSearch', 'errand', 'expedition'];
+const stateLabels: Record<WorkerState, string> = { expedition: 'В экспедиции', errand: 'В поручении', incidentMissing: 'Задержался', incidentSearch: 'В поисках', domikIncidentSearch: 'Разбирается', busy: 'Работает', resting: 'Отдыхает', away: 'В отходе', free: 'Свободен' };
+const tallyLabels: Record<WorkerState, string> = { expedition: 'в пути', errand: 'в поручении', incidentMissing: 'задержались', incidentSearch: 'в поисках', domikIncidentSearch: 'разбираются', busy: 'за работой', resting: 'отдыхают', away: 'в отходе', free: 'свободны' };
+const tallyOrder: WorkerState[] = ['free', 'busy', 'resting', 'away', 'incidentMissing', 'incidentSearch', 'domikIncidentSearch', 'errand', 'expedition'];
+const AWAY_TITLE = 'Койки заняты – трудяга ждёт своей и работы не берёт';
 const FATIGUE_THRESHOLD_SECONDS = 28800;
 
 const useShownPortraits = () => {
@@ -245,6 +246,9 @@ export const WorkersBox = ({ workers, domikTypes, domiks, receipts, expeditions,
         if (worker.manufactureId != null) {
             return 'busy';
         }
+        if (worker.isAway) {
+            return 'away';
+        }
         if (worker.restUntil != null && remainingSeconds(worker.restUntil, now) > 0) {
             return 'resting';
         }
@@ -253,7 +257,7 @@ export const WorkersBox = ({ workers, domikTypes, domiks, receipts, expeditions,
 
     const tally = workers.reduce<Record<WorkerState, number>>(
         (acc, worker) => { acc[stateOf(worker)] += 1; return acc; },
-        { expedition: 0, errand: 0, incidentMissing: 0, incidentSearch: 0, domikIncidentSearch: 0, busy: 0, resting: 0, free: 0 },
+        { expedition: 0, errand: 0, incidentMissing: 0, incidentSearch: 0, domikIncidentSearch: 0, busy: 0, resting: 0, away: 0, free: 0 },
     );
 
     return (
@@ -403,7 +407,7 @@ export const WorkersBox = ({ workers, domikTypes, domiks, receipts, expeditions,
                             onMouseLeave={() => clearHover(worker.id)}
                             onFocus={event => setHover({ worker, rect: event.currentTarget.getBoundingClientRect() })}
                             onBlur={() => clearHover(worker.id)}>
-                            <div className="worker-topline" title={stateKey === 'resting' ? restTitle : undefined}>
+                            <div className="worker-topline" title={stateKey === 'resting' ? restTitle : stateKey === 'away' ? AWAY_TITLE : undefined}>
                                 <span className="worker-badge">
                                     {stateKey === 'resting' && <AbstractSprite logicName="fatigue_rest" size={24} className="worker-badge-ico" aria-hidden="true" />}
                                     {stateLabel}

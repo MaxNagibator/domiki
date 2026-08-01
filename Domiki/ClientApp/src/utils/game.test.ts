@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { DomikDto, DomikTypeDto, ManufactureDto, ReceiptDto, ResourceDto } from '../types/api';
-import { canAffordUpgrade, computePlodderCount, computeReceiptView, manufactureProgressPercent, progressPercent, resourceShortfall, resourceSourceMap, sortDomiks, tradeDeal, tradeRatio, workIntensity, zealApplies, zealMultiplier } from './game';
+import type { DomikDto, DomikTypeDto, ManufactureDto, ReceiptDto, ResourceDto, WorkerDto } from '../types/api';
+import { canAffordUpgrade, computePlodderCount, computeReceiptView, isWorkerFree, manufactureProgressPercent, progressPercent, resourceShortfall, resourceSourceMap, sortDomiks, tradeDeal, tradeRatio, workIntensity, zealApplies, zealMultiplier } from './game';
 import type { WorkIntensity } from './game';
 
 describe('resourceShortfall', () => {
@@ -226,6 +226,23 @@ describe('manufactureProgressPercent', () => {
 describe('progressPercent', () => {
     it('returns 0 when total duration is not positive', () => {
         expect(progressPercent('2026-01-01T00:00:00.000Z', 0, 0)).toBe(0);
+    });
+});
+
+describe('isWorkerFree', () => {
+    const worker = (over: Partial<WorkerDto>): WorkerDto => ({
+        id: 1, name: 'Прохор', gender: 0, traitId: 0, traitName: '', traitLogicName: '', traitDurationPercent: 0,
+        noFatigue: false, noSick: false, manufactureId: null, expeditionId: null, errandId: null, incidentId: null,
+        workedSeconds: 0, restUntil: null, sickUntil: null, sickTypeId: null, isAway: false, skills: [], ...over,
+    });
+
+    it.each<[string, Partial<WorkerDto>, boolean]>([
+        ['ничем не занят', {}, true],
+        ['в отходе – койки не досталось', { isAway: true }, false],
+        ['на смене', { manufactureId: 1 }, false],
+        ['отдыхает', { restUntil: new Date(3600 * 1000).toISOString() }, false],
+    ])('%s -> %s', (_case, over, expected) => {
+        expect(isWorkerFree(worker(over), 0)).toBe(expected);
     });
 });
 

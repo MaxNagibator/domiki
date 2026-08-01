@@ -142,6 +142,7 @@
 .rail-card--busy,
 .rail-card--resting,
 .rail-card--sick,
+.rail-card--trip,
 .rail-card--away {
     background: var(--plank-dark);
     cursor: default;
@@ -164,8 +165,12 @@
     --rail-mark: #8a5fb0;
 }
 
-.rail-card--away {
+.rail-card--trip {
     --rail-mark: #b8860b;
+}
+
+.rail-card--away {
+    --rail-mark: var(--ink-muted);
 }
 
 

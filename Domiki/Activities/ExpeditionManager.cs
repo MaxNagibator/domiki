@@ -123,10 +123,10 @@ public class ExpeditionManager
         }
 
         var workers = _workerManager.EnsureWorkers(playerId);
-        var freeWorkers = workers.Where(x => WorkerManager.IsFree(x, date)).OrderBy(x => x.Id).ToArray();
+        var freeWorkers = _workerManager.GetAvailableWorkers(playerId, workers, date);
         if (freeWorkers.Length < type.WorkerCount)
         {
-            throw new BusinessException("Недостаточно трудяг");
+            throw new BusinessException(WorkerManager.GetNotEnoughWorkersMessage(workers, freeWorkers, date));
         }
 
         Worker[] selectedWorkers;

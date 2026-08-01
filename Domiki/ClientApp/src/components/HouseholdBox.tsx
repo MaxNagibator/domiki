@@ -298,7 +298,9 @@ export const HouseholdBox = ({ digest, resourceTypes, resources, reserves, ledge
                             <div className="household-row">
                                 <AbstractSprite logicName="smart_artel" size={24} className="household-row-ico" aria-hidden="true" />
                                 <span className="household-row-text">
-                                    Свободных рук нет{digest.handsFreeEarliest != null && <>: первый трудяга освободится в {formatTimeOfDay(digest.handsFreeEarliest, now)}</>}
+                                    Свободных рук нет{digest.handsFreeEarliest != null
+                                        ? <>: первый трудяга освободится в {formatTimeOfDay(digest.handsFreeEarliest, now)}</>
+                                        : digest.workersAway > 0 && <>: {digest.workersAway} {pluralRu(digest.workersAway, 'трудяга', 'трудяги', 'трудяг')} в отходе – не хватает коек</>}
                                 </span>
                             </div>
                         }

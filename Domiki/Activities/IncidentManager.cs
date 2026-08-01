@@ -125,6 +125,7 @@ public class IncidentManager
     private readonly ResourceManager _resourceManager;
     private readonly PlayerResourceManager _playerResourceManager;
     private readonly PlayerEventManager _playerEventManager;
+    private readonly WorkerManager _workerManager;
 
     /// <summary>
     /// Создаёт менеджер происшествий.
@@ -135,7 +136,8 @@ public class IncidentManager
     /// <param name="resourceManager">Справочник походов, построек, ресурсов и черт.</param>
     /// <param name="playerResourceManager">Менеджер ресурсов и блокировки игрока.</param>
     /// <param name="playerEventManager">Журнал игровых событий игрока.</param>
-    public IncidentManager(ApplicationDbContext context, UnitOfWork uow, ICalculator calculator, ResourceManager resourceManager, PlayerResourceManager playerResourceManager, PlayerEventManager playerEventManager)
+    /// <param name="workerManager">Менеджер трудяг – отбор тех, кто готов взять работу.</param>
+    public IncidentManager(ApplicationDbContext context, UnitOfWork uow, ICalculator calculator, ResourceManager resourceManager, PlayerResourceManager playerResourceManager, PlayerEventManager playerEventManager, WorkerManager workerManager)
     {
         _context = context;
         _uow = uow;
@@ -143,6 +145,7 @@ public class IncidentManager
         _resourceManager = resourceManager;
         _playerResourceManager = playerResourceManager;
         _playerEventManager = playerEventManager;
+        _workerManager = workerManager;
     }
 
     /// <summary>
@@ -171,9 +174,8 @@ public class IncidentManager
         }
 
         var missingWorker = assignedWorkers[Random.Shared.Next(assignedWorkers.Length)];
-        var freeWorkers = _context.Workers.Where(x => x.PlayerId == player.Id && x.Id != missingWorker.Id)
-            .ToArray()
-            .Count(x => WorkerManager.IsFree(x, date));
+        var candidates = _context.Workers.Where(x => x.PlayerId == player.Id && x.Id != missingWorker.Id).ToArray();
+        var freeWorkers = _workerManager.GetAvailableWorkers(player.Id, candidates, date).Length;
         if (freeWorkers < IncidentMinFreeWorkers)
         {
             return null;
@@ -248,9 +250,9 @@ public class IncidentManager
             return null;
         }
 
-        var freeWorkers = _context.Workers.Where(x => x.PlayerId == player.Id)
-            .ToArray()
-            .Count(x => WorkerManager.IsFree(x, date));
+        var freeWorkers = _workerManager
+            .GetAvailableWorkers(player.Id, _context.Workers.Where(x => x.PlayerId == player.Id).ToArray(), date)
+            .Length;
         if (freeWorkers < DomikIncidentMinFreeWorkers)
         {
             return null;
@@ -399,6 +401,12 @@ public class IncidentManager
         if (workers.Any(x => !WorkerManager.IsFree(x, now)))
         {
             throw new BusinessException("Трудяга занят");
+        }
+
+        var availableIds = _workerManager.GetAvailableWorkers(playerId, workers, now).Select(x => x.Id).ToHashSet();
+        if (workers.Any(x => !availableIds.Contains(x.Id)))
+        {
+            throw new BusinessException(WorkerManager.AwayWorkersMessage);
         }
 
         dbIncident.ClueId = clueId;

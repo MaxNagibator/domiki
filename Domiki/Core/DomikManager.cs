@@ -478,8 +478,7 @@ public class DomikManager
         var currentManufactureCount = dbManufactures.Where(x => x.DomikId == domikId).Count();
 
         var workers = _workerManager.EnsureWorkers(playerId);
-        var awayWorkerIds = _workerManager.GetAwayWorkerIds(playerId).ToHashSet();
-        var freeWorkers = workers.Where(x => WorkerManager.IsFree(x, date) && !awayWorkerIds.Contains(x.Id)).OrderBy(x => x.Id).ToArray();
+        var freeWorkers = _workerManager.GetAvailableWorkers(playerId, workers, date);
 
         var domiks = _context.Domiks.Where(x => x.PlayerId == playerId).ToArray();
         var domikTypes = _resourceManager.GetDomikTypes();
@@ -497,7 +496,7 @@ public class DomikManager
         var needPlodderCount = receipt.PlodderCount;
         if (freeWorkers.Length < needPlodderCount)
         {
-            throw new BusinessException("Недостаточно трудяг");
+            throw new BusinessException(WorkerManager.GetNotEnoughWorkersMessage(workers, freeWorkers, date));
         }
 
         var freeIds = freeWorkers.Select(x => x.Id).ToArray();

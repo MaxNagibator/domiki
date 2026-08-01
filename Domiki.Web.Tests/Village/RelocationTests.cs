@@ -15,6 +15,7 @@ public sealed class RelocationTests
     private const int CooldownDays = VillageLevelCalculator.RelocationCooldownDays;
     private const int FirstValleyId = 1;
     private const int MaxDomikLevel = 5;
+    private const int FirstDomikId = 1;
 
     /// <summary>
     /// Ниже порога обжитости переезд отклоняется, а порог назван числом.
@@ -566,6 +567,42 @@ public sealed class RelocationTests
     }
 
     /// <summary>
+    /// Трудяга в отходе не встаёт на смену, и отказ называет причину – не хватает коек.
+    /// </summary>
+    [Test]
+    public void AwayWorkerDoesNotTakeManufactureTest()
+    {
+        var player = TestPlayer.Create()
+            .AtRelocationThreshold();
+
+        HireArtel(player);
+        player.Relocate()
+            .WithDomik(DomikIds.ClayMine);
+
+        var ex = Throws.Business(() => player.StartManufacture(FirstDomikId, ReceiptIds.ClayDig));
+
+        Assert.That(ex.Message, Is.EqualTo(WorkerManager.AwayWorkersMessage));
+    }
+
+    /// <summary>
+    /// Трудяга в отходе не уходит и в поход: Сторожка коек не даёт, а работы отходник не берёт.
+    /// </summary>
+    [Test]
+    public void AwayWorkerDoesNotJoinExpeditionTest()
+    {
+        var player = TestPlayer.Create()
+            .AtRelocationThreshold();
+
+        HireArtel(player);
+        player.Relocate()
+            .WithDomik(DomikIds.ScoutHut);
+
+        var ex = Throws.Business(() => player.StartExpedition(ExpeditionTypeIds.ShortScout));
+
+        Assert.That(ex.Message, Is.EqualTo(WorkerManager.AwayWorkersMessage));
+    }
+
+    /// <summary>
     /// Переезд снимает все события игрока из планировщика, и снимает уже после коммита транзакции.
     /// </summary>
     [Test]
@@ -608,6 +645,11 @@ public sealed class RelocationTests
     private static int Capacity(int playerId)
     {
         return App.Act<WorkerManager, int>(m => m.GetCapacity(playerId));
+    }
+
+    private static void HireArtel(TestPlayer player)
+    {
+        App.Act<WorkerManager>(m => m.EnsureWorkers(player.Id));
     }
 
     private static void OccupyWorker(TestPlayer player, int workerId, CalculateTypes busyKind)

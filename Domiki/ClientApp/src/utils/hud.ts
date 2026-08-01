@@ -106,6 +106,7 @@ export interface HudDigest {
     upgradeableBuildings: HudBuildingRef[];
     standingShifts: HudStandingShift[];
     workersFree: number;
+    workersAway: number;
     handsFreeEarliest: string | null;
     runningShifts: number;
     runningEarliest: string | null;
@@ -253,6 +254,7 @@ export function computeHudDigest(
         && worker.restUntil != null && remainingSeconds(worker.restUntil, now) > 0);
 
     const workersFree = workers.filter(worker => isWorkerFree(worker, now)).length;
+    const workersAway = workers.filter(worker => worker.isAway).length;
     const runningEarliest = earliestIso(runningManufactures.map(manufacture => manufacture.finishDate));
     const handsFreeEarliest = workersFree > 0 ? null : earliestIso([
         ...runningManufactures.map(manufacture => manufacture.finishDate),
@@ -273,6 +275,7 @@ export function computeHudDigest(
         upgradeableBuildings,
         standingShifts,
         workersFree,
+        workersAway,
         handsFreeEarliest,
         runningShifts: runningManufactures.length,
         runningEarliest,

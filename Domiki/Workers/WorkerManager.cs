@@ -18,6 +18,11 @@ public class WorkerManager
     /// </remarks>
     public const int MaxCapacity = 25;
 
+    /// <summary>
+    /// Отказ занять трудягу, которому не хватило койки.
+    /// </summary>
+    public const string AwayWorkersMessage = "Не хватает коек – трудяги в отходе";
+
     private const int PlodderModificatorId = 1;
 
     private readonly ApplicationDbContext _context;
@@ -141,6 +146,38 @@ public class WorkerManager
             .ToArray()
             .Skip(capacity)
             .ToArray();
+    }
+
+    /// <summary>
+    /// Отбирает трудяг, готовых взять работу: не занятых, отдохнувших и не числящихся в отходе.
+    /// </summary>
+    /// <param name="playerId">Идентификатор игрока.</param>
+    /// <param name="workers">Трудяги игрока, среди которых идёт отбор.</param>
+    /// <param name="now">Момент отбора.</param>
+    /// <returns>Доступные трудяги по возрастанию идентификатора.</returns>
+    /// <remarks>
+    /// Единая точка отбора для всех занятий – производств, походов, поручений и поисков: трудяга без койки
+    /// (<see cref="GetAwayWorkerIds"/>) работы не берёт, поэтому <see cref="IsFree"/> отдельно от этого отбора
+    /// применять только там, где отход уже учтён.
+    /// </remarks>
+    public Worker[] GetAvailableWorkers(int playerId, Worker[] workers, DateTime now)
+    {
+        var awayIds = GetAwayWorkerIds(playerId).ToHashSet();
+        return workers.Where(x => IsFree(x, now) && !awayIds.Contains(x.Id)).OrderBy(x => x.Id).ToArray();
+    }
+
+    /// <summary>
+    /// Возвращает текст отказа, когда работу некому взять.
+    /// </summary>
+    /// <param name="workers">Все трудяги игрока.</param>
+    /// <param name="availableWorkers">Отобранные <see cref="GetAvailableWorkers"/> трудяги.</param>
+    /// <param name="now">Момент отбора.</param>
+    /// <returns>Текст для <see cref="BusinessException"/>: про отход, если руки есть, но им не хватило коек.</returns>
+    public static string GetNotEnoughWorkersMessage(Worker[] workers, Worker[] availableWorkers, DateTime now)
+    {
+        return workers.Count(x => IsFree(x, now)) > availableWorkers.Length
+            ? AwayWorkersMessage
+            : "Недостаточно трудяг";
     }
 
     private string GetWorkerName(HashSet<string> usedNames, int ordinal)

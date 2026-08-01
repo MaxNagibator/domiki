@@ -210,7 +210,8 @@ export function computeReceiptView(
 }
 
 export function isWorkerFree(worker: WorkerDto, now: number): boolean {
-    return worker.manufactureId == null && worker.expeditionId == null && worker.errandId == null && worker.incidentId == null
+    return !worker.isAway
+        && worker.manufactureId == null && worker.expeditionId == null && worker.errandId == null && worker.incidentId == null
         && (worker.restUntil == null || remainingSeconds(worker.restUntil, now) <= 0);
 }
 

@@ -21,6 +21,7 @@ const emptyDigest: HudDigest = {
     upgradeableBuildings: [],
     standingShifts: [],
     workersFree: 3,
+    workersAway: 0,
     handsFreeEarliest: null,
     runningShifts: 0,
     runningEarliest: null,
@@ -93,6 +94,12 @@ describe('HouseholdBox idle buildings without free hands', () => {
 
         expect(screen.getByText(/Свободных рук нет/)).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Кузница/ })).not.toBeInTheDocument();
+    });
+
+    it('blames the beds when the hands are missing only because of отход', () => {
+        renderBox({ ...emptyDigest, idleBuildings, workersFree: 0, workersAway: 2 });
+
+        expect(screen.getByText(/Свободных рук нет/).textContent).toContain('2 трудяги в отходе – не хватает коек');
     });
 
     it('keeps the idle address list while at least one трудяга is free', () => {

@@ -257,6 +257,15 @@ describe('computeHudDigest hands and running shifts', () => {
         expect(result.handsFreeEarliest).toBeNull();
     });
 
+    it('leaves трудяга without a bed out of the free hands', () => {
+        const workers = [worker(1, { isAway: true }), worker(2, { isAway: true })];
+
+        const result = digest([domik(1, 10)], [], null, workers, [receipt(1, 'Сковать инструмент')]);
+
+        expect(result.workersFree).toBe(0);
+        expect(result.workersAway).toBe(2);
+    });
+
     it('names the earliest release when every трудяга is taken', () => {
         const workers = [worker(1, { manufactureId: 1 }), worker(2, { restUntil: iso(5) })];
         const domiks = [domik(1, 10, { manufactures: [manufacture] })];

@@ -104,6 +104,10 @@
     background: #8a5fb0;
 }
 
+.workers-tally--away .workers-tally-dot {
+    background: var(--ink-muted);
+}
+
 .workers-cloaks,
 .workers-larder {
     flex: none;
@@ -341,6 +345,10 @@
     background: linear-gradient(120deg, #dccbee, var(--plank) 82%);
 }
 
+.worker--away .worker-topline {
+    background: linear-gradient(120deg, #ded3bd, var(--plank) 82%);
+}
+
 .worker-badge {
     display: inline-flex;
     align-items: center;
@@ -373,6 +381,10 @@
 
 .worker--errand .worker-badge {
     background: #8a5fb0;
+}
+
+.worker--away .worker-badge {
+    background: var(--ink-muted);
 }
 
 .worker-badge-ico {
@@ -518,6 +530,10 @@
 
 .worker--errand .worker-portrait {
     background: #ece2f5;
+}
+
+.worker--away .worker-portrait {
+    background: #ece5d4;
 }
 
 .worker-fatigue {

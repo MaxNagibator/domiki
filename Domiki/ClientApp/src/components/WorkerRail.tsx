@@ -10,16 +10,19 @@ import { useElementHeightVar } from '../hooks/useElementHeightVar';
 import { remainingSeconds } from '../utils/time';
 import { DomikSprite, WorkerSprite } from './sprites';
 
-type RailState = 'free' | 'busy' | 'resting' | 'sick' | 'away';
+type RailState = 'free' | 'busy' | 'resting' | 'sick' | 'trip' | 'away';
 
 const GROUP_LABELS: Record<Exclude<RailState, 'free'>, string> = {
     busy: 'За работой',
     resting: 'Отдыхают',
     sick: 'Хворают',
-    away: 'В пути',
+    trip: 'В пути',
+    away: 'В отходе',
 };
 
-const GROUP_ORDER: Exclude<RailState, 'free'>[] = ['busy', 'resting', 'sick', 'away'];
+const GROUP_ORDER: Exclude<RailState, 'free'>[] = ['busy', 'resting', 'sick', 'trip', 'away'];
+
+const AWAY_HINT = 'Коек в деревне меньше, чем трудяг: эти работы не берут, пока не появится койка';
 
 const GROUPS_AFTER_FREE = 1000;
 
@@ -42,10 +45,13 @@ function railState(worker: WorkerDto, now: number): RailState {
         return 'sick';
     }
     if (worker.expeditionId != null || worker.errandId != null || worker.incidentId != null) {
-        return 'away';
+        return 'trip';
     }
     if (worker.manufactureId != null) {
         return 'busy';
+    }
+    if (worker.isAway) {
+        return 'away';
     }
     return isWorkerFree(worker, now) ? 'free' : 'resting';
 }
@@ -78,7 +84,7 @@ const WorkerRailCard = ({ worker, domikTypes, state, skillDomikTypeId, skillType
             title={`${worker.name} – ${worker.traitName}${skillOf == null ? '' : `, ${skillOf}: ${bonus > 0 ? '+' : ''}${bonus} %`}`}
             onPointerDown={onGrab == null ? undefined : event => { onGrab(worker.id, event); }}>
             <span className="rail-card-portrait">
-                <WorkerSprite name={worker.name} state={state === 'free' ? 'idle' : state === 'sick' ? 'sick' : state === 'resting' ? 'resting' : 'working'}
+                <WorkerSprite name={worker.name} state={state === 'free' || state === 'away' ? 'idle' : state === 'sick' ? 'sick' : state === 'resting' ? 'resting' : 'working'}
                     skilled={isSkilledWorker(worker)} aria-hidden="true" />
             </span>
             <span className="rail-card-text">
@@ -194,6 +200,7 @@ export const WorkerRail = ({ workers, domikTypes, now, skillDomikTypeId, heldWor
                     return (
                         <div key={state} className="worker-rail-group" style={{ order: GROUPS_AFTER_FREE + index }}>
                             <button type="button" className="worker-rail-group-head" aria-expanded={open}
+                                title={state === 'away' ? AWAY_HINT : undefined}
                                 onClick={() => { toggleGroup(state); }}>
                                 {GROUP_LABELS[state]} {group.length}
                             </button>
