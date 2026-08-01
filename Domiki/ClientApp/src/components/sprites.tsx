@@ -332,18 +332,14 @@ interface SpriteProps extends SVGProps<SVGSVGElement> {
     working?: boolean;
 }
 
-interface DomikSpriteProps extends SpriteProps {
-    weather?: string | undefined;
-}
-
 const clampLevel = (level: number) => Math.min(5, Math.max(1, Math.floor(level)));
 
-export const DomikSprite = memo(({ logicName, level = 1, working = false, weather, ...props }: DomikSpriteProps) => {
+export const DomikSprite = memo(({ logicName, level = 1, working = false, ...props }: SpriteProps) => {
     const Sprite = domikSprites[logicName];
     if (Sprite == null) {
         warnUnknownSprite('domik', logicName);
     }
-    return Sprite == null ? null : <Sprite data-level={clampLevel(level)} data-working={working ? 'true' : 'false'} data-weather={weather} {...cleanSpriteProps(props)} />;
+    return Sprite == null ? null : <Sprite data-level={clampLevel(level)} data-working={working ? 'true' : 'false'} {...cleanSpriteProps(props)} />;
 });
 
 export const TolokaSprite = ({ logicName, level = 1, ...props }: SpriteProps) => {

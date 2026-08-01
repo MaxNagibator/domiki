@@ -534,7 +534,7 @@ export const DomikiPage = () => {
                 {selected != null && <div className="actions-scrim" role="presentation" onClick={() => { setSelectedDomikId(null); }} />}
                 <PerfZone id="карточка">
                     <SelectedDomikPanel ref={selectedDomikPanelRef} selected={selected} resources={resources} resourceTypes={resourceTypes} receipts={receipts}
-                        workers={workers} goals={goals} villageLevel={villageLevel} currentWeather={currentWeather} now={now}
+                        workers={workers} goals={goals} villageLevel={villageLevel} currentWeather={currentWeather} sickTypes={sickTypes} now={now}
                         goldValue={goldValue} goldType={goldType} plodderFree={plodder.free} displayName={domikDisplayName}
                         onClose={() => setSelectedDomikId(null)} onUpgrade={upgrade} onHurryDomik={hurryDomikAction}
                         onStartManufacture={startManufacture} onHurryManufacture={hurryManufactureAction}

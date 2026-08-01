@@ -7,10 +7,11 @@ import ClockIcon from 'pixelarticons/svg/clock.svg?react';
 import CloseIcon from 'pixelarticons/svg/close.svg?react';
 import InfoBoxIcon from 'pixelarticons/svg/info-box.svg?react';
 import PlayIcon from 'pixelarticons/svg/play.svg?react';
-import type { DomikTypeDto, GoalsStateDto, ReceiptDto, ResourceDto, ResourceTypeDto, SelectedDomikView, VillageLevelDto, WeatherEffectDto, WeatherPeriodDto, WorkerDto } from '../types/api';
+import type { DomikTypeDto, GoalsStateDto, ReceiptDto, ResourceDto, ResourceTypeDto, SelectedDomikView, SickTypeDto, VillageLevelDto, WeatherEffectDto, WeatherPeriodDto, WorkerDto } from '../types/api';
 import type { DomikNamer } from '../utils/domikNames';
-import { SICK_CHANCE_PERCENT, SICK_MIN_VILLAGE_LEVEL, computeReceiptView, isWorkerFree, progressPercent, resourceShortfall, workIntensity, workerFitness } from '../utils/game';
+import { SICK_MIN_VILLAGE_LEVEL, computeReceiptView, isWorkerFree, progressPercent, resourceShortfall, workIntensity, workerFitness } from '../utils/game';
 import { formatDuration, remainingSeconds } from '../utils/time';
+import { formatOutputDelta, sickRiskPercent, sickTypeForWeather, weatherMark } from '../utils/weather';
 import { domikLore } from '../utils/domikLore';
 import { pluralRu } from '../utils/plural';
 import { isSkilledWorker } from '../utils/worker';
@@ -20,6 +21,7 @@ import { HurryButton } from './HurryButton';
 import { StatChip } from './StatChip';
 import { ProgressBar } from './ProgressBar';
 import { ResourcesBox } from './ResourcesBox';
+import { WeatherMark } from './WeatherMark';
 import { AbstractSprite, DomikSprite, ResourceSprite, WorkerSprite } from './sprites';
 
 const MEASURE_MIN_LEVEL = 2;
@@ -93,6 +95,7 @@ interface ReceiptRowProps {
     goals: GoalsStateDto | null;
     villageLevel: VillageLevelDto | null;
     weatherEffect: WeatherEffectDto | null;
+    sickName: string | null;
     now: number;
     plodderFree: number;
     atManufactureCap: boolean;
@@ -104,7 +107,7 @@ interface ReceiptRowProps {
     formatShortfall: (cost: { typeId: number; value: number }[]) => string;
 }
 
-const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, workers, goals, villageLevel, weatherEffect, now, plodderFree, atManufactureCap, runningManufactures, maxManufactures, ui, dispatch, onStart, formatShortfall }: ReceiptRowProps) => {
+const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, workers, goals, villageLevel, weatherEffect, sickName, now, plodderFree, atManufactureCap, runningManufactures, maxManufactures, ui, dispatch, onStart, formatShortfall }: ReceiptRowProps) => {
     const { expanded, useOptional, autoRepeat, isManual, selectedWorkerIds } = ui;
     const hasOptional = receipt.optionalInputResources.length > 0;
     const view = computeReceiptView(receipt, resources, plodderFree, hasOptional && useOptional, goals?.zealCharges, domikType);
@@ -199,12 +202,12 @@ const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, wor
                     </div>
                     {weatherEffect != null &&
                         <p className="weather-modifier">
-                            Погода: {weatherEffect.outputPercent >= 100 ? '+' : ''}{weatherEffect.outputPercent - 100} % выход
+                            Погода: {formatOutputDelta(weatherEffect.outputPercent - 100)} выход
                         </p>
                     }
-                    {weatherEffect != null && weatherEffect.outputPercent > 100 && (villageLevel?.level ?? 0) >= SICK_MIN_VILLAGE_LEVEL &&
+                    {weatherEffect != null && sickName != null && weatherEffect.outputPercent > 100 && (villageLevel?.level ?? 0) >= SICK_MIN_VILLAGE_LEVEL &&
                         <p className="weather-modifier weather-modifier--risk">
-                            Риск простуды {SICK_CHANCE_PERCENT} %
+                            {sickName}: риск {sickRiskPercent(weatherEffect.outputPercent)} %
                         </p>
                     }
                     <div className="receipt-options">
@@ -367,6 +370,7 @@ interface SelectedDomikPanelProps {
     goals: GoalsStateDto | null;
     villageLevel: VillageLevelDto | null;
     currentWeather: WeatherPeriodDto | null;
+    sickTypes: SickTypeDto[];
     now: number;
     goldValue: number;
     goldType: ResourceTypeDto | undefined;
@@ -382,7 +386,7 @@ interface SelectedDomikPanelProps {
     onSetManufactureMeasure: (manufactureId: number, resourceTypeId: number | null, value: number | null) => void;
 }
 
-export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, receipts, workers, goals, villageLevel, currentWeather, now, goldValue, goldType, plodderFree, displayName, onClose, onUpgrade, onHurryDomik, onStartManufacture, onHurryManufacture, onToggleManufactureRepeat, elderHouseLevel, onSetManufactureMeasure }: SelectedDomikPanelProps) => {
+export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, receipts, workers, goals, villageLevel, currentWeather, sickTypes, now, goldValue, goldType, plodderFree, displayName, onClose, onUpgrade, onHurryDomik, onStartManufacture, onHurryManufacture, onToggleManufactureRepeat, elderHouseLevel, onSetManufactureMeasure }: SelectedDomikPanelProps) => {
     const [ui, dispatch] = useReducer(receiptUiReducer, initialReceiptUiState);
     const [tab, setTab] = useState<PanelView>('work');
     const [tabbedDomikId, setTabbedDomikId] = useState(selected?.domik.id);
@@ -423,6 +427,8 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
     const weatherEffect = selected == null
         ? null
         : currentWeather?.effects.find(effect => effect.domikTypeId === selected.domikType.id) ?? null;
+    const sickName = sickTypeForWeather(sickTypes, currentWeather?.weatherTypeId)?.name ?? null;
+    const crestWeather = selected == null ? null : weatherMark(currentWeather, selected.domikType.id);
     const formatShortfall = (cost: { typeId: number; value: number }[]) => resourceShortfall(cost, resources)
         .map(item => `${resourceTypes.find(type => type.id === item.typeId)?.name ?? `ресурс #${item.typeId}`} ×${item.value}`)
         .join(', ');
@@ -465,6 +471,7 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
             goals={goals}
             villageLevel={villageLevel}
             weatherEffect={weatherEffect}
+            sickName={sickName}
             now={now}
             plodderFree={plodderFree}
             atManufactureCap={atManufactureCap}
@@ -511,6 +518,7 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
                                 {Array.from({ length: selected.domikType.maxLevel }, (_, index) =>
                                     <span key={index} className={'panel-notch' + (index < selected.domik.level ? ' panel-notch--cut' : '')} />)}
                             </span>
+                            {crestWeather != null && <WeatherMark key={crestWeather.weatherLogicName} mark={crestWeather} full />}
                         </div>
                         <div className="panel-status">
                             {maxManufactures > 0 &&

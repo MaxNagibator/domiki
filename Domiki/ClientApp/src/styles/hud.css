@@ -673,14 +673,14 @@
 }
 
 .weather-effect-buff,
-.plot-weather-buff {
+.weather-mark-buff {
     background: #d7e6c4;
     border-color: var(--pine-dark);
     color: var(--pine-dark);
 }
 
 .weather-effect-nerf,
-.plot-weather-nerf {
+.weather-mark-nerf {
     background: #f3d3c6;
     border-color: var(--roof);
     color: #8f3a1e;

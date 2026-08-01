@@ -14,7 +14,6 @@ interface AnimatedDomikSpriteProps {
     active?: boolean;
     working?: boolean;
     intensity?: 'slow' | 'normal' | 'fast';
-    weather?: string | undefined;
 }
 
 interface LoopingSpriteProps {
@@ -23,10 +22,9 @@ interface LoopingSpriteProps {
     maxLevel: number;
     working: boolean;
     motion: 'slow' | 'fast' | undefined;
-    weather: string | undefined;
 }
 
-const LoopingSprite = ({ logicName, className, maxLevel, working, motion, weather }: LoopingSpriteProps) => {
+const LoopingSprite = ({ logicName, className, maxLevel, working, motion }: LoopingSpriteProps) => {
     const [level, setLevel] = useState(1);
     const [isCycling, setIsCycling] = useState(false);
 
@@ -45,12 +43,12 @@ const LoopingSprite = ({ logicName, className, maxLevel, working, motion, weathe
 
     return (
         <span className={'domik-anim' + (isCycling ? ' is-cycling' : '')}>
-            <DomikSprite logicName={logicName} level={level} className={className} working={working} weather={weather} data-motion={motion} />
+            <DomikSprite logicName={logicName} level={level} className={className} working={working} data-motion={motion} />
         </span>
     );
 };
 
-export const AnimatedDomikSprite = ({ logicName, className, level = 1, maxLevel = 5, mode = 'levelup', active = false, working = false, intensity, weather }: AnimatedDomikSpriteProps) => {
+export const AnimatedDomikSprite = ({ logicName, className, level = 1, maxLevel = 5, mode = 'levelup', active = false, working = false, intensity }: AnimatedDomikSpriteProps) => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const motion = working && (intensity === 'slow' || intensity === 'fast') ? intensity : undefined;
     const prevLevel = useRef<number | undefined>(undefined);
@@ -72,19 +70,19 @@ export const AnimatedDomikSprite = ({ logicName, className, level = 1, maxLevel 
 
     if (mode === 'loop') {
         if (!reduce && active) {
-            return <LoopingSprite logicName={logicName} className={className} maxLevel={maxLevel} working={working} motion={motion} weather={weather} />;
+            return <LoopingSprite logicName={logicName} className={className} maxLevel={maxLevel} working={working} motion={motion} />;
         }
 
         return (
             <span className="domik-anim">
-                <DomikSprite logicName={logicName} level={reduce ? maxLevel : 1} className={className} working={working} weather={weather} data-motion={motion} />
+                <DomikSprite logicName={logicName} level={reduce ? maxLevel : 1} className={className} working={working} data-motion={motion} />
             </span>
         );
     }
 
     return (
         <span className={'domik-anim' + (isLevelup ? ' is-levelup' : '')}>
-            <DomikSprite logicName={logicName} level={level} className={className} working={working} weather={weather} data-motion={motion} />
+            <DomikSprite logicName={logicName} level={level} className={className} working={working} data-motion={motion} />
         </span>
     );
 };

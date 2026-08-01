@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DecorStateDto, DomikDto, DomikTypeDto, VillageLevelDto, WeatherPeriodDto, WorkerDto } from '../types/api';
 import { workIntensity } from '../utils/game';
+import { weatherMark, weatherMarkSpeech } from '../utils/weather';
 import { hashString } from '../utils/worldMap';
 import { layoutYard, YARD_H, type YardGreen, type YardSpot } from '../utils/yardMap';
-import { DecorSprite, DomikSprite, MechanicSprite, NeighborSprite, SheepSprite } from './sprites';
+import { DecorSprite, DomikSprite, MechanicSprite, NeighborSprite, SheepSprite, WeatherSprite } from './sprites';
 
 const GRASS_CLEAR = '#a9bd8d';
 const GRASS_SHADOW = '#7f9863';
@@ -16,6 +17,7 @@ const PINE = '#40632f';
 const LEAF = '#4f9a3c';
 const TRUNK = '#6f4a24';
 const GOLD = '#e8b83a';
+const NERF_MARK = '#c25b33';
 
 const TREE_COLORS = [PINE_DARK, PINE, LEAF] as const;
 const FOLK_SHIRTS = ['#b04a3a', '#4a7ab5', '#7f9863', '#b8863b'] as const;
@@ -274,9 +276,11 @@ export const VillageYard = ({ domiks, domikTypes, decor, workers, villageLevel, 
                                 }
                                 const selected = selectedDomikId === spot.domik.id;
                                 const intensity = workIntensity(spot.domik, domikType);
+                                const mark = weatherMark(currentWeather, spot.domik.typeId);
                                 return (
                                     <g key={spot.domik.id} className={'yard-domik' + (selected ? ' yard-domik-selected' : '')}
-                                        role="button" tabIndex={0} aria-label={displayName(spot.domik)}
+                                        role="button" tabIndex={0}
+                                        aria-label={displayName(spot.domik) + (mark == null ? '' : weatherMarkSpeech(mark))}
                                         onClick={() => { onSelect(spot.domik.id); }}
                                         onKeyDown={event => {
                                             if (event.key === 'Enter' || event.key === ' ') {
@@ -286,9 +290,17 @@ export const VillageYard = ({ domiks, domikTypes, decor, workers, villageLevel, 
                                         }}>
                                         <DomikSprite logicName={domikType.logicName} level={spot.domik.level}
                                             working={(spot.domik.manufactures?.length ?? 0) > 0}
-                                            weather={currentWeather?.logicName}
                                             data-motion={intensity === 'normal' ? undefined : intensity}
                                             x={spot.x - 32} y={spot.y - 46} width={64} height={64} />
+                                        {mark != null &&
+                                            <g className="yard-weather-mark" aria-hidden="true">
+                                                <title>{mark.title}</title>
+                                                <rect x={spot.x - 24} y={spot.y - 2} width={48} height={mark.buff ? 4 : 2}
+                                                    fill={mark.buff ? PINE : NERF_MARK} />
+                                                <WeatherSprite logicName={mark.weatherLogicName} size={24}
+                                                    x={spot.x + 14} y={spot.y - 52} width={16} height={16} />
+                                            </g>
+                                        }
                                         {selected && <SelectionBrackets x={spot.x} y={spot.y} />}
                                     </g>
                                 );

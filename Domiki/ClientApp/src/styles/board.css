@@ -669,21 +669,52 @@
     box-shadow: inset 0 -8px 0 var(--grass-dark), inset 0 -16px 0 var(--grass);
 }
 
-.plot-weather {
+.weather-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
     font-family: var(--pixel);
     font-size: 8px;
     padding: 3px 4px 2px;
     border: 2px solid var(--ink);
     background: var(--plank);
     line-height: 1;
+    animation: weather-mark-in 400ms ease-out;
 }
 
-.plot-weather-buff {
-    color: var(--pine);
+.weather-mark-ico {
+    width: 12px;
+    height: 12px;
+    image-rendering: pixelated;
 }
 
-.plot-weather-nerf {
-    color: var(--roof);
+@keyframes weather-mark-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .weather-mark {
+        animation: none;
+    }
+}
+
+.plot[data-weather-effect='buff'] .plot-yard {
+    box-shadow: inset 0 -4px 0 var(--pine), inset 0 -8px 0 var(--grass-dark), inset 0 -16px 0 var(--grass);
+}
+
+.plot[data-weather-effect='nerf'] .plot-yard {
+    box-shadow: inset 0 -2px 0 var(--roof), inset 0 -8px 0 var(--grass-dark), inset 0 -16px 0 var(--grass);
+}
+
+.plot-assign-ok[data-weather-effect] .plot-yard,
+.plot-assign-no[data-weather-effect] .plot-yard {
+    box-shadow: inset 0 -8px 0 var(--grass-dark), inset 0 -16px 0 var(--grass);
 }
 
 .plot-sprite {

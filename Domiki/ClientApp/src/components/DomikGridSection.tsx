@@ -13,8 +13,10 @@ import { canAffordUpgrade, manufactureProgressPercent, progressPercent, sortDomi
 import type { DomikSortMode } from '../utils/game';
 import type { AssignTarget } from '../utils/assign';
 import { formatClock, remainingSeconds } from '../utils/time';
+import { weatherMark, weatherMarkSpeech } from '../utils/weather';
 import { WorkerSprite } from './sprites';
 import { AnimatedDomikSprite } from './AnimatedDomikSprite';
+import { WeatherMark } from './WeatherMark';
 import { ProgressBar } from './ProgressBar';
 import { PlotSign } from './PlotSign';
 import type { PlotState } from './PlotSign';
@@ -246,8 +248,7 @@ export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, reso
                         const durationSecondsText = domik.finishDate != null
                             ? formatClock(remainingSeconds(domik.finishDate, now))
                             : null;
-                        const cardWeather = currentWeather?.effects.find(
-                            effect => effect.domikTypeId === domik.typeId && effect.outputPercent !== 100) ?? null;
+                        const cardWeather = weatherMark(currentWeather, domik.typeId);
                         const busyCrew = workers
                             .filter(worker => worker.manufactureId != null && (domik.manufactures ?? []).some(manufacture => manufacture.id === worker.manufactureId));
                         const crew = busyCrew.slice(0, CREW_FACES);
@@ -291,7 +292,8 @@ export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, reso
                         return (
                             <button key={domik.id} type="button" data-assign-domik={domik.id}
                                 className={'plot' + (plotState.kind === 'upgradeable' ? ' plot-callout' : '') + (selectedDomikId === domik.id ? ' plot-selected' : '') + assignClass}
-                                aria-label={`${displayName}, уровень ${domik.level}, ${cardStatus}${busyCrew.length > 0 ? `, трудяг ${busyCrew.length}` : ''}`}
+                                data-weather-effect={cardWeather == null ? undefined : cardWeather.buff ? 'buff' : 'nerf'}
+                                aria-label={`${displayName}, уровень ${domik.level}, ${cardStatus}${busyCrew.length > 0 ? `, трудяг ${busyCrew.length}` : ''}${cardWeather == null ? '' : weatherMarkSpeech(cardWeather)}`}
                                 aria-pressed={selectedDomikId === domik.id}
                                 onClick={event => {
                                     if (assign.active) {
@@ -304,16 +306,11 @@ export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, reso
                                     <span className="plot-name">{displayName}</span>
                                     <span className="plot-marks">
                                         <span className="plot-level" title={`Уровень ${domik.level}`}>{domik.level}</span>
-                                        {cardWeather != null &&
-                                            <span className={'plot-weather' + (cardWeather.outputPercent > 100 ? ' plot-weather-buff' : ' plot-weather-nerf')}
-                                                title={`Погода: ${cardWeather.outputPercent > 100 ? "+" : ""}${cardWeather.outputPercent - 100}% выход`}>
-                                                {cardWeather.outputPercent > 100 ? '+' : ''}{cardWeather.outputPercent - 100}%
-                                            </span>
-                                        }
+                                        {cardWeather != null && <WeatherMark key={cardWeather.weatherLogicName} mark={cardWeather} />}
                                     </span>
                                 </span>
                                 <span className="plot-yard">
-                                    <AnimatedDomikSprite mode="levelup" className="plot-sprite" logicName={domikType.logicName} level={domik.level} working={hasManufacture} intensity={intensity} weather={currentWeather?.logicName} />
+                                    <AnimatedDomikSprite mode="levelup" className="plot-sprite" logicName={domikType.logicName} level={domik.level} working={hasManufacture} intensity={intensity} />
                                     {crew.length > 0 &&
                                         <span className="plot-crew" title={`Трудяг на работе: ${busyCrew.length}`}>
                                             {crew.map(worker =>
