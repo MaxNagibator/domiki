@@ -70,6 +70,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<TolokaVote> TolokaVotes { get; set; }
     public DbSet<TradeLot> TradeLots { get; set; }
     public DbSet<SeasonCounter> SeasonCounters { get; set; }
+    public DbSet<VillageChronicle> VillageChronicles { get; set; }
+    public DbSet<PlayerPerk> PlayerPerks { get; set; }
     public DbSet<PlayerEvent> PlayerEvents { get; set; }
     public DbSet<GuestbookEntry> GuestbookEntries { get; set; }
     public DbSet<PlayerPushSubscription> PlayerPushSubscriptions { get; set; }

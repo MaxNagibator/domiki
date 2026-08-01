@@ -153,4 +153,12 @@ public enum PlayerEventType
     /// См. <see cref="Economy.ElderHouseManager.GetHeldResourceTypeId"/>.
     /// </remarks>
     ManufactureReserveHeld = 21,
+
+    /// <summary>
+    /// Артель переехала в новую долину, а прожитая деревня осталась на памятном столбе.
+    /// </summary>
+    /// <remarks>
+    /// См. <see cref="Village.RelocationManager.Relocate"/>.
+    /// </remarks>
+    Relocated = 22,
 }

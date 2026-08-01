@@ -16,6 +16,10 @@ public class VillageLevelCalculator
     public const int ComfortHabitabilityCap = 50;
     public const int ReputationPointsPerMilestone = 10;
     public const int SmartAutoUnlockLevel = 8;
+    public const int RelocationUnlockLevel = 250;
+    public const int RelocationLevelStep = 50;
+    public const int RelocationMaxUnlockLevel = 400;
+    public const int RelocationCooldownDays = 7;
 
     private readonly ApplicationDbContext _context;
     private readonly ResourceManager _resourceManager;
@@ -64,6 +68,20 @@ public class VillageLevelCalculator
             VisitsSinceBigGift = visitsSinceBigGift,
             Unlocks = GetUnlocks(playerId, level),
         };
+    }
+
+    /// <summary>
+    /// Возвращает обжитость, на которой открывается очередной переезд в новую долину.
+    /// </summary>
+    /// <param name="relocationCount">Число уже совершённых игроком переездов.</param>
+    /// <returns>Порог обжитости, не выше <see cref="RelocationMaxUnlockLevel"/>.</returns>
+    /// <remarks>
+    /// Порог растёт шагом <see cref="RelocationLevelStep"/> от <see cref="RelocationUnlockLevel"/>: каждая следующая
+    /// глава длиннее прежней, пока не упрётся в потолок (GAMEDESIGN.md §3 Слой 4).
+    /// </remarks>
+    public static int GetRelocationThreshold(int relocationCount)
+    {
+        return Math.Min(RelocationUnlockLevel + RelocationLevelStep * relocationCount, RelocationMaxUnlockLevel);
     }
 
     public bool CanBuyDomik(int playerId, DomikType domikType)

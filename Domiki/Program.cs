@@ -152,6 +152,8 @@ try
     builder.Services.AddScoped<SeasonManager>();
     builder.Services.AddScoped<VillageLevelCalculator>();
     builder.Services.AddScoped<VillageProfileManager>();
+    builder.Services.AddScoped<PerkManager>();
+    builder.Services.AddScoped<RelocationManager>();
     builder.Services.AddScoped<GuestbookManager>();
     builder.Services.AddScoped<HelpManager>();
     builder.Services.AddScoped<PlayerEventManager>();
