@@ -527,6 +527,14 @@ export const tolokaVoteCandidateSchema = z.object({
 });
 export type TolokaVoteCandidateDto = z.infer<typeof tolokaVoteCandidateSchema>;
 
+export const tolokaProgressSchema = z.object({
+    logicName: z.string(),
+    name: z.string(),
+    beforePermille: z.number(),
+    afterPermille: z.number(),
+});
+export type TolokaProgressDto = z.infer<typeof tolokaProgressSchema>;
+
 export const tolokaStateSchema = z.object({
     active: tolokaSchema,
     activeBuffs: z.array(tolokaActiveBuffSchema),
@@ -534,6 +542,7 @@ export const tolokaStateSchema = z.object({
     nextBuffHours: z.number().nullable(),
     candidates: z.array(tolokaVoteCandidateSchema),
     myVoteTolokaTypeId: z.number().nullable(),
+    progress: tolokaProgressSchema.nullable(),
 });
 export type TolokaStateDto = z.infer<typeof tolokaStateSchema>;
 

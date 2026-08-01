@@ -97,6 +97,20 @@ public class Player
     public DateTime? LastSeen { get; set; }
 
     /// <summary>
+    /// Инстанция толоки, чей прогресс запомнен для витрины «Пока вас не было».
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – прогресс ещё не снимался; смена инстанции гасит дельту (см. <see cref="Activities.TolokaManager.TakeProgress"/>).
+    /// </remarks>
+    public int? RecapTolokaId { get; set; }
+
+    /// <summary>
+    /// Прогресс корзины толоки <see cref="RecapTolokaId"/> на момент прошлого захода.
+    /// </summary>
+    /// <value>Промилле, <c>0</c>–<c>1000</c>.</value>
+    public int RecapTolokaPermille { get; set; }
+
+    /// <summary>
     /// Момент, с которого доска заказов игрока снова может пополняться.
     /// </summary>
     /// <remarks>

@@ -972,6 +972,21 @@ dialog.recap-modal::backdrop {
     gap: 9px;
 }
 
+.recap-toloka-grow {
+    position: relative;
+}
+
+.recap-toloka-grow::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: var(--recap-was, 0%);
+    width: 2px;
+    background: var(--ink);
+    opacity: 0.55;
+}
+
 .recap-section-badge {
     width: 28px;
     height: 28px;

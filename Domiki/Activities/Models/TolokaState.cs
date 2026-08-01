@@ -116,6 +116,49 @@ public class TolokaState
     /// <see langword="null"/> – игрок ещё не голосовал.
     /// </remarks>
     public int? MyVoteTolokaTypeId { get; set; }
+
+    /// <summary>
+    /// Насколько корзина подросла с прошлого захода игрока.
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – прироста нет либо толока сменилась; заполняется только при сборке состояния игры
+    /// (см. <see cref="TolokaManager.TakeProgress"/>).
+    /// </remarks>
+    public TolokaProgress? Progress { get; set; }
+}
+
+/// <summary>
+/// Насколько корзина толоки подросла с прошлого захода игрока.
+/// </summary>
+/// <remarks>
+/// Собирается в <see cref="TolokaManager.TakeProgress"/> для витрины «Пока вас не было»; смена инстанции толоки дельту гасит.
+/// </remarks>
+public class TolokaProgress
+{
+    /// <summary>
+    /// Технический код типа толоки.
+    /// </summary>
+    public required string LogicName { get; set; }
+
+    /// <summary>
+    /// Название толоки для отображения.
+    /// </summary>
+    public required string Name { get; set; }
+
+    /// <summary>
+    /// Прогресс корзины на момент прошлого захода.
+    /// </summary>
+    /// <value>Промилле, <c>0</c>–<c>1000</c>.</value>
+    public int BeforePermille { get; set; }
+
+    /// <summary>
+    /// Прогресс корзины сейчас.
+    /// </summary>
+    /// <value>Промилле, <c>0</c>–<c>1000</c>.</value>
+    /// <remarks>
+    /// Всегда больше <see cref="BeforePermille"/> – без прироста дельта не отдаётся.
+    /// </remarks>
+    public int AfterPermille { get; set; }
 }
 
 /// <summary>

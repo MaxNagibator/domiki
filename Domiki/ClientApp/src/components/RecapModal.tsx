@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
-import type { FC, SVGProps } from 'react';
+import type { CSSProperties, FC, SVGProps } from 'react';
 import BuildingIcon from 'pixelarticons/svg/building.svg?react';
 import CloseIcon from 'pixelarticons/svg/close.svg?react';
 import type { DecorTypeDto, DomikTypeDto, ExpeditionTypeDto, NeighborReputationDto, ResourceTypeDto, TolokaStateDto } from '../types/api';
@@ -16,6 +16,7 @@ import { domikIncidentText, getDomikIncidentTemplate } from '../utils/domikIncid
 import { guestbookPhraseText } from '../constants/guestbookPhrases';
 import { AbstractSprite, DomikSprite, MechanicSprite } from './sprites';
 import { ResourceChip } from './ResourceChip';
+import { ProgressBar } from './ProgressBar';
 import { GiftVisitDots } from './GiftVisitDots';
 import { Crest } from './Crest';
 
@@ -58,6 +59,7 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
     const domikIncidents = withStableKeys(view.domikIncidents, incident => `${incident.kind}-${incident.domikTypeId}-${incident.templateId}-${incident.clueId ?? ''}`);
     const manufactureRepeatFailures = withStableKeys(view.manufactureRepeatFailures, failure => `${failure.domikTypeId}-${failure.reason}`);
     const manufactureStops = withStableKeys(view.manufactureStops, stop => `${stop.kind}-${stop.domikTypeId}-${stop.resourceTypeId}`);
+    const tolokaProgress = toloka?.progress ?? null;
 
     const trophies = useMemo(() => {
         const producedTotal = view.produced.reduce((sum, resource) => sum + resource.value, 0);
@@ -296,6 +298,18 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
                         const name = toloka?.active.tolokaTypeId === event.tolokaTypeId ? toloka.active.name : `Толока #${event.tolokaTypeId}`;
                         return <span key={key} className="recap-line">{name}</span>;
                     })}
+                </div>
+            }
+            {tolokaProgress != null &&
+                <div className="recap-section" data-tone="toloka">
+                    <div className="recap-section-head">
+                        <span className="recap-section-badge"><MechanicSprite logicName="toloka" size={24} aria-hidden="true" /></span>
+                        <h3 className="recap-section-title">Толока подросла</h3>
+                    </div>
+                    <div className="recap-toloka-grow" style={{ '--recap-was': `${tolokaProgress.beforePermille / 10}%` } as CSSProperties}>
+                        <ProgressBar value={tolokaProgress.afterPermille} max={1000}
+                            label={`${tolokaProgress.name}: было ${Math.round(tolokaProgress.beforePermille / 10)} %, стало ${Math.round(tolokaProgress.afterPermille / 10)} %`} />
+                    </div>
                 </div>
             }
             {guestbookEntries.length > 0 &&

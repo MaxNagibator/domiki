@@ -106,6 +106,54 @@ public class TolokaManager
         };
     }
 
+    /// <summary>
+    /// Снимает прирост корзины активной толоки с прошлого захода игрока и запоминает новый снимок.
+    /// </summary>
+    /// <param name="playerId">Игрок.</param>
+    /// <returns>
+    /// Прирост для витрины «Пока вас не было»; <see langword="null"/> – прироста нет, толока сменилась,
+    /// снимок берётся впервые или игроку толока ещё не открыта.
+    /// </returns>
+    /// <remarks>
+    /// Зовётся раз за сборку состояния игры рядом с <see cref="Infrastructure.PlayerEventManager.TakeRecap"/> –
+    /// как и она, каждый заход сдвигает точку отсчёта.
+    /// </remarks>
+    public TolokaProgress? TakeProgress(int playerId)
+    {
+        if (!HasBuilding(playerId, "gathering"))
+        {
+            return null;
+        }
+
+        var dbToloka = _context.Tolokas.AsNoTracking().Single(x => x.CompletedDate == null);
+        var positions = _context.TolokaPositions.AsNoTracking().Where(x => x.TolokaId == dbToloka.Id).ToArray();
+        var goal = positions.Sum(x => x.Goal);
+        if (goal <= 0)
+        {
+            return null;
+        }
+
+        var permille = (int)(positions.Sum(x => (long)Math.Min(x.Collected, x.Goal)) * 1000 / goal);
+        var player = _context.Players.Single(x => x.Id == playerId);
+        var before = player.RecapTolokaId == dbToloka.Id ? player.RecapTolokaPermille : (int?)null;
+        player.RecapTolokaId = dbToloka.Id;
+        player.RecapTolokaPermille = permille;
+
+        if (before == null || permille <= before.Value)
+        {
+            return null;
+        }
+
+        var tolokaType = _resourceManager.GetTolokaTypes().First(x => x.Id == dbToloka.TolokaTypeId);
+        return new()
+        {
+            LogicName = tolokaType.LogicName,
+            Name = tolokaType.Name,
+            BeforePermille = before.Value,
+            AfterPermille = permille,
+        };
+    }
+
     public void Contribute(int playerId, int resourceTypeId, int amount, DateTime date)
     {
         if (amount <= 0)

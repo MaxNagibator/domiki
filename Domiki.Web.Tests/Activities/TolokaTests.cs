@@ -670,6 +670,70 @@ public sealed class TolokaTests
         }
     }
 
+    /// <summary>
+    /// Первый заход дельту корзины не показывает, а следующий отдаёт прирост от запомненного снимка.
+    /// </summary>
+    [Test]
+    public void TolokaProgressShowsGrowthSinceLastVisitTest()
+    {
+        const int contribution = 200;
+        const int goal = 2000;
+
+        var player = TestPlayer.Create()
+            .WithTolokaUnlocked()
+            .WithResource(ResourceIds.Stone, contribution);
+
+        var firstVisit = player.TakeTolokaProgress();
+
+        player.Contribute(contribution);
+        var secondVisit = player.TakeTolokaProgress();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(firstVisit, Is.Null);
+            Assert.That(secondVisit, Is.Not.Null);
+            Assert.That(secondVisit?.BeforePermille, Is.Zero);
+            Assert.That(secondVisit?.AfterPermille, Is.EqualTo(contribution * 1000 / goal));
+            Assert.That(secondVisit?.LogicName, Is.EqualTo("bridge"));
+        }
+    }
+
+    /// <summary>
+    /// Заход без прироста корзины дельту не показывает, даже если снимок уже взят.
+    /// </summary>
+    [Test]
+    public void TolokaProgressStaysSilentWithoutGrowthTest()
+    {
+        const int contribution = 200;
+
+        var player = TestPlayer.Create()
+            .WithTolokaUnlocked()
+            .WithResource(ResourceIds.Stone, contribution);
+
+        player.TakeTolokaProgress();
+        player.Contribute(contribution);
+        player.TakeTolokaProgress();
+
+        Assert.That(player.TakeTolokaProgress(), Is.Null);
+    }
+
+    /// <summary>
+    /// Игроку без «Сходни» дельта корзины не отдаётся.
+    /// </summary>
+    [Test]
+    public void TolokaProgressHiddenWithoutGatheringTest()
+    {
+        var player = TestPlayer.Create();
+        var neighbour = TestPlayer.Create()
+            .WithTolokaUnlocked()
+            .WithResource(ResourceIds.Stone, 200);
+
+        player.TakeTolokaProgress();
+        neighbour.Contribute(200);
+
+        Assert.That(player.TakeTolokaProgress(), Is.Null);
+    }
+
     private static Toloka GetActiveToloka()
     {
         return App.Read(context => context.Tolokas.Single(x => x.CompletedDate == null));
@@ -880,6 +944,11 @@ file static class TolokaTestsActs
     public static TolokaState? TolokaOrNull(this TestPlayer p)
     {
         return App.Act<TolokaManager, TolokaState?>(m => m.GetToloka(DateTimeHelper.GetNowDate(), p.Id));
+    }
+
+    public static TolokaProgress? TakeTolokaProgress(this TestPlayer p)
+    {
+        return App.Act<TolokaManager, TolokaProgress?>(m => m.TakeProgress(p.Id));
     }
 
     public static bool HasActiveBuff(this TestPlayer p)

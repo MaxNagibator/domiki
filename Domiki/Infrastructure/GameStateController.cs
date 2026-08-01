@@ -74,6 +74,12 @@ public class GameStateController : GameControllerBase
         _giftManager.TryGrantGift(playerId, DateTimeHelper.GetNowDate());
         _workerMilestoneManager.TryGrantNext(playerId, villageLevel.Level, DateTimeHelper.GetNowDate());
 
+        var toloka = _tolokaManager.GetToloka(DateTimeHelper.GetNowDate(), playerId);
+        if (toloka != null)
+        {
+            toloka.Progress = _tolokaManager.TakeProgress(playerId);
+        }
+
         var content = new GameStateDto
         {
             DomikTypes = _resourceManager.GetDomikTypes().Select(x => x.ToDto(blueprintId: blueprints.FirstOrDefault(b => b.DomikTypeId == x.Id)?.Id)).ToArray(),
@@ -99,7 +105,7 @@ public class GameStateController : GameControllerBase
             Weather = _weatherManager.GetWeather(DateTimeHelper.GetNowDate()).ToDto(),
             Expeditions = _expeditionManager.GetExpeditions(playerId)?.ToDto(),
             Decor = _decorManager.GetDecor(playerId).ToDto(_resourceManager.GetNeighbors()),
-            Toloka = _tolokaManager.GetToloka(DateTimeHelper.GetNowDate(), playerId)?.ToDto(),
+            Toloka = toloka?.ToDto(),
             Market = _marketManager.GetMarket(playerId)?.ToDto(),
             Convoys = _convoyManager.GetConvoys(playerId).Select(x => x.ToDto()).ToArray(),
             Recap = _playerEventManager.TakeRecap(playerId, DateTimeHelper.GetNowDate()).ToDto(),

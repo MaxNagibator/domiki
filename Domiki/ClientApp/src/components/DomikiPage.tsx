@@ -108,8 +108,8 @@ export const DomikiPage = () => {
     const goldValue = resources.find(x => x.typeId === GOLD_RESOURCE_TYPE_ID)?.value ?? 0;
     const goldType = resourceTypes.find(x => x.id === GOLD_RESOURCE_TYPE_ID);
     const recapView = useMemo(() => buildRecapView(recap?.events ?? []), [recap]);
-    const recapPending = recap != null && recap.events.length > 0;
-    const recapVisible = recap != null && recap.events.length > 0 && (recap.awaySeconds >= 1800 || recapOpen);
+    const recapPending = recap != null && (recap.events.length > 0 || toloka?.progress != null);
+    const recapVisible = recapPending && (recap.awaySeconds >= 1800 || recapOpen);
     const friendNeighbor = useMemo(() => {
         const friendIds = new Set(blueprints.filter(b => b.currentReputation >= b.reputationThreshold).map(b => b.neighborId));
         const top = reputation
