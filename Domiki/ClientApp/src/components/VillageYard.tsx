@@ -5,6 +5,7 @@ import { weatherMark, weatherMarkSpeech } from '../utils/weather';
 import { hashString } from '../utils/worldMap';
 import { layoutYard, YARD_H, type YardGreen, type YardSpot } from '../utils/yardMap';
 import { DecorSprite, DomikSprite, MechanicSprite, NeighborSprite, SheepSprite, WeatherSprite } from './sprites';
+import '../styles/yard.css';
 
 const GRASS_CLEAR = '#a9bd8d';
 const GRASS_SHADOW = '#7f9863';

@@ -91,6 +91,34 @@ const precompress = () => ({
     },
 });
 
+const spriteFamilies: Record<string, string> = {
+    abstract: 'abstract',
+    actors: 'actor',
+    decorTypes: 'decor',
+    domikTypes: 'domik',
+    mechanics: 'mechanic',
+    neighbors: 'neighbor',
+    resourceTypes: 'resource',
+    tolokaTypes: 'toloka',
+    traits: 'trait',
+    weather: 'weather',
+    workers: 'worker',
+};
+
+const spriteChunk = (id: string) => {
+    const asset = /\/src\/assets\/([^/]+)\//.exec(id);
+    if (asset?.[1] != null && spriteFamilies[asset[1]] != null) {
+        return `sprites-${spriteFamilies[asset[1]]}`;
+    }
+
+    const family = /\/src\/components\/sprites\/([^/.]+)\./.exec(id);
+    if (family?.[1] != null && family[1] !== 'index' && family[1] !== 'core') {
+        return `sprites-${family[1]}`;
+    }
+
+    return undefined;
+};
+
 export default defineConfig(({ command, mode }) => {
     const useDevServer = command === 'serve' && mode !== 'test';
 
@@ -104,9 +132,13 @@ export default defineConfig(({ command, mode }) => {
         build: {
             outDir: 'build',
             emptyOutDir: true,
+            modulePreload: {
+                resolveDependencies: (_filename, deps, { hostType }) =>
+                    hostType === 'html' ? deps.filter(dep => !/sprites-(?!mechanic)/.test(dep)) : deps,
+            },
             rollupOptions: {
                 output: {
-                    manualChunks: (id) => id.includes('/node_modules/react') ? 'react' : undefined,
+                    manualChunks: (id) => id.includes('/node_modules/react') ? 'react' : spriteChunk(id),
                 },
             },
         },

@@ -1,0 +1,11 @@
+export { AbstractSprite } from './abstract';
+export { SheepSprite } from './actor';
+export { DecorSprite } from './decor';
+export { DomikSprite } from './domik';
+export { MechanicSprite } from './mechanic';
+export { NeighborSprite } from './neighbor';
+export { ResourceSprite } from './resource';
+export { TolokaSprite } from './toloka';
+export { TraitSprite } from './trait';
+export { WeatherSprite } from './weather';
+export { WorkerSprite } from './worker';

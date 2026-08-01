@@ -17,6 +17,7 @@ import { villageKey } from '../utils/worldMap';
 import { profileGenitiveName, profileLore } from '../utils/profileLore';
 import { AbstractSprite, MechanicSprite, NeighborSprite } from './sprites';
 import type { VillageVisitDto, WorldDto, WorldVillageDto } from '../types/api';
+import '../styles/world.css';
 
 type SortKey = 'level' | 'seasonOrders' | 'seasonToloka' | 'seasonExpeditions' | 'comfort';
 

@@ -1504,3 +1504,9 @@
     border: 2px solid var(--ink);
     clip-path: var(--cut);
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .btn-game {
+        transition: none;
+    }
+}

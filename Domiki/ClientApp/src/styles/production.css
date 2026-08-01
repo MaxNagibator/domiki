@@ -596,9 +596,7 @@ progress {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .plot,
-    .btn-game,
-    .btn-ghost {
+    .plot {
         transition: none;
     }
 

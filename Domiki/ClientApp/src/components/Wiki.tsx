@@ -17,6 +17,7 @@ import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
 import CheckIcon from 'pixelarticons/svg/check.svg?react';
 import HomeIcon from 'pixelarticons/svg/home.svg?react';
 import LockIcon from 'pixelarticons/svg/lock.svg?react';
+import '../styles/wiki.css';
 
 interface Catalog {
     domikTypes: DomikTypeDto[];

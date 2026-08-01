@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { latestChangelogId } from '../constants/changelog';
 import { ChangelogModal } from './ChangelogModal';
 import { MechanicSprite } from './sprites';
+import '../styles/changelog.css';
 
 const STORAGE_KEY = 'changelog-last-seen';
 

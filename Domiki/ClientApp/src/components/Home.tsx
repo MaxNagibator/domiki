@@ -12,6 +12,7 @@ import {
     ResourceSprite,
     WorkerSprite,
 } from './sprites';
+import '../styles/landing.css';
 
 const usePrefersReducedMotion = (): boolean => {
     const [reduce, setReduce] = useState(false);

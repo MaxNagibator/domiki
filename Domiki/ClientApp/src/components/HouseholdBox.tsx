@@ -17,6 +17,7 @@ import { ActionButton } from './ActionButton';
 import { ResourceChip } from './ResourceChip';
 import { ResourceNameChip } from './ResourceNameChip';
 import { AbstractSprite, DomikSprite, MechanicSprite, NeighborSprite } from './sprites';
+import '../styles/household.css';
 
 const CHIP_LIMIT = 5;
 const RESERVE_MIN_LEVEL = 3;

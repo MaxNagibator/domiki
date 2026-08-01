@@ -15,6 +15,7 @@ import { guestbookPhraseText } from '../constants/guestbookPhrases';
 import { AbstractSprite, DomikSprite, MechanicSprite, ResourceSprite } from './sprites';
 import { ResourceChip } from './ResourceChip';
 import { Crest } from './Crest';
+import '../styles/journal.css';
 
 interface JournalBoxProps {
     events: RecapEventDto[];
