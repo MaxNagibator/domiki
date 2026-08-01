@@ -232,6 +232,7 @@ export const worldVillageSchema = z.object({
     seasonToloka: z.number(),
     seasonExpeditions: z.number(),
     comfort: z.number(),
+    relocationCount: z.number(),
 });
 export type WorldVillageDto = z.infer<typeof worldVillageSchema>;
 
@@ -296,6 +297,8 @@ export const villageVisitSchema = z.object({
     hostCapReached: z.boolean(),
     hasActiveWork: z.boolean(),
     helpUnlockLevel: z.number(),
+    relocationCount: z.number(),
+    chronicleLevelSum: z.number(),
 });
 export type VillageVisitDto = z.infer<typeof villageVisitSchema>;
 
@@ -331,6 +334,7 @@ export const workerSchema = z.object({
     restUntil: z.string().nullable(),
     sickUntil: z.string().nullable(),
     sickTypeId: z.number().nullable(),
+    isAway: z.boolean(),
     skills: z.array(workerSkillSchema),
 });
 export type WorkerDto = z.infer<typeof workerSchema>;
@@ -604,6 +608,78 @@ export const villageProfileSchema = z.object({
 });
 export type VillageProfileDto = z.infer<typeof villageProfileSchema>;
 
+export const perkSchema = z.object({
+    perkType: z.number(),
+    name: z.string(),
+    description: z.string(),
+    costs: z.array(z.number()),
+    level: z.number(),
+});
+export type PerkDto = z.infer<typeof perkSchema>;
+
+export const valleySchema = z.object({
+    id: z.number(),
+    name: z.string(),
+    logicName: z.string(),
+    description: z.string(),
+});
+export type ValleyDto = z.infer<typeof valleySchema>;
+
+export const relocationSummarySchema = z.object({
+    workers: z.number(),
+    blueprints: z.number(),
+    gold: z.number(),
+    goldTotal: z.number(),
+    coins: z.number(),
+    resources: z.number(),
+    buildings: z.number(),
+    startingCoins: z.number(),
+});
+export type RelocationSummaryDto = z.infer<typeof relocationSummarySchema>;
+
+export const relocationSchema = z.object({
+    threshold: z.number(),
+    level: z.number(),
+    estimatedDays: z.number().nullish(),
+    cooldownUntil: z.string().nullish(),
+    canRelocate: z.boolean(),
+    blockReason: z.string().nullish(),
+    knots: z.number(),
+    relocationCount: z.number(),
+    valleyId: z.number(),
+    valleyName: z.string(),
+    perks: z.array(perkSchema),
+});
+export type RelocationDto = z.infer<typeof relocationSchema>;
+
+export const relocationPlanSchema = z.object({
+    knotsOnRelocate: z.number(),
+    summary: relocationSummarySchema,
+    valleys: z.array(valleySchema),
+});
+export type RelocationPlanDto = z.infer<typeof relocationPlanSchema>;
+
+export const memorialVillageSchema = z.object({
+    villageName: z.string().nullish(),
+    crestIcon: z.number(),
+    crestColor: z.number(),
+    valleyId: z.number(),
+    valleyName: z.string(),
+    level: z.number(),
+    knots: z.number(),
+    livedDays: z.number(),
+    date: z.string(),
+});
+export type MemorialVillageDto = z.infer<typeof memorialVillageSchema>;
+
+export const memorialPostSchema = z.object({
+    villages: z.array(memorialVillageSchema),
+    levelSum: z.number(),
+    relocationCount: z.number(),
+    firstDayDate: z.string().nullish(),
+});
+export type MemorialPostDto = z.infer<typeof memorialPostSchema>;
+
 export const goalsStateSchema = z.object({
     active: activeGoalSchema.nullable(),
     completedCount: z.number(),
@@ -641,6 +717,7 @@ export const gameStateSchema = z.object({
     convoys: z.array(convoySchema),
     goals: goalsStateSchema,
     villageProfiles: z.array(villageProfileSchema),
+    relocation: relocationSchema,
     recap: recapSchema.nullish(),
     events: z.array(z.unknown()).transform(items => items.flatMap(item => {
         const parsed = recapEventSchema.safeParse(item);

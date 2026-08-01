@@ -8,7 +8,9 @@ import {
     gameStateSchema,
     guestbookSchema,
     helpResultSchema,
+    memorialPostSchema,
     problemDetailsSchema,
+    relocationPlanSchema,
     villageSchema,
     worldSchema,
     villageVisitSchema,
@@ -16,6 +18,8 @@ import {
     type GameStateDto,
     type GuestbookDto,
     type HelpResultDto,
+    type MemorialPostDto,
+    type RelocationPlanDto,
     type TolokaStateDto,
     type MarketStateDto,
     type VillageDto,
@@ -193,6 +197,18 @@ export const setFriendNeighbor = (neighborId: number | null, signal?: AbortSigna
 
 export const setVillageProfile = (neighborId: number, signal?: AbortSignal): Promise<void> =>
     apiPost(`Domiki/SetVillageProfile?neighborId=${neighborId}`, signal);
+
+export const getMemorialPost = (signal?: AbortSignal): Promise<MemorialPostDto> =>
+    apiGet('Domiki/GetMemorialPost', memorialPostSchema, signal);
+
+export const getRelocationPlan = (signal?: AbortSignal): Promise<RelocationPlanDto> =>
+    apiGet('Domiki/GetRelocation', relocationPlanSchema, signal);
+
+export const relocate = (valleyId: number, villageName: string | null, signal?: AbortSignal): Promise<void> =>
+    request('POST', 'Domiki/Relocate', null, signal, { valleyId, villageName });
+
+export const buyPerk = (perkType: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/BuyPerk?perkType=${perkType}`, signal);
 
 export const getPushPublicKey = (signal?: AbortSignal): Promise<string> =>
     apiGet('Push/PublicKey', z.string(), signal);

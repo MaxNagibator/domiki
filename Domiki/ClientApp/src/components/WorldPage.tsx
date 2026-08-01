@@ -15,7 +15,7 @@ import { Crest } from './Crest';
 import { GuestbookEntryRow } from './GuestbookEntryRow';
 import { villageKey } from '../utils/worldMap';
 import { profileGenitiveName, profileLore } from '../utils/profileLore';
-import { MechanicSprite, NeighborSprite } from './sprites';
+import { AbstractSprite, MechanicSprite, NeighborSprite } from './sprites';
 import type { VillageVisitDto, WorldDto, WorldVillageDto } from '../types/api';
 
 type SortKey = 'level' | 'seasonOrders' | 'seasonToloka' | 'seasonExpeditions' | 'comfort';
@@ -269,6 +269,11 @@ export const WorldPage = () => {
                                     {village.isNpc && <span className="world-tag">NPC</span>}
                                     {village.profileLogicName != null &&
                                         <ProfileTag logicName={village.profileLogicName} className="world-tag world-tag-profile" iconClassName="world-tag-ico" />}
+                                    {village.relocationCount > 0 &&
+                                        <span className="world-tag world-tag-relocation" title={`Переездов в новую долину: ${village.relocationCount}`}>
+                                            <AbstractSprite logicName="prestige_new_valley" size={24} className="world-tag-ico" aria-hidden="true" />
+                                            {village.relocationCount}
+                                        </span>}
                                 </span>
                                 <span className="world-metric" title={activeMetric.label}>
                                     {sortKey !== 'level' &&
@@ -343,6 +348,12 @@ export const WorldPage = () => {
                                 </div>
                             </div>
                             <LevelBreakdown visit={visit} />
+                            {visit.relocationCount > 0 &&
+                                <p className="world-visit-memorial">
+                                    <AbstractSprite logicName="prestige_new_valley" size={24} className="world-visit-memorial-ico" aria-hidden="true" />
+                                    Прожито деревень: {visit.relocationCount}, суммарная обжитость: {visit.chronicleLevelSum}
+                                </p>
+                            }
                             <div className="world-buildings">
                                 {groupedBuildings.length === 0 && <p className="hint">Построек нет</p>}
                                 {groupedBuildings.map(g => (

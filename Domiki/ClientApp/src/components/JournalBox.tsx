@@ -152,6 +152,19 @@ const renderContent = (event: RecapEventDto, resourceTypes: ResourceTypeDto[], d
         };
     }
 
+    if (event.type === 'Relocated' && isNumber(data.workers) && isNumber(data.blueprints) && isNumber(data.knots)) {
+        return {
+            tone: 'build',
+            Icon: abstractIcon('prestige_new_valley'),
+            body: (
+                <span className="journal-text">
+                    Собрались затемно, к полудню были на месте. Двор пустой, зато все свои: {data.workers} {pluralRu(data.workers, 'трудяга', 'трудяги', 'трудяг')},
+                    {' '}{data.blueprints} {pluralRu(data.blueprints, 'чертёж', 'чертежа', 'чертежей')} и {data.knots} {pluralRu(data.knots, 'узелок', 'узелка', 'узелков')} на память.
+                </span>
+            ),
+        };
+    }
+
     if (event.type === 'CloakWornOut') {
         return {
             tone: 'errand',

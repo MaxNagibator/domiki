@@ -1,0 +1,318 @@
+.relocation-panel {
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    box-shadow: inset 0 -4px 0 var(--plank-dark);
+}
+
+.relocation-hero {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: -16px -18px 16px;
+    padding: 14px 18px;
+    background: linear-gradient(115deg, #cdbfe0 0%, var(--plank) 62%);
+    border-bottom: 3px solid var(--ink);
+}
+
+.relocation-hero-emblem {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    background: #fffaec;
+    border: 3px solid var(--ink);
+    clip-path: var(--cut);
+    box-shadow: inset 0 -4px 0 var(--plank-dark);
+}
+
+    .relocation-hero-emblem svg {
+        width: 32px;
+        height: 32px;
+    }
+
+.relocation-hero-text {
+    min-width: 0;
+    flex: 1;
+}
+
+.relocation-hero-title {
+    margin: 0 0 4px;
+}
+
+.relocation-hero-valley {
+    margin: 0 0 4px;
+    font-family: var(--pixel);
+    font-size: 9px;
+    color: var(--pine);
+}
+
+.relocation-hero-sub {
+    margin: 0;
+    font-size: 13px;
+    color: var(--pine-dark);
+}
+
+.relocation-gate {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    background: #fffaec;
+    border: 2px solid var(--plank-dark);
+    clip-path: var(--cut);
+}
+
+.relocation-gate-line {
+    margin: 0;
+    font-size: 14px;
+}
+
+.relocation-gate-blocked {
+    color: var(--roof);
+}
+
+.relocation-gate-note {
+    margin: 0;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--ink-muted);
+}
+
+.relocation-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px;
+}
+
+.relocation-section-ico {
+    flex-shrink: 0;
+}
+
+.relocation-ladder {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.relocation-perk {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px;
+    background: #fffaec;
+    border: 2px solid var(--plank-dark);
+    clip-path: var(--cut);
+}
+
+.relocation-perk-body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.relocation-perk-name {
+    font-weight: 700;
+}
+
+.relocation-perk-lore {
+    font-size: 13px;
+    color: var(--pine-dark);
+}
+
+.relocation-perk-steps {
+    display: flex;
+    gap: 4px;
+}
+
+.relocation-perk-step {
+    min-width: 22px;
+    padding: 1px 4px;
+    font-family: var(--pixel);
+    font-size: 9px;
+    text-align: center;
+    color: var(--ink-muted);
+    background: var(--plank-dark);
+    border: 2px solid var(--plank-dark);
+}
+
+.relocation-perk-step-taken {
+    color: var(--plank);
+    background: var(--pine);
+    border-color: var(--ink);
+}
+
+.relocation-perk-done {
+    flex-shrink: 0;
+    font-size: 13px;
+    color: var(--pine-dark);
+}
+
+.relocation-post-sub {
+    margin: -4px 0 10px;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--ink-muted);
+}
+
+.relocation-post-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: var(--pine-dark);
+}
+
+.relocation-post-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.relocation-post-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: #fffaec;
+    border: 2px solid var(--plank-dark);
+    clip-path: var(--cut);
+}
+
+.relocation-post-name {
+    font-weight: 700;
+}
+
+.relocation-post-meta {
+    font-size: 13px;
+    color: var(--pine-dark);
+}
+
+.relocation-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+}
+
+.relocation-column {
+    padding: 10px 12px;
+    background: #fffaec;
+    border: 2px solid var(--plank-dark);
+    clip-path: var(--cut);
+}
+
+.relocation-column-carried {
+    box-shadow: inset 4px 0 0 var(--pine);
+}
+
+.relocation-column-left {
+    box-shadow: inset 4px 0 0 var(--roof);
+}
+
+.relocation-column-title {
+    margin: 0 0 6px;
+    font-size: 14px;
+}
+
+.relocation-column-list {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+    color: var(--pine-dark);
+}
+
+.relocation-knots-line {
+    margin: 0;
+    text-align: center;
+}
+
+.relocation-warning {
+    margin: 0;
+    font-family: var(--pixel);
+    font-size: 10px;
+    text-align: center;
+    color: var(--roof);
+}
+
+.relocation-valleys {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.relocation-valley {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    font: inherit;
+    text-align: left;
+    color: var(--ink);
+    background: #fffaec;
+    border: 2px solid var(--plank-dark);
+    clip-path: var(--cut);
+    cursor: pointer;
+}
+
+.relocation-valley-selected {
+    border-color: var(--ink);
+    box-shadow: inset 0 -4px 0 var(--pine);
+}
+
+.relocation-valley-view {
+    height: 44px;
+    border: 2px solid var(--ink);
+}
+
+.relocation-valley-linden_hollow {
+    background: linear-gradient(180deg, #f3d98a 0%, #b7c96e 55%, #7f9863 100%);
+}
+
+.relocation-valley-bright_reach {
+    background: linear-gradient(180deg, #cfe3ef 0%, #8fb6c9 55%, #4f7d7a 100%);
+}
+
+.relocation-valley-white_bluff {
+    background: linear-gradient(180deg, #e2e0d2 0%, #b3b58f 55%, #7c7f5c 100%);
+}
+
+.relocation-valley-name {
+    font-weight: 700;
+}
+
+.relocation-valley-lore {
+    font-size: 12px;
+    color: var(--pine-dark);
+}
+
+.relocation-rename {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.world-tag-relocation {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.world-visit-memorial {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: var(--pine-dark);
+}
+
+.world-visit-memorial-ico {
+    flex-shrink: 0;
+}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { acceptLot as acceptLotApi, apiGet, ApiError, buyDecor as buyDecorApi, buyFromConvoy as buyFromConvoyApi, cancelLot as cancelLotApi, contributeToloka as contributeTolokaApi, getDecor, getGameState, getMarket, getToloka, getVillage, hurryDomik as hurryDomikApi, hurryManufacture as hurryManufactureApi, postLot as postLotApi, setFoodRule as setFoodRuleApi, setManufactureAutoRepeat as setManufactureAutoRepeatApi, setManufactureMeasure as setManufactureMeasureApi, setResourceReserve as setResourceReserveApi, setVillage as setVillageApi, startExpedition as startExpeditionApi, voteToloka as voteTolokaApi } from '../services/api';
+import { acceptLot as acceptLotApi, apiGet, ApiError, buyDecor as buyDecorApi, buyFromConvoy as buyFromConvoyApi, buyPerk as buyPerkApi, cancelLot as cancelLotApi, contributeToloka as contributeTolokaApi, getDecor, getGameState, getMarket, getToloka, getVillage, hurryDomik as hurryDomikApi, hurryManufacture as hurryManufactureApi, postLot as postLotApi, relocate as relocateApi, setFoodRule as setFoodRuleApi, setManufactureAutoRepeat as setManufactureAutoRepeatApi, setManufactureMeasure as setManufactureMeasureApi, setResourceReserve as setResourceReserveApi, setVillage as setVillageApi, startExpedition as startExpeditionApi, voteToloka as voteTolokaApi } from '../services/api';
 import { useToast } from '../services/toastContext';
 import {
     domikTypeSchema,
@@ -24,6 +24,7 @@ import {
     type ResourceTypeDto,
     type RecapDto,
     type RecapEventDto,
+    type RelocationDto,
     type SickTypeDto,
     type TavernLarderDto,
     type LedgerDto,
@@ -55,6 +56,7 @@ export interface GameData {
     village: VillageDto | null;
     villageLevel: VillageLevelDto | null;
     villageProfiles: VillageProfileDto[];
+    relocation: RelocationDto | null;
     weather: WeatherStateDto | null;
     expeditions: ExpeditionStateDto | null;
     decor: DecorStateDto | null;
@@ -88,6 +90,8 @@ export interface GameData {
     acceptLot: (lotId: number) => Promise<void>;
     cancelLot: (lotId: number) => Promise<void>;
     buyFromConvoy: (neighborId: number, resourceTypeId: number, count: number) => Promise<void>;
+    relocate: (valleyId: number, villageName: string | null) => Promise<void>;
+    buyPerk: (perkType: number) => Promise<void>;
     recap: RecapDto | null;
     clearRecap: () => void;
     events: RecapEventDto[];
@@ -124,6 +128,7 @@ export function useGameData(): GameData {
     const [village, setVillageState] = useState<VillageDto | null>(null);
     const [villageLevel, setVillageLevel] = useState<VillageLevelDto | null>(null);
     const [villageProfiles, setVillageProfiles] = useState<VillageProfileDto[]>([]);
+    const [relocation, setRelocation] = useState<RelocationDto | null>(null);
     const [weather, setWeather] = useState<WeatherStateDto | null>(null);
     const [expeditions, setExpeditions] = useState<ExpeditionStateDto | null>(null);
     const [decor, setDecor] = useState<DecorStateDto | null>(null);
@@ -149,6 +154,7 @@ export function useGameData(): GameData {
     const domiksRef = useRef(domiks);
     const expeditionsRef = useRef(expeditions);
     const goalsRef = useRef(goals);
+    const relocationRef = useRef(relocation);
     const eventsRef = useRef<RecapEventDto[] | undefined>(undefined);
     const tolokaRef = useRef(toloka);
     const errandRef = useRef(errand);
@@ -174,6 +180,10 @@ export function useGameData(): GameData {
     useEffect(() => {
         goalsRef.current = goals;
     }, [goals]);
+
+    useEffect(() => {
+        relocationRef.current = relocation;
+    }, [relocation]);
 
     useEffect(() => {
         eventsRef.current = events;
@@ -212,6 +222,10 @@ export function useGameData(): GameData {
         if (prevGoal != null && (state.goals.active == null || state.goals.active.ordinal > prevGoal.ordinal)) {
             toast.success(`Наказ выполнен: «${prevGoal.name}» (+${prevGoal.rewardCoins} монет)`);
         }
+        const prevRelocation = relocationRef.current;
+        if (prevRelocation != null && prevRelocation.level < prevRelocation.threshold && state.relocation.level >= state.relocation.threshold) {
+            toast.success(`Деревня встала на ноги. Всё, что «${state.village.villageName ?? 'деревня'}» могла завести, заведено: постройки, соседи, ремёсла. Дальше – те же дела, только глубже. Захочется нового – можно собираться в новую долину.`);
+        }
         const previousEvents = eventsRef.current;
         if (previousEvents != null) {
             const previousMilestoneKeys = new Set(previousEvents.flatMap(event => {
@@ -242,6 +256,7 @@ export function useGameData(): GameData {
         setVillageState(state.village);
         setVillageLevel(state.villageLevel);
         setVillageProfiles(state.villageProfiles);
+        setRelocation(state.relocation);
         setWorkers(state.workers);
         setCloaks(state.cloaks);
         setLarder(state.larder);
@@ -374,6 +389,16 @@ export function useGameData(): GameData {
         scheduleReload();
     }, [scheduleReload]);
 
+    const relocate = useCallback(async (valleyId: number, villageName: string | null) => {
+        await relocateApi(valleyId, villageName);
+        await reload();
+    }, [reload]);
+
+    const buyPerk = useCallback(async (perkType: number) => {
+        await buyPerkApi(perkType);
+        scheduleReload();
+    }, [scheduleReload]);
+
     const clearRecap = useCallback(() => setRecap(null), []);
 
     const buyDecor = useCallback(async (decorTypeId: number) => {
@@ -419,6 +444,7 @@ export function useGameData(): GameData {
                 setVillageState(state.village);
                 setVillageLevel(state.villageLevel);
                 setVillageProfiles(state.villageProfiles);
+                setRelocation(state.relocation);
                 setWorkers(state.workers);
                 setLarder(state.larder);
                 setLedger(state.ledger ?? null);
@@ -617,6 +643,7 @@ export function useGameData(): GameData {
         village,
         villageLevel,
         villageProfiles,
+        relocation,
         weather,
         expeditions,
         decor,
@@ -651,6 +678,8 @@ export function useGameData(): GameData {
         acceptLot,
         cancelLot,
         buyFromConvoy,
+        relocate,
+        buyPerk,
         recap,
         clearRecap,
         events,

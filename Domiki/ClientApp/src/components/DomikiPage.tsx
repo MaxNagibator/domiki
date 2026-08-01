@@ -40,6 +40,7 @@ import { TolokaBox } from './TolokaBox';
 import { MarketBox } from './MarketBox';
 import { JournalBox } from './JournalBox';
 import { GuestbookBox } from './GuestbookBox';
+import { RelocationBox } from './RelocationBox';
 import { ShopBox } from './ShopBox';
 import { RecapModal } from './RecapModal';
 import { AbstractSprite, MechanicSprite } from './sprites';
@@ -67,7 +68,7 @@ export const DomikiPage = () => {
     useEffect(() => { perfCommitProbe(); });
 
     const toast = useToast();
-    const { domiks, domikTypes, resourceTypes, receipts, resources, orders, errand, incident, domikIncident, reputation, blueprints, village, villageLevel, villageProfiles, weather, expeditions, decor, toloka, market, convoys, goals, workers, cloaks, larder, ledger, reserves, sickTypes, purchaseDomikTypes, now, loading, scheduleReload, refreshPurchaseTypes, setVillage, hurryManufacture, setManufactureAutoRepeat, setManufactureMeasure, setResourceReserve, hurryDomik, startExpedition, buyDecor, setFoodRule, contributeToloka, voteToloka, postLot, acceptLot, cancelLot, buyFromConvoy, recap, clearRecap, events } =
+    const { domiks, domikTypes, resourceTypes, receipts, resources, orders, errand, incident, domikIncident, reputation, blueprints, village, villageLevel, villageProfiles, relocation, weather, expeditions, decor, toloka, market, convoys, goals, workers, cloaks, larder, ledger, reserves, sickTypes, purchaseDomikTypes, now, loading, scheduleReload, refreshPurchaseTypes, setVillage, hurryManufacture, setManufactureAutoRepeat, setManufactureMeasure, setResourceReserve, hurryDomik, startExpedition, buyDecor, setFoodRule, contributeToloka, voteToloka, postLot, acceptLot, cancelLot, buyFromConvoy, relocate, buyPerk, recap, clearRecap, events } =
         useGameData();
 
     const [shopVisible, setShopVisible] = useState(false);
@@ -307,6 +308,15 @@ export const DomikiPage = () => {
 
     const buyDecorAction = (decorTypeId: number) => runAction(() => buyDecor(decorTypeId), 'Декор куплен');
 
+    const relocateAction = (valleyId: number, newVillageName: string | null, valleyName: string) => {
+        return runAction(
+            () => relocate(valleyId, newVillageName),
+            `Обоз тронулся. «${villageName}» осталась на памятном столбе, впереди – ${valleyName}.`,
+        );
+    };
+
+    const buyPerkAction = (perkType: number) => runAction(() => buyPerk(perkType), 'Узелок развязан – память пригодилась');
+
     const setFoodRuleAction = (resourceTypeId: number, reserve: number, forbidden: boolean) => runAction(() => setFoodRule(resourceTypeId, reserve, forbidden));
 
     const setManufactureMeasureAction = (manufactureId: number, resourceTypeId: number | null, value: number | null) => runAction(
@@ -425,6 +435,10 @@ export const DomikiPage = () => {
         {
             key: 'guestbook', label: 'Гости', icon: <MechanicSprite logicName="guestbook" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
             node: () => <GuestbookBox now={now} />,
+        },
+        {
+            key: 'memory', label: 'Память', icon: <AbstractSprite logicName="prestige_new_valley" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
+            node: () => <RelocationBox relocation={relocation} villageName={villageName} onRelocate={relocateAction} onBuyPerk={buyPerkAction} />,
         },
     ];
     const visibleGameTabs = gameTabs.filter(tab => tab.visible);
