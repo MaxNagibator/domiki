@@ -4,6 +4,10 @@ import { perfGestureEnd, perfGestureFrame, perfGestureMove, perfGestureStart } f
 
 const MOVE_THRESHOLD = 6;
 
+const EDGE_ZONE = 96;
+
+const EDGE_SPEED = 18;
+
 export interface AssignPoint {
     x: number;
     y: number;
@@ -39,6 +43,7 @@ export function useWorkerAssign(onAssign: (workerId: number, domikId: number, po
     const ghostPoint = useRef<AssignPoint>({ x: 0, y: 0 });
     const painters = useRef(new Set<(point: AssignPoint) => void>());
     const frame = useRef(0);
+    const edgeFrame = useRef(0);
     const draggingRef = useRef(false);
     const hover = useRef<number | null>(null);
 
@@ -57,8 +62,51 @@ export function useWorkerAssign(onAssign: (workerId: number, domikId: number, po
         },
     }), []);
 
+    const stopEdgeScroll = useCallback(() => {
+        if (edgeFrame.current !== 0) {
+            cancelAnimationFrame(edgeFrame.current);
+            edgeFrame.current = 0;
+        }
+    }, []);
+
+    const edgeSpeed = useCallback((y: number) => {
+        if (y < EDGE_ZONE) {
+            return -Math.round(EDGE_SPEED * (1 - y / EDGE_ZONE));
+        }
+
+        const bottom = window.innerHeight - y;
+        return bottom < EDGE_ZONE ? Math.round(EDGE_SPEED * (1 - bottom / EDGE_ZONE)) : 0;
+    }, []);
+
+    const edgeScroll = useCallback(() => {
+        if (edgeFrame.current !== 0) {
+            return;
+        }
+
+        const step = () => {
+            edgeFrame.current = 0;
+            if (!draggingRef.current) {
+                return;
+            }
+
+            const speed = edgeSpeed(ghostPoint.current.y);
+            if (speed === 0) {
+                return;
+            }
+
+            window.scrollBy(0, speed);
+            const target = domikAtPoint(ghostPoint.current.x, ghostPoint.current.y);
+            hover.current = target;
+            setHoverDomikId(target);
+            edgeFrame.current = requestAnimationFrame(step);
+        };
+
+        edgeFrame.current = requestAnimationFrame(step);
+    }, [edgeSpeed]);
+
     const finish = useCallback(() => {
         perfGestureEnd();
+        stopEdgeScroll();
         if (frame.current !== 0) {
             cancelAnimationFrame(frame.current);
             frame.current = 0;
@@ -70,7 +118,7 @@ export function useWorkerAssign(onAssign: (workerId: number, domikId: number, po
         setWorkerId(null);
         setDragging(false);
         setHoverDomikId(null);
-    }, []);
+    }, [stopEdgeScroll]);
 
     const drop = useCallback((domikId: number, point: AssignPoint) => {
         const held = workerId;
@@ -118,6 +166,12 @@ export function useWorkerAssign(onAssign: (workerId: number, domikId: number, po
                 setDragging(true);
             }
 
+            if (edgeSpeed(ghostPoint.current.y) === 0) {
+                stopEdgeScroll();
+            } else {
+                edgeScroll();
+            }
+
             if (frame.current !== 0) {
                 return;
             }
@@ -163,7 +217,7 @@ export function useWorkerAssign(onAssign: (workerId: number, domikId: number, po
             }
 
             const element = event.target instanceof Element ? event.target : null;
-            if (element?.closest('[data-assign-domik], [data-assign-worker], .assign-menu') == null) {
+            if (element?.closest('[data-assign-domik], [data-assign-worker], .assign-menu, .domik-pager') == null) {
                 finish();
             }
         };
@@ -188,7 +242,7 @@ export function useWorkerAssign(onAssign: (workerId: number, domikId: number, po
             document.removeEventListener('pointerdown', onOutside);
             document.body.classList.remove('assign-active');
         };
-    }, [workerId, finish, paintGhost]);
+    }, [workerId, finish, paintGhost, edgeScroll, edgeSpeed, stopEdgeScroll]);
 
     return { workerId, dragging, hoverDomikId, ghost, grab, drop, cancel: finish };
 }
