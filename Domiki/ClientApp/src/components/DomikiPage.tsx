@@ -12,7 +12,9 @@ import { computeHudDigest } from '../utils/hud';
 import type { DomikSortMode } from '../utils/game';
 import { useWorkerAssign } from '../hooks/useWorkerAssign';
 import type { AssignPoint } from '../hooks/useWorkerAssign';
+import { useNarrowScreen } from '../hooks/useNarrowScreen';
 import { WorkerRail } from './WorkerRail';
+import { StockRail } from './StockRail';
 import { AssignGhost } from './AssignGhost';
 import { PerfZone } from './PerfZone';
 import { perfCommitProbe } from '../utils/perf';
@@ -245,6 +247,11 @@ export const DomikiPage = () => {
         const domikId = assign.hoverDomikId ?? selectedDomikId;
         return domiks.find(item => item.id === domikId)?.typeId ?? null;
     }, [assign.hoverDomikId, selectedDomikId, domiks]);
+    const narrowScreen = useNarrowScreen();
+    const stockFocusTypeIds = useMemo(
+        () => selected == null ? [] : [...new Set(selected.receipts.flatMap(receipt => receipt.inputResources.map(item => item.typeId)))],
+        [selected],
+    );
 
     const completeOrder = (orderId: number) => runAction(async () => {
         await completeOrderApi(orderId);
@@ -527,10 +534,18 @@ export const DomikiPage = () => {
             <div className="workspace">
                 <div className="worker-rail-slot">
                     <div className="worker-rail-float">
-                        <PerfZone id="рельс">
-                            <WorkerRail workers={workers} domikTypes={domikTypes} now={now} skillDomikTypeId={railSkillDomikTypeId}
-                                heldWorkerId={assign.workerId} onGrab={assign.grab} onCancel={assign.cancel} />
-                        </PerfZone>
+                        <div className="yard-rail">
+                            <PerfZone id="рельс">
+                                <WorkerRail workers={workers} domikTypes={domikTypes} now={now} skillDomikTypeId={railSkillDomikTypeId}
+                                    heldWorkerId={assign.workerId} onGrab={assign.grab} onCancel={assign.cancel} />
+                            </PerfZone>
+                            {!narrowScreen &&
+                                <PerfZone id="закрома">
+                                    <StockRail resources={resources} resourceTypes={resourceTypes} digest={hudDigest}
+                                        ledger={ledger} reserves={reserves} focusTypeIds={stockFocusTypeIds} />
+                                </PerfZone>
+                            }
+                        </div>
                     </div>
                 </div>
                 <section className="village">

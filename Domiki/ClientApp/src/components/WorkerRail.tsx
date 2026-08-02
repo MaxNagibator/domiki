@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
 import ChevronUpIcon from 'pixelarticons/svg/chevron-up.svg?react';
@@ -7,6 +7,7 @@ import { isWorkerFree } from '../utils/game';
 import { bestSkill, workerSkillPercent } from '../utils/assign';
 import { isSkilledWorker } from '../utils/worker';
 import { useElementHeightVar } from '../hooks/useElementHeightVar';
+import { useNarrowScreen } from '../hooks/useNarrowScreen';
 import { remainingSeconds } from '../utils/time';
 import { DomikSprite, WorkerSprite } from './sprites';
 
@@ -26,19 +27,7 @@ const AWAY_HINT = 'Коек в деревне меньше, чем трудяг:
 
 const GROUPS_AFTER_FREE = 1000;
 
-const RAIL_NARROW_QUERY = '(max-width: 900px)';
-
 const RAIL_STACK_LIMIT = 4;
-
-function subscribeNarrowRail(onChange: () => void): () => void {
-    const query = window.matchMedia(RAIL_NARROW_QUERY);
-    query.addEventListener('change', onChange);
-    return () => { query.removeEventListener('change', onChange); };
-}
-
-function useNarrowRail(): boolean {
-    return useSyncExternalStore(subscribeNarrowRail, () => window.matchMedia(RAIL_NARROW_QUERY).matches);
-}
 
 function railState(worker: WorkerDto, now: number): RailState {
     if (worker.sickUntil != null && remainingSeconds(worker.sickUntil, now) > 0) {
@@ -116,7 +105,7 @@ interface WorkerRailProps {
 export const WorkerRail = ({ workers, domikTypes, now, skillDomikTypeId, heldWorkerId, onGrab, onCancel }: WorkerRailProps) => {
     const [openGroups, setOpenGroups] = useState<RailState[]>([]);
     const [railOpen, setRailOpen] = useState(false);
-    const narrow = useNarrowRail();
+    const narrow = useNarrowScreen();
     const railRef = useRef<HTMLElement>(null);
 
     useElementHeightVar(railRef, '--worker-rail-height');

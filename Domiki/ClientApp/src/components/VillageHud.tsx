@@ -8,6 +8,7 @@ import LockIcon from 'pixelarticons/svg/lock.svg?react';
 import type { DomikTypeDto, PlodderCount, ResourceDto, ResourceTypeDto, VillageLevelDto, WeatherStateDto } from '../types/api';
 import { COIN_RESOURCE_TYPE_ID, GOLD_RESOURCE_TYPE_ID, strongestWeatherEffect } from '../utils/game';
 import { groupStockByDen, type HudDigest } from '../utils/hud';
+import { useNarrowScreen } from '../hooks/useNarrowScreen';
 import { pluralRu } from '../utils/plural';
 import { remainingSeconds } from '../utils/time';
 import { AbstractSprite, DomikSprite, MechanicSprite, NeighborSprite, WeatherSprite } from './sprites';
@@ -38,6 +39,7 @@ const hoursLeft = (finishDate: string, now: number) => Math.max(1, Math.ceil(rem
 
 export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, digest, villageLevel, weather, now, onStickyOffsetChange, villageProfile, nav, onOpenHousehold }: VillageHudProps) => {
     const hudRef = useRef<HTMLElement>(null);
+    const narrowScreen = useNarrowScreen();
     const [stockOpen, setStockOpen] = useState(false);
     const [levelFlyout, setLevelFlyout] = useState<{ top: number; right: number } | null>(null);
     const [weatherFlyout, setWeatherFlyout] = useState<{ top: number; right: number } | null>(null);
@@ -185,13 +187,15 @@ export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, dige
 
                 <div className="hud-deck">
                     <div className="hud-deck-nav">{nav}</div>
-                    <div className="hud-deck-tools">
-                        <button type="button" className={'hud-tool' + (stockOpen ? ' is-open' : '')}
-                            onClick={() => { setStockOpen(open => !open); }} title="Закрома" aria-expanded={stockOpen}>
-                            <span className="hud-tool-label">Закрома</span>
-                            {stockOpen ? <ChevronUpIcon className="btn-ico" aria-hidden="true" /> : <ChevronDownIcon className="btn-ico" aria-hidden="true" />}
-                        </button>
-                    </div>
+                    {narrowScreen &&
+                        <div className="hud-deck-tools">
+                            <button type="button" className={'hud-tool' + (stockOpen ? ' is-open' : '')}
+                                onClick={() => { setStockOpen(open => !open); }} title="Закрома" aria-expanded={stockOpen}>
+                                <span className="hud-tool-label">Закрома</span>
+                                {stockOpen ? <ChevronUpIcon className="btn-ico" aria-hidden="true" /> : <ChevronDownIcon className="btn-ico" aria-hidden="true" />}
+                            </button>
+                        </div>
+                    }
                 </div>
 
                 {weatherFlyout != null && currentWeather != null && createPortal(
@@ -243,7 +247,7 @@ export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, dige
                     </div>,
                     document.body)}
 
-                {stockOpen &&
+                {narrowScreen && stockOpen &&
                     <div className="hud-stock">
                         {stockDens.length === 0
                             ? <span className="hud-stock-empty">закрома пусты</span>

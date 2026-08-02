@@ -259,12 +259,12 @@
     clip-path: var(--cut);
 }
 
-.hud-den[data-den="forest"] { --accent: #4a7a3a; }
-.hud-den[data-den="pottery"] { --accent: #b6763a; }
-.hud-den[data-den="stone"] { --accent: #857a6a; }
-.hud-den[data-den="smithy"] { --accent: #4a5a68; }
-.hud-den[data-den="food"] { --accent: #b98a1e; }
-.hud-den[data-den="cloth"] { --accent: #8a6d9a; }
+.hud-den[data-den="forest"] { --accent: var(--den-forest); }
+.hud-den[data-den="pottery"] { --accent: var(--den-pottery); }
+.hud-den[data-den="stone"] { --accent: var(--den-stone); }
+.hud-den[data-den="smithy"] { --accent: var(--den-smithy); }
+.hud-den[data-den="food"] { --accent: var(--den-food); }
+.hud-den[data-den="cloth"] { --accent: var(--den-cloth); }
 
 .hud-den-name {
     font-family: var(--pixel);
