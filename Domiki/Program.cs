@@ -245,9 +245,13 @@ try
         OnPrepareResponse = context =>
         {
             var path = context.Context.Request.Path.Value;
-            if (path != null && (path.StartsWith("/assets/", StringComparison.Ordinal) || path.StartsWith("/fonts/", StringComparison.Ordinal)))
+            if (path != null && path.StartsWith("/assets/", StringComparison.Ordinal))
             {
                 context.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+            }
+            else if (path != null && path.StartsWith("/fonts/", StringComparison.Ordinal))
+            {
+                context.Context.Response.Headers.CacheControl = "public, max-age=2592000";
             }
             else if (path == "/sw.js")
             {

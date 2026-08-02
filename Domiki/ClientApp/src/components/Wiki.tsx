@@ -505,7 +505,7 @@ const WikiMechanicsSection = ({ villageLevel, weather, decor, domikTypes, convoy
                                                                 {unlocked.map(unlock => {
                                                                     const description = getUnlockDescription(unlock);
                                                                     return (
-                                                                        <li key={`${unlock.kind}-${unlock.logicName ?? unlock.label}`} className="unlock-row unlock-row-done">
+                                                                        <li key={`${unlock.kind}-${unlock.logicName ?? unlock.label}-${unlock.level ?? unlock.requirement}`} className="unlock-row unlock-row-done">
                                                                             {getUnlockIcon(unlock)}
                                                                             <span className="unlock-body">
                                                                                 <span className="unlock-name">{unlock.label}</span>

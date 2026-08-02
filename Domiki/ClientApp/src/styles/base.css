@@ -122,6 +122,43 @@ code {
     flex-shrink: 0;
 }
 
+.nav-user {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 11px 5px;
+    font-family: var(--pixel);
+    font-size: 11px;
+    color: var(--plank);
+    background: var(--pine);
+    clip-path: var(--cut);
+}
+
+.nav-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 7px 16px;
+    color: var(--ink);
+    background: var(--coin);
+    border: 3px solid var(--ink);
+    clip-path: var(--cut);
+    cursor: pointer;
+    transition: transform .15s steps(2, end);
+}
+
+    .nav-cta:hover {
+        transform: translateY(-2px);
+    }
+
+    .nav-cta:focus-visible {
+        outline: none;
+        border-color: var(--pine);
+    }
+
 .btn-ico {
     width: 16px;
     height: 16px;
