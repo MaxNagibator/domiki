@@ -61,6 +61,9 @@ export const RelocationBox = ({ relocation, villageName, onRelocate, onBuyPerk }
 
     const days = relocation.estimatedDays;
     const knots = relocation.knots;
+    const gatePercent = relocation.threshold > 0
+        ? Math.min(100, Math.round(relocation.level / relocation.threshold * 100))
+        : 100;
     const relocateAndReload = async (valleyId: number, name: string | null, valleyName: string) => {
         const ok = await onRelocate(valleyId, name, valleyName);
         if (ok) {
@@ -83,7 +86,15 @@ export const RelocationBox = ({ relocation, villageName, onRelocate, onBuyPerk }
                 </div>
             </header>
 
-            <div className="relocation-gate" title={`Обжитость ${relocation.level} из ${relocation.threshold}`}>
+            <div className="relocation-gate">
+                <div className="relocation-gate-meter">
+                    <div className="relocation-gate-track" aria-label={`Обжитость ${relocation.level} из ${relocation.threshold}`}>
+                        <span className="relocation-gate-fill" style={{ width: `${String(gatePercent)}%` }} />
+                    </div>
+                    <span className="relocation-gate-goal">
+                        {relocation.level} / {relocation.threshold} <span className="relocation-gate-cue">обжитость</span>
+                    </span>
+                </div>
                 {relocation.canRelocate &&
                     <ActionButton className="btn-game" disabled={plan == null} onClick={() => { setConfirmOpen(true); }}>
                         <AbstractSprite logicName="prestige_new_valley" size={24} className="btn-ico" aria-hidden="true" />
@@ -109,32 +120,34 @@ export const RelocationBox = ({ relocation, villageName, onRelocate, onBuyPerk }
                     <MechanicSprite logicName="obzhitost" size={24} className="relocation-section-ico" aria-hidden="true" />
                     Узелки памяти: {knots}
                 </h4>
-                {relocation.perks.map(perk => {
-                    const nextCost = perk.costs[perk.level];
-                    return (
-                        <div key={perk.perkType} className="relocation-perk">
-                            <div className="relocation-perk-body">
-                                <span className="relocation-perk-name">{perk.name}</span>
-                                <span className="relocation-perk-lore">{perk.description}</span>
-                                <span className="relocation-perk-steps" aria-label={`Ступеней взято ${perk.level} из ${perk.costs.length}`}>
-                                    {perk.costs.map((cost, step) => (
-                                        <span key={cost} className={'relocation-perk-step' + (step < perk.level ? ' relocation-perk-step-taken' : '')}>
-                                            {cost}
-                                        </span>
-                                    ))}
-                                </span>
+                <div className="relocation-perks">
+                    {relocation.perks.map(perk => {
+                        const nextCost = perk.costs[perk.level];
+                        return (
+                            <div key={perk.perkType} className="relocation-perk">
+                                <div className="relocation-perk-body">
+                                    <span className="relocation-perk-name">{perk.name}</span>
+                                    <span className="relocation-perk-lore">{perk.description}</span>
+                                    <span className="relocation-perk-steps" aria-label={`Ступеней взято ${perk.level} из ${perk.costs.length}`}>
+                                        {perk.costs.map((cost, step) => (
+                                            <span key={cost} className={'relocation-perk-step' + (step < perk.level ? ' relocation-perk-step-taken' : '')}>
+                                                {cost}
+                                            </span>
+                                        ))}
+                                    </span>
+                                </div>
+                                {nextCost == null
+                                    ? <span className="relocation-perk-done">все ступени взяты</span>
+                                    : (
+                                        <ActionButton className="btn-game" disabled={knots < nextCost} onClick={async () => { await onBuyPerk(perk.perkType); }}>
+                                            {nextCost} {knotsWord(nextCost)}
+                                        </ActionButton>
+                                    )
+                                }
                             </div>
-                            {nextCost == null
-                                ? <span className="relocation-perk-done">все ступени взяты</span>
-                                : (
-                                    <ActionButton className="btn-game" disabled={knots < nextCost} onClick={async () => { await onBuyPerk(perk.perkType); }}>
-                                        {nextCost} {knotsWord(nextCost)}
-                                    </ActionButton>
-                                )
-                            }
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
 
             <div className="relocation-post">
