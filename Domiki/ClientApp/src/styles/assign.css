@@ -432,22 +432,27 @@ body.assign-active .actions-scrim {
     }
 
     .yard-rail {
-        display: contents;
-    }
-
-    .worker-rail {
         position: fixed;
         top: auto;
         left: 0;
         right: 0;
         bottom: var(--game-tabs-height, 76px);
         z-index: 840;
-        flex: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        height: auto;
+        max-height: 62vh;
+    }
+
+    .worker-rail {
+        flex: 0 1 auto;
         width: auto;
         max-height: 45vh;
         gap: 6px;
         padding: 8px 10px 10px;
-        border-width: 3px 0 0;
+        border-width: 2px 0 0;
+        border-color: var(--plank-dark);
         clip-path: none;
     }
 
@@ -600,14 +605,14 @@ body.assign-active .actions-scrim {
     }
 
     .game {
-        padding-bottom: calc(var(--worker-rail-height, 130px) + var(--game-tabs-height, 76px) + 12px);
+        padding-bottom: calc(var(--stock-rail-height, 40px) + var(--worker-rail-height, 130px) + var(--game-tabs-height, 76px) + 12px);
     }
 
     .domik-pager {
-        scroll-margin-bottom: calc(var(--worker-rail-height, 130px) + var(--game-tabs-height, 76px) + 24px);
+        scroll-margin-bottom: calc(var(--stock-rail-height, 40px) + var(--worker-rail-height, 130px) + var(--game-tabs-height, 76px) + 24px);
     }
 
     .toast-container {
-        bottom: calc(var(--worker-rail-height, 130px) + var(--game-tabs-height, 76px) + 12px);
+        bottom: calc(var(--stock-rail-height, 40px) + var(--worker-rail-height, 130px) + var(--game-tabs-height, 76px) + 12px);
     }
 }

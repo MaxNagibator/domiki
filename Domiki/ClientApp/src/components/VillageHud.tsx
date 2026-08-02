@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
@@ -7,13 +7,11 @@ import HomeIcon from 'pixelarticons/svg/home.svg?react';
 import LockIcon from 'pixelarticons/svg/lock.svg?react';
 import type { DomikTypeDto, PlodderCount, ResourceDto, ResourceTypeDto, VillageLevelDto, WeatherStateDto } from '../types/api';
 import { COIN_RESOURCE_TYPE_ID, GOLD_RESOURCE_TYPE_ID, strongestWeatherEffect } from '../utils/game';
-import { groupStockByDen, type HudDigest } from '../utils/hud';
-import { useNarrowScreen } from '../hooks/useNarrowScreen';
+import type { HudDigest } from '../utils/hud';
 import { pluralRu } from '../utils/plural';
 import { remainingSeconds } from '../utils/time';
 import { AbstractSprite, DomikSprite, MechanicSprite, NeighborSprite, WeatherSprite } from './sprites';
 import { HudResource } from './HudResource';
-import { ResourceChip } from './ResourceChip';
 import { HudRibbon } from './HudRibbon';
 import { ProgressBar } from './ProgressBar';
 import { GiftVisitDots } from './GiftVisitDots';
@@ -33,14 +31,10 @@ interface VillageHudProps {
     onOpenHousehold: () => void;
 }
 
-const CURRENCY_TYPE_IDS = new Set([COIN_RESOURCE_TYPE_ID, GOLD_RESOURCE_TYPE_ID]);
-
 const hoursLeft = (finishDate: string, now: number) => Math.max(1, Math.ceil(remainingSeconds(finishDate, now) / 3600));
 
 export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, digest, villageLevel, weather, now, onStickyOffsetChange, villageProfile, nav, onOpenHousehold }: VillageHudProps) => {
     const hudRef = useRef<HTMLElement>(null);
-    const narrowScreen = useNarrowScreen();
-    const [stockOpen, setStockOpen] = useState(false);
     const [levelFlyout, setLevelFlyout] = useState<{ top: number; right: number } | null>(null);
     const [weatherFlyout, setWeatherFlyout] = useState<{ top: number; right: number } | null>(null);
     const villageLevelRef = useRef<HTMLDivElement>(null);
@@ -111,15 +105,6 @@ export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, dige
     const nextPeriod = weather?.forecast[0] ?? null;
     const laterPeriods = weather?.forecast.slice(1) ?? [];
 
-    const stockDens = useMemo(() => {
-        const typeById = new Map(resourceTypes.map(type => [type.id, type]));
-        const stock = resources
-            .filter(resource => !CURRENCY_TYPE_IDS.has(resource.typeId) && resource.value > 0)
-            .map(resource => ({ type: typeById.get(resource.typeId), value: resource.value }))
-            .filter((entry): entry is { type: ResourceTypeDto; value: number } => entry.type != null);
-        return groupStockByDen(stock);
-    }, [resources, resourceTypes]);
-
     const plodderState: string[] = [];
     if (digest.workersSick > 0) {
         plodderState.push(`${digest.workersSick} ${pluralRu(digest.workersSick, 'хворает', 'хворают', 'хворают')}`);
@@ -187,15 +172,6 @@ export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, dige
 
                 <div className="hud-deck">
                     <div className="hud-deck-nav">{nav}</div>
-                    {narrowScreen &&
-                        <div className="hud-deck-tools">
-                            <button type="button" className={'hud-tool' + (stockOpen ? ' is-open' : '')}
-                                onClick={() => { setStockOpen(open => !open); }} title="Закрома" aria-expanded={stockOpen}>
-                                <span className="hud-tool-label">Закрома</span>
-                                {stockOpen ? <ChevronUpIcon className="btn-ico" aria-hidden="true" /> : <ChevronDownIcon className="btn-ico" aria-hidden="true" />}
-                            </button>
-                        </div>
-                    }
                 </div>
 
                 {weatherFlyout != null && currentWeather != null && createPortal(
@@ -246,22 +222,6 @@ export const VillageHud = ({ resources, resourceTypes, domikTypes, plodder, dige
                             </div>}
                     </div>,
                     document.body)}
-
-                {narrowScreen && stockOpen &&
-                    <div className="hud-stock">
-                        {stockDens.length === 0
-                            ? <span className="hud-stock-empty">закрома пусты</span>
-                            : stockDens.map(den => (
-                                <div key={den.key} className="hud-den" data-den={den.key}>
-                                    <span className="hud-den-name">{den.label}</span>
-                                    <div className="hud-den-items">
-                                        {den.items.map(({ type, value }) => (
-                                            <ResourceChip key={type.id} resourceType={type} value={value} />
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                    </div>}
 
                 {levelFlyout != null && createPortal(
                     <div className="village-level-flyout" style={{ top: levelFlyout.top, right: levelFlyout.right }}>

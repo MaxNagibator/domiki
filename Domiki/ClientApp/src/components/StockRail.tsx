@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
 import ChevronUpIcon from 'pixelarticons/svg/chevron-up.svg?react';
 import type { LedgerDto, ResourceDto, ResourceReserveDto, ResourceTypeDto } from '../types/api';
 import type { HudDigest, StockEntry } from '../utils/hud';
 import { groupStockByDen } from '../utils/hud';
+import { useElementHeightVar } from '../hooks/useElementHeightVar';
+import { useNarrowScreen } from '../hooks/useNarrowScreen';
 import { COIN_RESOURCE_TYPE_ID, GOLD_RESOURCE_TYPE_ID } from '../utils/game';
 import { useResourceInfo } from './resourceInfoContext';
 import { ResourceSprite } from './sprites';
@@ -62,7 +64,14 @@ interface StockRailProps {
 }
 
 export const StockRail = ({ resources, resourceTypes, digest, ledger, reserves, focusTypeIds }: StockRailProps) => {
-    const [open, setOpen] = useState(true);
+    const narrow = useNarrowScreen();
+    const [wideOpen, setWideOpen] = useState(true);
+    const [narrowOpen, setNarrowOpen] = useState(false);
+    const railRef = useRef<HTMLElement>(null);
+
+    useElementHeightVar(railRef, '--stock-rail-height');
+
+    const open = narrow ? narrowOpen : wideOpen;
 
     const typeById = useMemo(() => new Map(resourceTypes.map(type => [type.id, type])), [resourceTypes]);
     const reserveById = useMemo(() => new Map(reserves.map(item => [item.resourceTypeId, item.reserve])), [reserves]);
@@ -104,9 +113,9 @@ export const StockRail = ({ resources, resourceTypes, digest, ledger, reserves, 
     };
 
     return (
-        <section className="stock-rail" aria-label="Закрома деревни" data-open={open}>
+        <section ref={railRef} className="stock-rail" aria-label="Закрома деревни" data-open={open}>
             <button type="button" className="stock-rail-head" aria-expanded={open}
-                onClick={() => { setOpen(prev => !prev); }}>
+                onClick={() => { (narrow ? setNarrowOpen : setWideOpen)(prev => !prev); }}>
                 <span className="stock-rail-title">Закрома</span>
                 {!open &&
                     <span className="stock-rail-stack" aria-hidden="true">

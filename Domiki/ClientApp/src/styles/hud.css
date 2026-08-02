@@ -42,13 +42,6 @@
         justify-content: flex-start;
     }
 
-.hud-deck-tools {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 0 0 auto;
-}
-
 .hud-left {
     display: flex;
     align-items: center;
@@ -132,7 +125,6 @@
     margin-left: auto;
 }
 
-.hud-tool,
 .weather-capsule,
 .village-level-box {
     display: inline-flex;
@@ -148,29 +140,20 @@
     cursor: pointer;
 }
 
-    .hud-tool:hover,
     .weather-capsule:hover,
     .village-level-box:hover {
         background: var(--plank-dark);
     }
 
-    .hud-tool.is-open,
     .weather-capsule.is-open {
         background: var(--plank-dark);
     }
 
-    .hud-tool:focus-visible,
     .weather-capsule:focus-visible,
     .village-level-box:focus-visible {
         outline: none;
         border-color: var(--coin);
     }
-
-.hud-tool-label {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--ink);
-}
 
 .hud-ribbon {
     display: flex;
@@ -237,73 +220,6 @@
     height: 13px;
     margin-left: 3px;
     flex: none;
-}
-
-.hud-stock {
-    columns: 200px;
-    column-gap: 8px;
-    padding: 10px 0 12px;
-    border-top: 2px solid var(--plank-dark);
-}
-
-.hud-den {
-    --accent: var(--ink-muted);
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-bottom: 8px;
-    break-inside: avoid;
-    padding: 7px 9px 8px;
-    background: color-mix(in srgb, var(--accent) 8%, #fffaec);
-    border: 2px solid rgba(51, 41, 26, .22);
-    clip-path: var(--cut);
-}
-
-.hud-den[data-den="forest"] { --accent: var(--den-forest); }
-.hud-den[data-den="pottery"] { --accent: var(--den-pottery); }
-.hud-den[data-den="stone"] { --accent: var(--den-stone); }
-.hud-den[data-den="smithy"] { --accent: var(--den-smithy); }
-.hud-den[data-den="food"] { --accent: var(--den-food); }
-.hud-den[data-den="cloth"] { --accent: var(--den-cloth); }
-
-.hud-den-name {
-    font-family: var(--pixel);
-    font-size: 9px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    line-height: 1.35;
-    color: var(--accent);
-}
-
-.hud-den-items {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-    .hud-den-items .resource-chip {
-        gap: 6px;
-        padding: 3px 8px 3px 3px;
-        font-size: 13px;
-        background: #fffaec;
-        border-color: rgba(51, 41, 26, .22);
-    }
-
-        .hud-den-items .resource-chip svg {
-            width: 42px;
-            height: 42px;
-        }
-
-        .hud-den-items .resource-chip:hover {
-            background: var(--plank-dark);
-            border-color: var(--ink);
-        }
-
-.hud-stock-empty {
-    padding-top: 12px;
-    font-size: 12px;
-    font-style: italic;
-    color: var(--ink-muted);
 }
 
 .vlf-uklad {
@@ -1409,8 +1325,7 @@ dialog.recap-modal::backdrop {
         padding: 6px 0 7px;
     }
 
-    .hud-deck-nav,
-    .hud-deck-tools {
+    .hud-deck-nav {
         flex: 1 1 100%;
     }
 
@@ -1428,47 +1343,6 @@ dialog.recap-modal::backdrop {
             padding: 6px;
         }
 
-    .hud-stock {
-        columns: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        max-height: 46vh;
-        padding: 8px 0 10px;
-        overflow-y: auto;
-        overscroll-behavior: contain;
-    }
-
-    .hud-den {
-        display: grid;
-        grid-template-columns: 84px minmax(0, 1fr);
-        align-items: center;
-        gap: 4px 8px;
-        margin-bottom: 0;
-        padding: 5px 8px 6px;
-        box-shadow: inset 4px 0 0 var(--accent);
-    }
-
-    .hud-den-name {
-        font-size: 8px;
-        letter-spacing: .5px;
-        line-height: 1.15;
-    }
-
-    .hud-den-items {
-        gap: 4px;
-    }
-
-    .hud-den-items .resource-chip {
-        gap: 4px;
-        padding: 2px 7px 2px 2px;
-        font-size: 12px;
-    }
-
-    .hud-den-items .resource-chip svg {
-        width: 24px;
-        height: 24px;
-    }
 }
 
 @media (max-width: 575px) {
