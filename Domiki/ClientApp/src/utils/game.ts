@@ -1,4 +1,4 @@
-import type { DomikDto, DomikTypeDto, ManufactureDto, PlodderCount, ReceiptDto, ReceiptView, ResourceDto, SelectedDomikView, UpgradeView, WorkerDto } from '../types/api';
+import type { DomikDto, DomikTypeDto, ManufactureDto, ReceiptDto, ReceiptView, ResourceDto, SelectedDomikView, UpgradeView, WorkerDto } from '../types/api';
 import { formatDuration, remainingSeconds } from './time';
 
 export const INSTA_FINISH_SECONDS_PER_GOLD = 3600;
@@ -13,7 +13,7 @@ export const EXPEDITION_LOOT_KIND_DECOR = 2;
 export const EXPEDITION_LOOT_KIND_TRAIT_UPGRADE = 3;
 export const EXPEDITION_LOOT_KIND_BLUEPRINT = 4;
 
-const plodderTypeId = 1;
+export const PLODDER_MODIFICATOR_TYPE_ID = 1;
 
 export function nextUpgradeLevel(domikType: DomikTypeDto, level: number) {
     return domikType.levels.find(x => x.value === level + 1) ?? null;
@@ -98,28 +98,8 @@ export function canAffordUpgrade(domik: DomikDto, domikType: DomikTypeDto, resou
     return nextLevel != null && hasResourcesFor(nextLevel.resources, resources);
 }
 
-export function computePlodderCount(domiks: DomikDto[], domikTypes: DomikTypeDto[]): PlodderCount {
-    let maxPlodderCount = 0;
-    let workingPlodderCount = 0;
-
-    domiks.forEach(domik => {
-        if (domik.level > 0) {
-            const domikType = domikTypes.find(x => x.id === domik.typeId);
-            const domikLevel = domikType?.levels.find(x => x.value === domik.level);
-            const modificator = domikLevel?.modificators.find(x => x.typeId === plodderTypeId);
-            if (modificator != null) {
-                maxPlodderCount += modificator.value;
-            }
-        }
-
-        if (domik.manufactures != null) {
-            domik.manufactures.forEach(manufacture => {
-                workingPlodderCount += manufacture.plodderCount;
-            });
-        }
-    });
-
-    return { max: maxPlodderCount, free: maxPlodderCount - workingPlodderCount };
+export function residentsGain(residents: number, residentsCap: number, bedsDelta: number): number {
+    return Math.max(0, Math.min(residentsCap, residents + bedsDelta) - residents);
 }
 
 export function computeSelectedDomikView(

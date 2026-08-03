@@ -9,7 +9,7 @@ import InfoBoxIcon from 'pixelarticons/svg/info-box.svg?react';
 import PlayIcon from 'pixelarticons/svg/play.svg?react';
 import type { DomikTypeDto, GoalsStateDto, ReceiptDto, ResourceDto, ResourceTypeDto, SelectedDomikView, SickTypeDto, VillageLevelDto, WeatherEffectDto, WeatherPeriodDto, WorkerDto } from '../types/api';
 import type { DomikNamer } from '../utils/domikNames';
-import { SICK_MIN_VILLAGE_LEVEL, computeReceiptView, isWorkerFree, progressPercent, resourceShortfall, workIntensity, workerFitness } from '../utils/game';
+import { PLODDER_MODIFICATOR_TYPE_ID, SICK_MIN_VILLAGE_LEVEL, computeReceiptView, isWorkerFree, progressPercent, residentsGain, resourceShortfall, workIntensity, workerFitness } from '../utils/game';
 import { formatDuration, remainingSeconds } from '../utils/time';
 import { formatOutputDelta, sickRiskPercent, sickTypeForWeather, weatherMark } from '../utils/weather';
 import { domikLore } from '../utils/domikLore';
@@ -356,6 +356,7 @@ const PanelTabs = ({ active, onSelect, workPip, growPip, available }: PanelTabsP
 
 interface UpgradeBenefits {
     plodderDelta: number;
+    plodderGain: number;
     manufactureDelta: number;
     newReceipts: ReceiptDto[];
 }
@@ -404,8 +405,11 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
                 return null;
             }
 
-            const plodderDelta = (nextLevel.modificators.find(modificator => modificator.typeId === 1)?.value ?? 0)
-                - (currentLevel.modificators.find(modificator => modificator.typeId === 1)?.value ?? 0);
+            const plodderDelta = (nextLevel.modificators.find(modificator => modificator.typeId === PLODDER_MODIFICATOR_TYPE_ID)?.value ?? 0)
+                - (currentLevel.modificators.find(modificator => modificator.typeId === PLODDER_MODIFICATOR_TYPE_ID)?.value ?? 0);
+            const plodderGain = villageLevel == null
+                ? plodderDelta
+                : residentsGain(villageLevel.residents, villageLevel.residentsCap, plodderDelta);
             const manufactureDelta = nextLevel.maxManufactureCount - currentLevel.maxManufactureCount;
             const currentReceiptIds = new Set(currentLevel.receiptIds);
             const newReceipts: ReceiptDto[] = nextLevel.receiptIds.flatMap(id => {
@@ -417,7 +421,7 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
             });
 
             return plodderDelta > 0 || manufactureDelta > 0 || newReceipts.length > 0
-                ? { plodderDelta, manufactureDelta, newReceipts }
+                ? { plodderDelta, plodderGain, manufactureDelta, newReceipts }
                 : null;
         })();
     const maxManufactures = selected?.domikType.levels.find(level => level.value === selected.domik.level)?.maxManufactureCount ?? 0;
@@ -555,9 +559,9 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
                             {upgradeBenefits != null &&
                                 <div className="upgrade-benefits">
                                     <div className="upgrade-benefits-chips">
-                                        {upgradeBenefits.plodderDelta > 0 &&
+                                        {upgradeBenefits.plodderGain > 0 &&
                                             <StatChip icon={<img className="stat-chip-ico" src="/images/modificatorTypes/plodder.png" alt="" />} title="Вместимость трудяг">
-                                                +{upgradeBenefits.plodderDelta} {pluralRu(upgradeBenefits.plodderDelta, 'трудяга', 'трудяги', 'трудяг')}
+                                                +{upgradeBenefits.plodderGain} {pluralRu(upgradeBenefits.plodderGain, 'трудяга', 'трудяги', 'трудяг')}
                                             </StatChip>}
                                         {upgradeBenefits.manufactureDelta > 0 &&
                                             <StatChip icon={<AbstractSprite logicName="production_recipe" size={24} className="stat-chip-ico" aria-hidden="true" />} title="Одновременные производства">
@@ -572,6 +576,11 @@ export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, re
                                                 +{upgradeBenefits.newReceipts.length - 3} ещё
                                             </StatChip>}
                                     </div>
+                                    {villageLevel != null && upgradeBenefits.plodderDelta > 0 && upgradeBenefits.plodderGain === 0 &&
+                                        <p className="hint upgrade-benefits-cap">
+                                            Трудяг не прибавится – в артели уже {villageLevel.residentsCap}. Уровень идёт в обжитость.
+                                        </p>
+                                    }
                                 </div>
                             }
                             <ActionButton className="btn-game"

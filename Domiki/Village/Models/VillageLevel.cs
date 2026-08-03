@@ -27,6 +27,15 @@ public class VillageLevel
     public int Residents { get; set; }
 
     /// <summary>
+    /// Потолок вместимости артели: выше него койки уже не считаются.
+    /// </summary>
+    /// <remarks>
+    /// Равен <see cref="Workers.WorkerManager.MaxCapacity"/>; <see cref="Residents"/> в него упирается на хвосте
+    /// лестницы Артельных изб (GAMEDESIGN.md §4.4).
+    /// </remarks>
+    public int ResidentsCap { get; set; }
+
+    /// <summary>
     /// Число пройденных вех репутации у соседей – слагаемое «репутация» в <see cref="Level"/>.
     /// </summary>
     /// <remarks>

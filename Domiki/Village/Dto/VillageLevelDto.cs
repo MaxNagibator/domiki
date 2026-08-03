@@ -25,6 +25,15 @@ public sealed record VillageLevelDto
     public required int Residents { get; init; }
 
     /// <summary>
+    /// Потолок вместимости артели: выше него койки уже не считаются.
+    /// </summary>
+    /// <remarks>
+    /// Равен <see cref="Workers.WorkerManager.MaxCapacity"/>; <see cref="Residents"/> в него упирается на хвосте
+    /// лестницы Артельных изб. Число живёт только здесь – клиент показывает потолок из этого поля.
+    /// </remarks>
+    public required int ResidentsCap { get; init; }
+
+    /// <summary>
     /// Число пройденных вех репутации у соседей.
     /// </summary>
     /// <remarks>

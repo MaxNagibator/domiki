@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DomikDto, DomikTypeDto, ManufactureDto, ReceiptDto, ResourceDto, WorkerDto } from '../types/api';
-import { canAffordUpgrade, computePlodderCount, computeReceiptView, isWorkerFree, manufactureProgressPercent, progressPercent, resourceShortfall, resourceSourceMap, sortDomiks, tradeDeal, tradeRatio, workIntensity, zealApplies, zealMultiplier } from './game';
+import { canAffordUpgrade, computeReceiptView, isWorkerFree, manufactureProgressPercent, progressPercent, residentsGain, resourceShortfall, resourceSourceMap, sortDomiks, tradeDeal, tradeRatio, workIntensity, zealApplies, zealMultiplier } from './game';
 import type { WorkIntensity } from './game';
 
 describe('resourceShortfall', () => {
@@ -80,25 +80,15 @@ const marketDomikType: DomikTypeDto = {
     ],
 };
 
-const domikTypes: DomikTypeDto[] = [marketDomikType];
-
-describe('computePlodderCount', () => {
-    it('sums modificator values for domiks with a level and subtracts working manufactures', () => {
-        const domiks: DomikDto[] = [
-            { id: 1, typeId: 1, level: 1, finishDate: null, upgradeSeconds: null, manufactures: null },
-            { id: 2, typeId: 1, level: 2, finishDate: null, upgradeSeconds: null, manufactures: [{ id: 1, finishDate: '2026-01-01T00:00:00.000Z', durationSeconds: 10, plodderCount: 2, receiptId: 1, autoRepeat: false }] },
-        ];
-
-        expect(computePlodderCount(domiks, domikTypes)).toEqual({ max: 8, free: 6 });
-    });
-
-    it('ignores domiks at level 0 and domiks with no matching level', () => {
-        const domiks: DomikDto[] = [
-            { id: 1, typeId: 1, level: 0, finishDate: null, upgradeSeconds: null, manufactures: null },
-            { id: 2, typeId: 1, level: 99, finishDate: null, upgradeSeconds: null, manufactures: null },
-        ];
-
-        expect(computePlodderCount(domiks, domikTypes)).toEqual({ max: 0, free: 0 });
+describe('residentsGain', () => {
+    it.each([
+        ['койки ниже потолка идут целиком', 20, 35, 5, 5],
+        ['потолок срезает хвост прибавки', 33, 35, 5, 2],
+        ['на потолке прибавки нет', 35, 35, 5, 0],
+        ['за потолком прибавки нет', 40, 35, 5, 0],
+        ['уровень без коек ничего не даёт', 20, 35, 0, 0],
+    ])('%s', (_, residents, cap, delta, expected) => {
+        expect(residentsGain(residents, cap, delta)).toBe(expected);
     });
 });
 
