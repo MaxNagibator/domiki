@@ -11,6 +11,7 @@ public static class VillageLevelDtoExtensions
             Level = villageLevel.Level,
             Buildings = villageLevel.Buildings,
             Residents = villageLevel.Residents,
+            ResidentsCap = villageLevel.ResidentsCap,
             Reputation = villageLevel.Reputation,
             Comfort = villageLevel.Comfort,
             VisitsSinceBigGift = villageLevel.VisitsSinceBigGift,

@@ -210,6 +210,7 @@ export const villageLevelSchema = z.object({
     level: z.number(),
     buildings: z.number(),
     residents: z.number(),
+    residentsCap: z.number(),
     reputation: z.number(),
     comfort: z.number(),
     visitsSinceBigGift: z.number(),

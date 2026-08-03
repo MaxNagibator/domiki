@@ -3,12 +3,13 @@ import type { CSSProperties, FocusEvent } from 'react';
 import { createPortal } from 'react-dom';
 import ClockIcon from 'pixelarticons/svg/clock.svg?react';
 import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
-import type { CloakStateDto, DomikDto, DomikIncidentDto, DomikTypeDto, ErrandDto, ExpeditionStateDto, FoodRuleDto, IncidentDto, ReceiptDto, ResourceDto, ResourceTypeDto, SickTypeDto, TavernLarderDto, WorkerDto } from '../types/api';
+import type { CloakStateDto, DomikDto, DomikIncidentDto, DomikTypeDto, ErrandDto, ExpeditionStateDto, FoodRuleDto, IncidentDto, ReceiptDto, ResourceDto, ResourceTypeDto, SickTypeDto, TavernLarderDto, VillageLevelDto, WorkerDto } from '../types/api';
 import { buildDomikNamer, type DomikNamer } from '../utils/domikNames';
 import { formatDuration, formatDurationShort, formatTimeOfDay, remainingSeconds } from '../utils/time';
 import { describeWorker, describeWorkerParts, isSkilledWorker, rankedSkills } from '../utils/worker';
 import { AbstractSprite, DomikSprite, MechanicSprite, ResourceSprite, TraitSprite, WorkerSprite } from './sprites';
 import { genderForm, traitLabel } from '../utils/gender';
+import { pluralRu } from '../utils/plural';
 
 type WorkerState = 'expedition' | 'errand' | 'incidentMissing' | 'incidentSearch' | 'domikIncidentSearch' | 'busy' | 'resting' | 'away' | 'free';
 
@@ -25,6 +26,7 @@ interface WorkersBoxProps {
     sickTypes: SickTypeDto[];
     resourceTypes: ResourceTypeDto[];
     resources: ResourceDto[];
+    villageLevel: VillageLevelDto | null;
     tavernLevel: number;
     larder: TavernLarderDto | null;
     onSetFoodRule: (resourceTypeId: number, reserve: number, forbidden: boolean) => void;
@@ -185,7 +187,7 @@ const LarderRuleRow = ({ resourceType, stock, rule, onSetFoodRule }: LarderRuleR
     );
 };
 
-export const WorkersBox = ({ workers, domikTypes, domiks, receipts, expeditions, errand, incident, domikIncident, cloaks, sickTypes, resourceTypes, resources, tavernLevel, larder, onSetFoodRule, now }: WorkersBoxProps) => {
+export const WorkersBox = ({ workers, domikTypes, domiks, receipts, expeditions, errand, incident, domikIncident, cloaks, sickTypes, resourceTypes, resources, villageLevel, tavernLevel, larder, onSetFoodRule, now }: WorkersBoxProps) => {
     const [hover, setHover] = useState<{ worker: WorkerDto; rect: DOMRect } | null>(null);
     const [larderOpen, setLarderOpen] = useState(false);
     const { shownPortraits, observePortrait } = useShownPortraits();
@@ -200,6 +202,7 @@ export const WorkersBox = ({ workers, domikTypes, domiks, receipts, expeditions,
             value: resources.find(resource => resource.typeId === resourceType.id)?.value ?? 0,
         }));
     const hasFood = foodStocks.some(food => food.value > 0);
+    const filledCap = villageLevel != null && villageLevel.residents >= villageLevel.residentsCap ? villageLevel.residentsCap : null;
     const tavernPerks = ['«котёл»', '«котомки в дорогу»', '«тёплый угол»'].slice(0, tavernLevel).join(' · ');
 
     const foodTypes = resourceTypes.filter(resourceType => resourceType.isFood);
@@ -279,6 +282,11 @@ export const WorkersBox = ({ workers, domikTypes, domiks, receipts, expeditions,
                         }
                     </div>
                 </div>
+                {filledCap != null &&
+                    <div className="workers-cap">
+                        Артель полна: {filledCap} {pluralRu(filledCap, 'трудяга', 'трудяги', 'трудяг')} – столько двор и кормит. Новые койки пока постоят пустыми.
+                    </div>
+                }
                 {hasCloaks &&
                     <div className="workers-cloaks" title="Плащи сами уходят на смены с погодным бонусом">
                         <b>Плащи:</b> свободно {freeCloaks} · на сменах {cloaks.outOnShifts} · износ {cloaks.wearPoints}/{cloaks.lifetimeShifts}

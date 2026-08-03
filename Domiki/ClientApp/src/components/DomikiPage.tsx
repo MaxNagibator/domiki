@@ -431,7 +431,7 @@ export const DomikiPage = () => {
         },
         {
             key: 'workers', label: 'Трудяги', icon: <MechanicSprite logicName="workers" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,
-            node: () => <WorkersBox workers={workers} domikTypes={domikTypes} domiks={domiks} receipts={receipts} expeditions={expeditions} errand={errand} incident={incident} domikIncident={domikIncident} cloaks={cloaks} sickTypes={sickTypes} resourceTypes={resourceTypes} resources={resources} tavernLevel={tavernLevel} larder={larder} onSetFoodRule={setFoodRuleAction} now={now} />,
+            node: () => <WorkersBox workers={workers} domikTypes={domikTypes} domiks={domiks} receipts={receipts} expeditions={expeditions} errand={errand} incident={incident} domikIncident={domikIncident} cloaks={cloaks} sickTypes={sickTypes} resourceTypes={resourceTypes} resources={resources} villageLevel={villageLevel} tavernLevel={tavernLevel} larder={larder} onSetFoodRule={setFoodRuleAction} now={now} />,
         },
         {
             key: 'journal', label: 'Журнал', icon: <AbstractSprite logicName="journal" size={32} className="game-tab-ico" aria-hidden="true" />, visible: true,

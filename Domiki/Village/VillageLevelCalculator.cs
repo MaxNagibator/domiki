@@ -63,6 +63,7 @@ public class VillageLevelCalculator
             Level = level,
             Buildings = buildings,
             Residents = residents,
+            ResidentsCap = WorkerManager.MaxCapacity,
             Reputation = reputation,
             Comfort = comfort,
             VisitsSinceBigGift = visitsSinceBigGift,

@@ -1227,6 +1227,10 @@ dialog.recap-modal::backdrop {
     margin-top: 6px;
 }
 
+.upgrade-benefits-cap {
+    margin: 6px 0 0;
+}
+
     .resource-box img, .resource-box svg {
         width: 26px;
         height: 26px;

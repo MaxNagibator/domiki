@@ -122,6 +122,17 @@
     color: var(--ink);
 }
 
+.workers-cap {
+    flex: 1 0 100%;
+    padding: 6px 9px;
+    background: #f0ece0;
+    border-left: 3px solid var(--ink-muted);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+
 .workers-larder-panel {
     margin: 0 -18px 16px;
     padding: 12px 18px;
