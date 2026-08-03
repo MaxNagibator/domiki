@@ -21,5 +21,11 @@ namespace Domiki.Web.Data
         public Domik Domik { get; set; }
 
         public DateTime FinishDate { get; set; }
+
+        public int OutputPercent { get; set; } = 100;
+
+        public bool AutoRepeat { get; set; }
+
+        public bool UseOptional { get; set; }
     }
 }

@@ -1,0 +1,263 @@
+.plot-locked .plot-sprite {
+    opacity: .55;
+}
+
+.workers-panel {
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    box-shadow: inset 0 -4px 0 var(--plank-dark);
+}
+
+.workers-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 10px;
+}
+
+.workers-list .hint {
+    grid-column: 1 / -1;
+}
+
+.worker-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 9px;
+    background: #fffaec;
+    border: 2px solid var(--ink);
+    clip-path: var(--cut);
+}
+
+.worker-card {
+    position: relative;
+    display: flex;
+}
+
+.worker-card-face {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 76px;
+    padding: 10px 11px;
+    background: #fffaec;
+    border: 3px solid var(--ink);
+    clip-path: var(--cut);
+    cursor: help;
+}
+
+.worker-details {
+    position: fixed;
+    z-index: 120;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 11px;
+    background: #fffaec;
+    border: 3px solid var(--ink);
+    clip-path: var(--cut);
+    box-shadow: inset 0 -4px 0 var(--plank-dark);
+    pointer-events: none;
+}
+
+.worker-card:focus-visible .worker-card-face {
+    outline: none;
+    border-color: var(--coin);
+}
+
+.worker-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--pine-dark);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.worker-timer-ico {
+    width: 15px;
+    height: 15px;
+    flex: none;
+}
+
+.worker-headings {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.worker-avatar {
+    width: 56px;
+    height: 56px;
+    flex: none;
+    image-rendering: pixelated;
+}
+
+.worker-chip-pick .worker-avatar {
+    width: 24px;
+    height: 24px;
+}
+
+.worker-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.worker-trait {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--pine-dark);
+}
+
+.worker-desc {
+    font-size: 12px;
+    font-style: italic;
+    color: var(--pine-dark);
+    line-height: 1.4;
+}
+
+.worker-effect {
+    font-size: 12px;
+    font-weight: 700;
+    color: #517e2d;
+}
+
+.worker-skills {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+}
+
+.worker-skill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px 2px 3px;
+    background: #e3f0d1;
+    border: 2px solid var(--pine);
+    clip-path: var(--cut);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--pine-dark);
+    font-variant-numeric: tabular-nums;
+}
+
+.worker-skill-ico {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    image-rendering: pixelated;
+}
+
+.worker-flag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    background: #d9ead1;
+    border: 2px solid #517e2d;
+    clip-path: var(--cut);
+    font-size: 11px;
+    font-weight: 700;
+    color: #517e2d;
+}
+
+.worker--free .worker-card-face {
+    border-color: var(--pine);
+}
+
+.worker--free .worker-badge {
+    background: var(--pine);
+    border-color: var(--pine-dark);
+}
+
+.worker--busy .worker-card-face {
+    border-color: var(--roof);
+    background: #f7ece4;
+}
+
+.worker--busy .worker-badge {
+    background: var(--roof);
+    border-color: var(--ink);
+}
+
+.worker--resting .worker-card-face {
+    border-color: #517ea6;
+    background: #eef6ff;
+}
+
+.worker--resting .worker-badge {
+    background: #517ea6;
+    border-color: var(--ink);
+}
+
+.worker--expedition .worker-card-face {
+    border-color: #b8860b;
+    background: #fdf0c4;
+}
+
+.worker--expedition .worker-badge {
+    background: #b8860b;
+    border-color: var(--ink);
+}
+
+.worker-badge {
+    align-self: flex-start;
+    padding: 2px 7px;
+    border: 2px solid var(--ink);
+    clip-path: var(--cut);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--plank);
+    white-space: nowrap;
+}
+
+@media (max-width: 575px) {
+    .worker-chip {
+        align-items: start;
+        width: 100%;
+    }
+}
+
+
+.worker-trait {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.worker-trait-ico {
+    width: 22px;
+    height: 22px;
+    flex: none;
+    image-rendering: pixelated;
+}
+
+.worker-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.worker-badge-ico,
+.worker-flag-ico {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    image-rendering: pixelated;
+}
+
+.worker-skill-label {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    align-self: center;
+    image-rendering: pixelated;
+}

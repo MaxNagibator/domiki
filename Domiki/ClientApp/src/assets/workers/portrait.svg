@@ -1,0 +1,504 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges"
+  data-size="64" data-state="idle" data-motion="on"
+  data-skin="1" data-hair="1" data-style="m1" data-beard="0" data-hat="0" data-shirt="4" data-extra="0" data-skilled="false">
+  <title>Трудяга</title>
+  <desc>Пиксельный портрет с предметными состояниями: спокойное ожидание, удар молотом и сон.</desc>
+  <style>
+    .part, .style-part, .face-mode, .state-part { display: none }
+    .hair { fill: #443528 }
+    .shirt { fill: #efe6d4 }
+    .skin { fill: #e8c9a2 }
+    .skin-shadow { fill: #c99e6f }
+
+    svg[data-style="m1"] .style-m1, svg[data-style="m2"] .style-m2,
+    svg[data-style="m3"] .style-m3, svg[data-style="m4"] .style-m4,
+    svg[data-style="f1"] .style-f1, svg[data-style="f2"] .style-f2,
+    svg[data-style="f3"] .style-f3, svg[data-style="f4"] .style-f4,
+    svg[data-beard="1"] .beard-1, svg[data-beard="2"] .beard-2,
+    svg[data-beard="3"] .beard-3,
+    svg[data-hat="1"] .hat-1, svg[data-hat="2"] .hat-2,
+    svg[data-hat="3"] .hat-3, svg[data-hat="4"] .hat-4,
+    svg[data-extra="1"] .extra-1, svg[data-extra="2"] .extra-2,
+    svg[data-extra="3"] .extra-3,
+    svg[data-skilled="true"] .skilled,
+    svg[data-state="idle"] .face-idle,
+    svg[data-state="working"] .face-working,
+    svg[data-state="resting"] .face-resting,
+    svg[data-state="working"] .state-working,
+    svg[data-state="resting"] .state-resting { display: inline }
+
+    svg[data-skin="2"] .skin { fill: #c99e6f }
+    svg[data-skin="2"] .skin-shadow { fill: #9a6a38 }
+
+    svg[data-hair="2"] .hair { fill: #9a6a38 }
+    svg[data-hair="3"] .hair { fill: #e0a63a }
+    svg[data-hair="4"] .hair { fill: #b5563a }
+    svg[data-hair="5"] .hair { fill: #c9c2b4 }
+
+    svg[data-shirt="1"] .shirt { fill: #c03434 }
+    svg[data-shirt="2"] .shirt { fill: #4f9a3c }
+    svg[data-shirt="3"] .shirt { fill: #4a7ab5 }
+    svg[data-shirt="5"] .shirt { fill: #d88a1b }
+
+    svg[data-size="24"] .micro { display: none }
+    svg[data-size="24"] .compact-hide { display: none }
+    svg[data-size="32"] .compact-hide-32 { display: none }
+
+    /* Semantic motion system: every secondary effect follows a visible cause. */
+    svg {
+      --worker-idle-cycle: 3.6s;
+      --worker-blink-cycle: 4.8s;
+      --worker-work-cycle: 1.28s;
+      --worker-sweat-cycle: 2.56s;
+      --worker-rest-cycle: 2.4s;
+      --worker-sleep-cycle: 3.4s;
+    }
+    svg[data-motion="slow"] {
+      --worker-idle-cycle: 5.2s;
+      --worker-blink-cycle: 6.8s;
+      --worker-work-cycle: 1.8s;
+      --worker-sweat-cycle: 3.6s;
+      --worker-rest-cycle: 3.4s;
+      --worker-sleep-cycle: 4.8s;
+    }
+    svg[data-motion="fast"] {
+      --worker-idle-cycle: 2.6s;
+      --worker-blink-cycle: 3.6s;
+      --worker-work-cycle: 0.9s;
+      --worker-sweat-cycle: 1.8s;
+      --worker-rest-cycle: 1.8s;
+      --worker-sleep-cycle: 2.6s;
+    }
+
+    .anim {
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+    .idle-eye-open { opacity: 1 }
+    .idle-eye-closed { opacity: 0 }
+    .work-frame { opacity: 0 }
+    .work-ready { opacity: 1 }
+    .work-spark { opacity: 0 }
+    .work-flash { opacity: 0 }
+    .anim-sweat-work { opacity: 0 }
+    .sleep-z-small { opacity: 1 }
+    .sleep-z-large { opacity: 0 }
+
+    svg[data-size="24"] .compact-hide-32 { display: none }
+
+    svg[data-motion="paused"] .anim { animation-play-state: paused !important }
+    svg[data-motion="off"] .anim { animation: none !important }
+
+    /* Idle: weight settles through the shoulders; blinking is infrequent and independent. */
+    svg[data-state="idle"]:not([data-motion="off"]) .anim-body-idle {
+      animation: workerIdleBreath var(--worker-idle-cycle) steps(1, end) infinite;
+    }
+    svg[data-state="idle"]:not([data-motion="off"]) .anim-eye-idle-open {
+      animation: workerEyeOpen var(--worker-blink-cycle) steps(1, end) infinite;
+    }
+    svg[data-state="idle"]:not([data-motion="off"]) .anim-eye-idle-closed {
+      animation: workerEyeClosed var(--worker-blink-cycle) steps(1, end) infinite;
+    }
+
+    /* Working: prepare -> lift -> strike -> sparks -> recoil. */
+    svg[data-state="working"]:not([data-motion="off"]) .anim-body-work {
+      animation: workerBodyWork var(--worker-work-cycle) steps(1, end) infinite;
+    }
+    svg[data-state="working"]:not([data-motion="off"]) .work-ready {
+      animation: workerFrameReady var(--worker-work-cycle) steps(1, end) infinite;
+    }
+    svg[data-state="working"]:not([data-motion="off"]) .work-lift {
+      animation: workerFrameLift var(--worker-work-cycle) steps(1, end) infinite;
+    }
+    svg[data-state="working"]:not([data-motion="off"]) .work-strike {
+      animation: workerFrameStrike var(--worker-work-cycle) steps(1, end) infinite;
+    }
+    svg[data-state="working"]:not([data-motion="off"]) .work-rebound {
+      animation: workerFrameRebound var(--worker-work-cycle) steps(1, end) infinite;
+    }
+    svg[data-state="working"]:not([data-motion="off"]) .anim-spark-work {
+      animation: workerSpark var(--worker-work-cycle) steps(1, end) infinite;
+    }
+    svg[data-state="working"]:not([data-motion="off"]) .anim-flash-work {
+      animation: workerFlash var(--worker-work-cycle) steps(1, end) infinite;
+    }
+    svg[data-state="working"]:not([data-motion="off"]) .anim-sweat-work {
+      animation: workerSweat var(--worker-sweat-cycle) steps(1, end) infinite;
+    }
+
+    /* Resting: one slow breathing loop; the second Z follows the first instead of moving as a block. */
+    svg[data-state="resting"]:not([data-motion="off"]) .anim-body-rest {
+      animation: workerRestBreath var(--worker-rest-cycle) steps(1, end) infinite;
+    }
+    svg[data-state="resting"]:not([data-motion="off"]) .anim-blanket-rest {
+      animation: workerBlanketBreath var(--worker-rest-cycle) steps(1, end) infinite;
+    }
+    svg[data-state="resting"]:not([data-motion="off"]) .anim-z-small-rest {
+      animation: workerZSmall var(--worker-sleep-cycle) steps(1, end) infinite;
+    }
+    svg[data-state="resting"]:not([data-motion="off"]) .anim-z-large-rest {
+      animation: workerZLarge var(--worker-sleep-cycle) steps(1, end) infinite;
+    }
+
+    @keyframes workerIdleBreath {
+      0%, 18%, 100% { transform: translate(0px, 0px) }
+      36%, 58% { transform: translate(0px, 1px) }
+      76% { transform: translate(0px, 0px) }
+    }
+    @keyframes workerEyeOpen {
+      0%, 87%, 92%, 100% { opacity: 1 }
+      88%, 91% { opacity: 0 }
+    }
+    @keyframes workerEyeClosed {
+      0%, 87%, 92%, 100% { opacity: 0 }
+      88%, 91% { opacity: 1 }
+    }
+
+    @keyframes workerBodyWork {
+      0%, 12%, 72%, 100% { transform: translate(0px, 0px) }
+      18%, 30% { transform: translate(-1px, -1px) }
+      34%, 43% { transform: translate(1px, 2px) }
+      48%, 60% { transform: translate(0px, 1px) }
+    }
+    @keyframes workerFrameReady {
+      0%, 14%, 70%, 100% { opacity: 1 }
+      15%, 69% { opacity: 0 }
+    }
+    @keyframes workerFrameLift {
+      0%, 14%, 32%, 100% { opacity: 0 }
+      15%, 31% { opacity: 1 }
+    }
+    @keyframes workerFrameStrike {
+      0%, 31%, 44%, 100% { opacity: 0 }
+      32%, 43% { opacity: 1 }
+    }
+    @keyframes workerFrameRebound {
+      0%, 43%, 70%, 100% { opacity: 0 }
+      44%, 69% { opacity: 1 }
+    }
+    @keyframes workerSpark {
+      0%, 35%, 44%, 100% { opacity: 0; transform: translate(0px, 0px) }
+      36%, 39% { opacity: 1; transform: translate(0px, 0px) }
+      40%, 43% { opacity: 1; transform: translate(2px, -2px) }
+    }
+    @keyframes workerFlash {
+      0%, 34%, 42%, 100% { opacity: 0 }
+      35%, 41% { opacity: 1 }
+    }
+    @keyframes workerSweat {
+      0%, 56%, 72%, 100% { opacity: 0; transform: translate(0px, 0px) }
+      57%, 64% { opacity: 1; transform: translate(0px, 0px) }
+      65%, 71% { opacity: 1; transform: translate(0px, 2px) }
+    }
+
+    @keyframes workerRestBreath {
+      0%, 16%, 84%, 100% { transform: translate(0px, 0px) }
+      34%, 62% { transform: translate(0px, 1px) }
+    }
+    @keyframes workerBlanketBreath {
+      0%, 16%, 84%, 100% { transform: translate(0px, 0px) }
+      34%, 62% { transform: translate(0px, -1px) }
+    }
+    @keyframes workerZSmall {
+      0%, 8% { opacity: 0; transform: translate(0px, 2px) }
+      14%, 38% { opacity: 1; transform: translate(0px, 0px) }
+      46% { opacity: 1; transform: translate(2px, -2px) }
+      54%, 100% { opacity: 0; transform: translate(2px, -4px) }
+    }
+    @keyframes workerZLarge {
+      0%, 34% { opacity: 0; transform: translate(0px, 2px) }
+      42%, 70% { opacity: 1; transform: translate(0px, 0px) }
+      78% { opacity: 1; transform: translate(2px, -2px) }
+      86%, 100% { opacity: 0; transform: translate(2px, -4px) }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .anim { animation: none !important }
+      .idle-eye-open, .work-ready, .sleep-z-small { opacity: 1 !important }
+      .idle-eye-closed, .work-lift, .work-strike, .work-rebound,
+      .work-spark, .work-flash, .sleep-z-large { opacity: 0 !important }
+    }
+  </style>
+
+  <!-- Рубаха и плечи -->
+  <g class="anim anim-body-idle anim-body-work anim-body-rest">
+    <g class="base-body">
+      <rect x="16" y="40" width="32" height="6" fill="#262626"/>
+      <rect x="10" y="46" width="44" height="18" fill="#262626"/>
+      <rect class="shirt" x="18" y="42" width="28" height="4" fill="#efe6d4"/>
+      <rect class="shirt" x="12" y="48" width="40" height="16" fill="#efe6d4"/>
+      <rect class="micro" x="30" y="50" width="4" height="14" fill="#262626"/>
+      <rect x="22" y="40" width="20" height="6" fill="#262626"/>
+      <rect class="shirt" x="24" y="42" width="16" height="4" fill="#efe6d4"/>
+      <rect class="compact-hide" x="20" y="58" width="8" height="2" fill="#262626" opacity="0.25"/>
+      <rect class="compact-hide" x="36" y="58" width="8" height="2" fill="#262626" opacity="0.25"/>
+    </g>
+
+    <!-- Волосы сзади -->
+    <g class="style-part style-f4">
+      <rect x="14" y="8" width="36" height="36" fill="#262626"/>
+      <rect class="hair" x="16" y="10" width="32" height="32" fill="#443528"/>
+      <rect class="hair" x="18" y="40" width="8" height="8" fill="#443528"/>
+      <rect class="hair" x="38" y="40" width="8" height="8" fill="#443528"/>
+    </g>
+
+    <!-- Шея -->
+    <rect x="26" y="34" width="12" height="10" fill="#262626"/>
+    <rect class="skin" x="28" y="36" width="8" height="8" fill="#e8c9a2"/>
+
+    <!-- Уши -->
+    <rect x="18" y="20" width="6" height="12" fill="#262626"/>
+    <rect x="40" y="20" width="6" height="12" fill="#262626"/>
+    <rect class="skin" x="20" y="22" width="4" height="8" fill="#e8c9a2"/>
+    <rect class="skin" x="40" y="22" width="4" height="8" fill="#e8c9a2"/>
+
+    <!-- Голова -->
+    <rect x="20" y="10" width="24" height="24" fill="#262626"/>
+    <rect x="22" y="34" width="20" height="4" fill="#262626"/>
+    <rect class="skin" x="22" y="12" width="20" height="22" fill="#e8c9a2"/>
+    <rect class="skin" x="24" y="34" width="16" height="2" fill="#e8c9a2"/>
+
+    <!-- Лица -->
+    <g class="face-mode face-idle">
+      <rect class="micro hair" x="24" y="18" width="6" height="2" fill="#443528"/>
+      <rect class="micro hair" x="34" y="18" width="6" height="2" fill="#443528"/>
+      <g class="anim anim-eye-idle-open idle-eye-open">
+        <rect x="26" y="22" width="2" height="2" fill="#262626"/>
+        <rect x="36" y="22" width="2" height="2" fill="#262626"/>
+      </g>
+      <g class="anim anim-eye-idle-closed idle-eye-closed">
+        <rect x="24" y="22" width="6" height="2" fill="#262626"/>
+        <rect x="34" y="22" width="6" height="2" fill="#262626"/>
+      </g>
+      <rect class="micro skin-shadow" x="30" y="24" width="4" height="4" fill="#c99e6f"/>
+      <rect x="30" y="30" width="4" height="2" fill="#262626"/>
+    </g>
+    <g class="face-mode face-working">
+      <rect class="micro hair" x="24" y="18" width="6" height="2" fill="#443528"/>
+      <rect class="micro hair" x="34" y="18" width="6" height="2" fill="#443528"/>
+      <rect x="26" y="22" width="2" height="2" fill="#262626"/>
+      <rect x="36" y="22" width="2" height="2" fill="#262626"/>
+      <rect class="micro skin-shadow" x="30" y="24" width="4" height="4" fill="#c99e6f"/>
+      <rect x="28" y="30" width="8" height="2" fill="#262626"/>
+      <g class="state-part state-working compact-hide anim anim-sweat-work">
+        <rect x="40" y="24" width="2" height="4" fill="#4a7ab5"/>
+        <rect x="38" y="28" width="2" height="2" fill="#4a7ab5"/>
+      </g>
+    </g>
+    <g class="face-mode face-resting">
+      <rect x="24" y="22" width="6" height="2" fill="#262626"/>
+      <rect x="34" y="22" width="6" height="2" fill="#262626"/>
+      <rect class="micro skin-shadow" x="30" y="24" width="4" height="4" fill="#c99e6f"/>
+      <rect x="28" y="30" width="8" height="2" fill="#262626"/>
+      <rect x="30" y="32" width="4" height="2" fill="#262626"/>
+    </g>
+
+    <!-- Бороды -->
+    <g class="part beard-1">
+      <rect class="hair" x="26" y="28" width="4" height="2" fill="#443528"/>
+      <rect class="hair" x="34" y="28" width="4" height="2" fill="#443528"/>
+    </g>
+    <g class="part beard-2">
+      <rect class="hair" x="26" y="28" width="4" height="2" fill="#443528"/>
+      <rect class="hair" x="34" y="28" width="4" height="2" fill="#443528"/>
+      <rect class="hair" x="24" y="30" width="4" height="6" fill="#443528"/>
+      <rect class="hair" x="36" y="30" width="4" height="6" fill="#443528"/>
+      <rect class="hair" x="28" y="34" width="8" height="4" fill="#443528"/>
+    </g>
+    <g class="part beard-3">
+      <rect x="20" y="28" width="24" height="12" fill="#262626"/>
+      <rect class="hair" x="22" y="30" width="20" height="8" fill="#443528"/>
+      <rect class="hair" x="26" y="28" width="4" height="2" fill="#443528"/>
+      <rect class="hair" x="34" y="28" width="4" height="2" fill="#443528"/>
+      <rect class="hair" x="26" y="38" width="12" height="4" fill="#443528"/>
+    </g>
+
+    <!-- Причёски -->
+    <g class="style-part style-m1">
+      <rect x="20" y="8" width="24" height="8" fill="#262626"/>
+      <rect class="hair" x="22" y="10" width="20" height="6" fill="#443528"/>
+      <rect class="hair" x="20" y="14" width="4" height="6" fill="#443528"/>
+      <rect class="hair" x="40" y="14" width="4" height="6" fill="#443528"/>
+    </g>
+    <g class="style-part style-m2">
+      <rect x="18" y="6" width="28" height="12" fill="#262626"/>
+      <rect class="hair" x="20" y="8" width="24" height="8" fill="#443528"/>
+      <rect class="hair" x="20" y="16" width="8" height="4" fill="#443528"/>
+      <rect class="hair" x="30" y="16" width="6" height="4" fill="#443528"/>
+      <rect class="hair" x="38" y="16" width="6" height="4" fill="#443528"/>
+    </g>
+    <g class="style-part style-m3">
+      <rect class="hair" x="20" y="12" width="6" height="8" fill="#443528"/>
+      <rect class="hair" x="38" y="12" width="6" height="8" fill="#443528"/>
+      <rect class="micro hair" x="28" y="10" width="8" height="2" fill="#443528"/>
+    </g>
+    <g class="style-part style-m4">
+      <rect x="18" y="6" width="8" height="8" fill="#262626"/>
+      <rect x="24" y="4" width="16" height="10" fill="#262626"/>
+      <rect x="38" y="6" width="8" height="8" fill="#262626"/>
+      <rect class="hair" x="20" y="8" width="6" height="6" fill="#443528"/>
+      <rect class="hair" x="26" y="6" width="12" height="8" fill="#443528"/>
+      <rect class="hair" x="38" y="8" width="6" height="6" fill="#443528"/>
+      <rect class="hair" x="20" y="14" width="4" height="6" fill="#443528"/>
+      <rect class="hair" x="40" y="14" width="4" height="6" fill="#443528"/>
+    </g>
+    <g class="style-part style-f1">
+      <rect x="20" y="8" width="24" height="10" fill="#262626"/>
+      <rect class="hair" x="22" y="10" width="20" height="8" fill="#443528"/>
+      <rect x="38" y="30" width="10" height="24" fill="#262626"/>
+      <rect class="hair" x="40" y="32" width="6" height="6" fill="#443528"/>
+      <rect class="hair" x="42" y="38" width="4" height="6" fill="#443528"/>
+      <rect class="hair" x="40" y="44" width="6" height="6" fill="#443528"/>
+      <rect class="hair" x="42" y="50" width="4" height="2" fill="#443528"/>
+    </g>
+    <g class="style-part style-f2">
+      <rect x="24" y="2" width="16" height="10" fill="#262626"/>
+      <rect class="hair" x="26" y="4" width="12" height="8" fill="#443528"/>
+      <rect x="20" y="8" width="24" height="10" fill="#262626"/>
+      <rect class="hair" x="22" y="10" width="20" height="6" fill="#443528"/>
+      <rect class="hair" x="22" y="16" width="6" height="4" fill="#443528"/>
+      <rect class="hair" x="36" y="16" width="6" height="4" fill="#443528"/>
+    </g>
+    <g class="style-part style-f3">
+      <rect x="20" y="8" width="24" height="10" fill="#262626"/>
+      <rect class="hair" x="22" y="10" width="20" height="8" fill="#443528"/>
+      <rect x="12" y="18" width="10" height="24" fill="#262626"/>
+      <rect x="42" y="18" width="10" height="24" fill="#262626"/>
+      <rect class="hair" x="14" y="20" width="6" height="6" fill="#443528"/>
+      <rect class="hair" x="16" y="26" width="4" height="6" fill="#443528"/>
+      <rect class="hair" x="14" y="32" width="6" height="8" fill="#443528"/>
+      <rect class="hair" x="44" y="20" width="6" height="6" fill="#443528"/>
+      <rect class="hair" x="44" y="26" width="4" height="6" fill="#443528"/>
+      <rect class="hair" x="44" y="32" width="6" height="8" fill="#443528"/>
+    </g>
+    <g class="style-part style-f4">
+      <rect x="20" y="8" width="24" height="10" fill="#262626"/>
+      <rect class="hair" x="22" y="10" width="20" height="8" fill="#443528"/>
+      <rect class="hair" x="20" y="16" width="6" height="8" fill="#443528"/>
+      <rect class="hair" x="38" y="16" width="6" height="8" fill="#443528"/>
+    </g>
+
+    <!-- Уборы -->
+    <g class="part hat-1">
+      <rect x="18" y="4" width="28" height="10" fill="#262626"/>
+      <rect x="20" y="6" width="24" height="6" fill="#6f4a24"/>
+      <rect x="16" y="12" width="24" height="4" fill="#262626"/>
+      <rect x="18" y="12" width="20" height="2" fill="#9a6a38"/>
+    </g>
+    <g class="part hat-2">
+      <rect x="12" y="8" width="40" height="8" fill="#262626"/>
+      <rect x="14" y="10" width="36" height="4" fill="#e0a63a"/>
+      <rect x="22" y="2" width="20" height="10" fill="#262626"/>
+      <rect x="24" y="4" width="16" height="8" fill="#e0a63a"/>
+      <rect x="24" y="10" width="16" height="2" fill="#c03434"/>
+    </g>
+    <g class="part hat-3">
+      <rect x="18" y="4" width="28" height="14" fill="#262626"/>
+      <rect x="20" y="6" width="24" height="10" fill="#c03434"/>
+      <rect x="18" y="16" width="8" height="8" fill="#262626"/>
+      <rect x="38" y="16" width="8" height="8" fill="#262626"/>
+      <rect x="20" y="16" width="4" height="6" fill="#c03434"/>
+      <rect x="40" y="16" width="4" height="6" fill="#c03434"/>
+    </g>
+    <g class="part hat-4">
+      <rect x="20" y="10" width="24" height="6" fill="#262626"/>
+      <rect x="22" y="12" width="20" height="2" fill="#c03434"/>
+      <rect x="40" y="14" width="4" height="6" fill="#c03434"/>
+    </g>
+
+    <!-- Экстры -->
+    <g class="part extra-1 micro">
+      <rect x="24" y="26" width="2" height="2" fill="#6f4a24"/>
+      <rect x="28" y="26" width="2" height="2" fill="#6f4a24"/>
+      <rect x="34" y="26" width="2" height="2" fill="#6f4a24"/>
+      <rect x="38" y="26" width="2" height="2" fill="#6f4a24"/>
+    </g>
+    <g class="part extra-2">
+      <rect x="18" y="28" width="4" height="6" fill="#262626"/>
+      <rect x="20" y="30" width="2" height="4" fill="#e8b83a"/>
+    </g>
+    <g class="part extra-3">
+      <rect x="24" y="26" width="4" height="2" fill="#d98a6a"/>
+      <rect x="36" y="26" width="4" height="2" fill="#d98a6a"/>
+    </g>
+    <g class="part skilled">
+      <rect x="18" y="50" width="6" height="8" fill="#262626"/>
+      <rect x="20" y="52" width="2" height="4" fill="#e8b83a"/>
+    </g>
+  </g>
+
+  <!-- Работа: молот бьёт по заготовке; искры появляются только после контакта. -->
+  <g class="state-part state-working work-surface">
+    <rect x="46" y="48" width="16" height="4" fill="#262626"/>
+    <rect x="48" y="46" width="12" height="4" fill="#c9c2b4"/>
+    <rect class="anim anim-flash-work work-flash" x="52" y="46" width="6" height="2" fill="#efe6d4"/>
+    <rect x="50" y="52" width="10" height="4" fill="#262626"/>
+    <rect x="52" y="56" width="6" height="4" fill="#262626"/>
+  </g>
+
+  <g class="state-part state-working work-tool-frames">
+    <!-- Neutral grip: the frame shown when motion is disabled. -->
+    <g class="anim work-frame work-ready">
+      <rect x="46" y="28" width="14" height="6" fill="#262626"/>
+      <rect x="48" y="30" width="10" height="2" fill="#c9c2b4"/>
+      <rect x="50" y="34" width="4" height="12" fill="#6f4a24"/>
+      <rect x="48" y="40" width="8" height="8" fill="#262626"/>
+      <rect class="skin" x="50" y="42" width="4" height="4" fill="#e8c9a2"/>
+    </g>
+
+    <!-- Backswing: stepped diagonal keeps the pixel silhouette crisp. -->
+    <g class="anim work-frame work-lift">
+      <rect x="42" y="20" width="14" height="6" fill="#262626"/>
+      <rect x="44" y="22" width="10" height="2" fill="#c9c2b4"/>
+      <rect x="50" y="26" width="4" height="6" fill="#6f4a24"/>
+      <rect x="48" y="30" width="4" height="6" fill="#6f4a24"/>
+      <rect x="46" y="34" width="4" height="8" fill="#6f4a24"/>
+      <rect x="44" y="38" width="8" height="8" fill="#262626"/>
+      <rect class="skin" x="46" y="40" width="4" height="4" fill="#e8c9a2"/>
+    </g>
+
+    <!-- Contact frame: hammer head reaches the metal block. -->
+    <g class="anim work-frame work-strike">
+      <rect x="50" y="30" width="4" height="14" fill="#6f4a24"/>
+      <rect x="48" y="32" width="8" height="8" fill="#262626"/>
+      <rect class="skin" x="50" y="34" width="4" height="4" fill="#e8c9a2"/>
+      <rect x="46" y="42" width="16" height="6" fill="#262626"/>
+      <rect x="48" y="42" width="12" height="2" fill="#c9c2b4"/>
+    </g>
+
+    <!-- Recoil: tool leaves the workpiece before returning to neutral. -->
+    <g class="anim work-frame work-rebound">
+      <rect x="48" y="26" width="14" height="6" fill="#262626"/>
+      <rect x="50" y="28" width="10" height="2" fill="#c9c2b4"/>
+      <rect x="52" y="32" width="4" height="12" fill="#6f4a24"/>
+      <rect x="50" y="38" width="8" height="8" fill="#262626"/>
+      <rect class="skin" x="52" y="40" width="4" height="4" fill="#e8c9a2"/>
+    </g>
+  </g>
+
+  <g class="state-part state-working compact-hide-32 anim anim-spark-work work-spark">
+    <rect x="58" y="40" width="2" height="2" fill="#efe6d4"/>
+    <rect x="60" y="38" width="2" height="2" fill="#e8b83a"/>
+    <rect x="56" y="38" width="2" height="2" fill="#e0a63a"/>
+    <rect x="60" y="42" width="2" height="2" fill="#e0a63a"/>
+  </g>
+
+  <!-- Отдых: дыхание и последовательные знаки сна. -->
+  <g class="state-part state-resting anim anim-blanket-rest">
+    <rect x="8" y="48" width="18" height="12" fill="#262626"/>
+    <rect x="10" y="50" width="14" height="8" fill="#4a7ab5"/>
+    <rect class="compact-hide" x="12" y="52" width="4" height="2" fill="#c9c2b4"/>
+    <rect class="compact-hide" x="18" y="52" width="4" height="2" fill="#c9c2b4"/>
+  </g>
+
+  <g class="state-part state-resting anim anim-z-small-rest sleep-z-small">
+    <rect x="48" y="14" width="6" height="2" fill="#4a7ab5"/>
+    <rect x="52" y="16" width="2" height="2" fill="#4a7ab5"/>
+    <rect x="48" y="18" width="6" height="2" fill="#4a7ab5"/>
+  </g>
+  <g class="state-part state-resting compact-hide anim anim-z-large-rest sleep-z-large">
+    <rect x="44" y="8" width="8" height="2" fill="#4a7ab5"/>
+    <rect x="50" y="10" width="2" height="2" fill="#4a7ab5"/>
+    <rect x="46" y="12" width="6" height="2" fill="#4a7ab5"/>
+  </g>
+</svg>

@@ -1,6 +1,27 @@
 import { z } from 'zod';
 import { authService } from './auth';
-import { ResponseType } from '../types/api';
+import {
+    decorStateSchema,
+    expeditionStateSchema,
+    tolokaStateSchema,
+    marketStateSchema,
+    gameStateSchema,
+    ResponseType,
+    responseEnvelopeSchema,
+    seasonSchema,
+    villageSchema,
+    worldSchema,
+    villageVisitSchema,
+    type DecorStateDto,
+    type ExpeditionStateDto,
+    type GameStateDto,
+    type TolokaStateDto,
+    type MarketStateDto,
+    type SeasonDto,
+    type VillageDto,
+    type VillageVisitDto,
+    type WorldDto,
+} from '../types/api';
 
 export class ApiError extends Error {
     constructor(message: string) {
@@ -9,17 +30,21 @@ export class ApiError extends Error {
     }
 }
 
-const envelopeSchema = z.object({
-    type: z.number(),
-    content: z.unknown().optional(),
-});
-
 const errorMessageType: number = ResponseType.ErrorMessage;
 
-async function request<T>(method: 'GET' | 'POST', url: string, schema: z.ZodType<T> | null, signal?: AbortSignal): Promise<T> {
+async function request<T>(method: 'GET' | 'POST', url: string, schema: z.ZodType<T> | null, signal?: AbortSignal, body?: unknown): Promise<T> {
     let res: Response;
     try {
-        res = await fetch(url, { method, credentials: 'same-origin', signal: signal ?? null });
+        const init: RequestInit = {
+            method,
+            credentials: 'same-origin',
+            signal: signal ?? null,
+        };
+        if (body != null) {
+            init.headers = { 'Content-Type': 'application/json' };
+            init.body = JSON.stringify(body);
+        }
+        res = await fetch(url, init);
     } catch (err) {
         if (signal?.aborted) {
             throw err;
@@ -39,7 +64,7 @@ async function request<T>(method: 'GET' | 'POST', url: string, schema: z.ZodType
         throw new ApiError('Некорректный ответ сервера.');
     }
 
-    const envelope = envelopeSchema.safeParse(json);
+    const envelope = responseEnvelopeSchema.safeParse(json);
     if (!envelope.success) {
         throw new ApiError('Некорректный ответ сервера.');
     }
@@ -64,6 +89,77 @@ async function request<T>(method: 'GET' | 'POST', url: string, schema: z.ZodType
 export const apiGet = <T>(url: string, schema: z.ZodType<T>, signal?: AbortSignal): Promise<T> =>
     request<T>('GET', url, schema, signal);
 
+export const getGameState = (signal?: AbortSignal): Promise<GameStateDto> =>
+    apiGet('Domiki/GetGameState', gameStateSchema, signal);
+
 export async function apiPost(url: string, signal?: AbortSignal): Promise<void> {
     await request('POST', url, null, signal);
 }
+
+export const completeOrder = (orderId: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/CompleteOrder/${orderId}`, signal);
+
+export const hurryManufacture = (manufactureId: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/HurryManufacture/${manufactureId}`, signal);
+
+export const setManufactureAutoRepeat = (manufactureId: number, autoRepeat: boolean, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/SetManufactureAutoRepeat/${manufactureId}?autoRepeat=${String(autoRepeat)}`, signal);
+
+export const hurryDomik = (domikId: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/HurryDomik/${domikId}`, signal);
+
+export const getVillage = (signal?: AbortSignal): Promise<VillageDto> =>
+    apiGet('Domiki/GetVillage', villageSchema, signal);
+
+export const setVillage = (name: string, crestIcon: number, crestColor: number, signal?: AbortSignal): Promise<void> =>
+    request('POST', 'Domiki/SetVillage', null, signal, { name, crestIcon, crestColor });
+
+export const getWorld = (signal?: AbortSignal): Promise<WorldDto> =>
+    apiGet('Domiki/GetWorld', worldSchema, signal);
+
+export const visitVillage = (playerId: number, signal?: AbortSignal): Promise<VillageVisitDto> =>
+    apiGet(`Domiki/VisitVillage/${playerId}`, villageVisitSchema, signal);
+
+export const getSeason = (signal?: AbortSignal): Promise<SeasonDto> =>
+    apiGet('Domiki/GetSeason', seasonSchema, signal);
+
+export const getExpeditions = (signal?: AbortSignal): Promise<ExpeditionStateDto | null> =>
+    apiGet('Domiki/GetExpeditions', expeditionStateSchema.nullable(), signal);
+
+export const startExpedition = (expeditionTypeId: number, workerIds?: number[], signal?: AbortSignal): Promise<void> => {
+    const query = (workerIds ?? []).map(id => `workerIds=${id}`).join('&');
+    return apiPost(`Domiki/StartExpedition/${expeditionTypeId}${query ? `?${query}` : ''}`, signal);
+};
+
+export const getDecor = (signal?: AbortSignal): Promise<DecorStateDto> =>
+    apiGet('Domiki/GetDecor', decorStateSchema, signal);
+
+export const buyDecor = (decorTypeId: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/BuyDecor/${decorTypeId}`, signal);
+
+export const getToloka = (signal?: AbortSignal): Promise<TolokaStateDto | null> =>
+    apiGet('Domiki/GetToloka', tolokaStateSchema.nullable(), signal);
+
+export const contributeToloka = (amount: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/ContributeToloka/${amount}`, signal);
+
+export const getMarket = (signal?: AbortSignal): Promise<MarketStateDto | null> =>
+    apiGet('Domiki/GetMarket', marketStateSchema.nullable(), signal);
+
+export const postLot = (giveResourceTypeId: number, giveValue: number, wantResourceTypeId: number, wantValue: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/PostLot?giveResourceTypeId=${giveResourceTypeId}&giveValue=${giveValue}&wantResourceTypeId=${wantResourceTypeId}&wantValue=${wantValue}`, signal);
+
+export const acceptLot = (lotId: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/AcceptLot/${lotId}`, signal);
+
+export const cancelLot = (lotId: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/CancelLot/${lotId}`, signal);
+
+export const getPushPublicKey = (signal?: AbortSignal): Promise<string> =>
+    apiGet('Push/PublicKey', z.string(), signal);
+
+export const subscribePush = (subscription: { endpoint: string; p256dh: string; auth: string }, signal?: AbortSignal): Promise<void> =>
+    request('POST', 'Push/Subscribe', null, signal, subscription);
+
+export const unsubscribePush = (endpoint: string, signal?: AbortSignal): Promise<void> =>
+    request('POST', 'Push/Unsubscribe', null, signal, { endpoint });

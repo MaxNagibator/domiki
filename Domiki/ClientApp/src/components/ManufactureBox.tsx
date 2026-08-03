@@ -1,19 +1,29 @@
+import ZapIcon from 'pixelarticons/svg/zap.svg?react';
 import type { ManufactureDto, ReceiptDto } from '../types/api';
-import { manufactureProgressPercent } from '../utils/game';
+import { canInstaFinish, instaFinishCost, manufactureProgressPercent } from '../utils/game';
+import { ProgressBar } from './ProgressBar';
 
 interface ManufactureBoxProps {
     manufacture: ManufactureDto;
     receipt: ReceiptDto;
     now: number;
     remainingText: string;
+    goldValue: number;
+    goldIconSrc?: string | undefined;
+    onHurry: (manufactureId: number) => void;
+    onToggleAutoRepeat: (manufactureId: number, next: boolean) => void;
 }
 
-export const ManufactureBox = ({ manufacture, receipt, now, remainingText }: ManufactureBoxProps) => {
+export const ManufactureBox = ({ manufacture, receipt, now, remainingText, goldValue, goldIconSrc, onHurry, onToggleAutoRepeat }: ManufactureBoxProps) => {
     const percent = manufactureProgressPercent(manufacture, receipt, now);
+    const hurryCost = instaFinishCost(manufacture.finishDate, now);
+    const tooFar = !canInstaFinish(manufacture.finishDate, now);
+    const notEnoughGold = goldValue < hurryCost;
+    const hurryTitle = tooFar ? 'До конца слишком далеко' : notEnoughGold ? 'Не хватает золота' : undefined;
 
     return (
         <div className="manufacture-box">
-            <progress max={100} value={percent} data-label={remainingText}></progress>
+            <ProgressBar value={percent} max={100} label={remainingText} />
             <div className="manufacture-info">
                 <span className="manufacture-name">{receipt.name}</span>
                 <span className="resource-box" title="Трудяги">
@@ -21,6 +31,21 @@ export const ManufactureBox = ({ manufacture, receipt, now, remainingText }: Man
                     <span className="resource-value">{manufacture.plodderCount}</span>
                 </span>
             </div>
+            <button type="button" className="btn-game"
+                disabled={tooFar || notEnoughGold}
+                title={hurryTitle}
+                onClick={() => onHurry(manufacture.id)}>
+                <ZapIcon className="btn-ico" aria-hidden="true" />
+                Поторопить – {Math.max(1, hurryCost)}
+                {goldIconSrc != null &&
+                    <img className="hurry-cost-ico" src={goldIconSrc} alt="золота" />
+                }
+            </button>
+            <label className="receipt-optional">
+                <input type="checkbox" checked={manufacture.autoRepeat}
+                    onChange={() => onToggleAutoRepeat(manufacture.id, !manufacture.autoRepeat)} />
+                Повторять
+            </label>
         </div>
     );
 };

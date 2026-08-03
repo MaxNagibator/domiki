@@ -1,21 +1,36 @@
 import { describe, expect, it } from 'vitest';
-import { formatDuration, remainingSeconds } from './time';
+import { formatDuration, formatDurationShort, remainingSeconds } from './time';
 
 describe('formatDuration', () => {
     it.each<[number, string]>([
-        [0, '00с '],
-        [5, '05с '],
-        [9, '09с '],
-        [45, '45с '],
-        [30.7, '31с '],
-        [3.4, '03с '],
-        [65, '01м 05с '],
-        [600, '10м 00с '],
-        [18000, '05ч 00м 00с '],
-        [3661, '01ч 01м 01с '],
-        [90061, '01д 01ч 01м '],
+        [0, '0с'],
+        [5, '5с'],
+        [45, '45с'],
+        [30.7, '31с'],
+        [65, '1м 5с'],
+        [600, '10м'],
+        [3600, '1ч'],
+        [18000, '5ч'],
+        [3661, '1ч 1м 1с'],
+        [28800, '8ч'],
+        [90000, '1д 1ч'],
+        [90061, '1д 1ч 1м 1с'],
     ])('formatDuration(%i) -> %s', (totalSeconds, expected) => {
         expect(formatDuration(totalSeconds)).toBe(expected);
+    });
+});
+
+describe('formatDurationShort', () => {
+    it.each<[number, string]>([
+        [0, '0с'],
+        [13, '13с'],
+        [59, '59с'],
+        [65, '1м'],
+        [3600, '1ч'],
+        [28513, '7ч 55м'],
+        [90061, '1д 1ч 1м'],
+    ])('formatDurationShort(%i) -> %s', (totalSeconds, expected) => {
+        expect(formatDurationShort(totalSeconds)).toBe(expected);
     });
 });
 

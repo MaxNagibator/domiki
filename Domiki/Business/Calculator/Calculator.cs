@@ -55,7 +55,7 @@ namespace Domiki.Web.Business
             _datas.RemoveAt(index);
             if (index == 0)
             {
-                _minDate = _datas[0].Date;
+                _minDate = _datas.Count > 0 ? (DateTime?)_datas[0].Date : null;
             }
         }
 
@@ -109,6 +109,38 @@ namespace Domiki.Web.Business
                             var result = calculatorTick.Calculate(date, calcDate);
                             uow.Context.SaveChanges();
                             uow.Commit();
+
+                            if (result)
+                            {
+                                var pushSender = scope.ServiceProvider.GetRequiredService<PushSender>();
+                                var broker = scope.ServiceProvider.GetRequiredService<GameStateBroker>();
+                                switch (calcDate.Type)
+                                {
+                                    case CalculateTypes.Domiks:
+                                        pushSender.Notify(calcDate.PlayerId, "Домики", "Домик достроен – загляни в деревню", "/domiki-page");
+                                        break;
+                                    case CalculateTypes.Manufacture:
+                                        pushSender.Notify(calcDate.PlayerId, "Домики", "Производство завершено – товары готовы", "/domiki-page");
+                                        break;
+                                }
+
+                                switch (calcDate.Type)
+                                {
+                                    case CalculateTypes.Domiks:
+                                    case CalculateTypes.Manufacture:
+                                    case CalculateTypes.OrderExpire:
+                                    case CalculateTypes.Expedition:
+                                        broker.Publish(calcDate.PlayerId, GameStateScopes.State);
+                                        break;
+                                    case CalculateTypes.TradeLotExpire:
+                                        broker.Publish(calcDate.PlayerId, GameStateScopes.State);
+                                        broker.Broadcast(GameStateScopes.Market);
+                                        break;
+                                    case CalculateTypes.WeatherRotation:
+                                        broker.Broadcast(GameStateScopes.State);
+                                        break;
+                                }
+                            }
 
                             var time = (DateTime.Now - startDate).TotalMilliseconds;
                             _logger.LogInformation("Calculator - tick success: " + calcDate.PlayerId + " - " + calcDate.ObjectId + " - " + calcDate.Type + " " + time + "ms");
@@ -168,6 +200,55 @@ namespace Domiki.Web.Business
                         Type = CalculateTypes.Manufacture,
                     });
                 }
+
+                var dbOrders = uow.Context.Orders.ToList();
+                foreach (var dbOrder in dbOrders)
+                {
+                    dates.Add(new CalculateInfo
+                    {
+                        PlayerId = dbOrder.PlayerId,
+                        ObjectId = dbOrder.Id,
+                        Date = dbOrder.ExpireDate,
+                        Type = CalculateTypes.OrderExpire,
+                    });
+                }
+
+                var dbExpeditions = uow.Context.Expeditions.ToList();
+                foreach (var dbExpedition in dbExpeditions)
+                {
+                    dates.Add(new CalculateInfo
+                    {
+                        PlayerId = dbExpedition.PlayerId,
+                        ObjectId = dbExpedition.Id,
+                        Date = dbExpedition.FinishDate,
+                        Type = CalculateTypes.Expedition,
+                    });
+                }
+
+                var dbTradeLots = uow.Context.TradeLots.ToList();
+                foreach (var dbTradeLot in dbTradeLots)
+                {
+                    dates.Add(new CalculateInfo
+                    {
+                        PlayerId = dbTradeLot.SellerId,
+                        ObjectId = dbTradeLot.Id,
+                        Date = dbTradeLot.ExpireDate,
+                        Type = CalculateTypes.TradeLotExpire,
+                    });
+                }
+
+                var now = DateTimeHelper.GetNowDate();
+                var weatherManager = scope.ServiceProvider.GetRequiredService<WeatherManager>();
+                weatherManager.EnsureWeatherSchedule(now);
+                var currentWeatherPeriod = uow.Context.WeatherPeriods.Single(x => x.StartDate <= now && now < x.EndDate);
+                dates.Add(new CalculateInfo
+                {
+                    PlayerId = 0,
+                    ObjectId = currentWeatherPeriod.Id,
+                    Date = currentWeatherPeriod.EndDate,
+                    Type = CalculateTypes.WeatherRotation,
+                });
+                uow.Commit();
 
                 dates = dates.OrderBy(x => x.Date).ToList();
                 return dates;

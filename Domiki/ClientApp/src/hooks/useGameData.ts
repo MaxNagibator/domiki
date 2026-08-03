@@ -1,18 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { z } from 'zod';
-import { apiGet, ApiError } from '../services/api';
+import { acceptLot as acceptLotApi, apiGet, ApiError, buyDecor as buyDecorApi, cancelLot as cancelLotApi, contributeToloka as contributeTolokaApi, getDecor, getGameState, getMarket, getToloka, getVillage, hurryDomik as hurryDomikApi, hurryManufacture as hurryManufactureApi, postLot as postLotApi, setManufactureAutoRepeat as setManufactureAutoRepeatApi, setVillage as setVillageApi, startExpedition as startExpeditionApi } from '../services/api';
 import { useToast } from '../services/toast';
 import {
-    domikSchema,
     domikTypeSchema,
-    receiptSchema,
     resourceSchema,
-    resourceTypeSchema,
+    villageLevelSchema,
+    type BlueprintDto,
+    type DecorStateDto,
     type DomikDto,
     type DomikTypeDto,
+    type ExpeditionStateDto,
+    type MarketStateDto,
+    type NeighborReputationDto,
+    type OrderDto,
     type ReceiptDto,
     type ResourceDto,
     type ResourceTypeDto,
+    type RecapDto,
+    type RecapEventDto,
+    type TolokaStateDto,
+    type VillageDto,
+    type VillageLevelDto,
+    type WeatherStateDto,
+    type WorkerDto,
 } from '../types/api';
 import { remainingSeconds } from '../utils/time';
 
@@ -22,10 +32,34 @@ export interface GameData {
     resourceTypes: ResourceTypeDto[];
     receipts: ReceiptDto[];
     resources: ResourceDto[];
+    orders: OrderDto[];
+    reputation: NeighborReputationDto[];
+    blueprints: BlueprintDto[];
+    village: VillageDto | null;
+    villageLevel: VillageLevelDto | null;
+    weather: WeatherStateDto | null;
+    expeditions: ExpeditionStateDto | null;
+    decor: DecorStateDto | null;
+    toloka: TolokaStateDto | null;
+    market: MarketStateDto | null;
+    workers: WorkerDto[];
     purchaseDomikTypes: DomikTypeDto[] | null;
     now: number;
     reload: () => Promise<void>;
     refreshPurchaseTypes: () => Promise<void>;
+    setVillage: (name: string, crestIcon: number, crestColor: number) => Promise<void>;
+    hurryManufacture: (manufactureId: number) => Promise<void>;
+    setManufactureAutoRepeat: (manufactureId: number, autoRepeat: boolean) => Promise<void>;
+    hurryDomik: (domikId: number) => Promise<void>;
+    startExpedition: (expeditionTypeId: number, workerIds?: number[]) => Promise<void>;
+    buyDecor: (decorTypeId: number) => Promise<void>;
+    contributeToloka: (amount: number) => Promise<void>;
+    postLot: (giveResourceTypeId: number, giveValue: number, wantResourceTypeId: number, wantValue: number) => Promise<void>;
+    acceptLot: (lotId: number) => Promise<void>;
+    cancelLot: (lotId: number) => Promise<void>;
+    recap: RecapDto | null;
+    clearRecap: () => void;
+    events: RecapEventDto[];
 }
 
 export function useGameData(): GameData {
@@ -36,27 +70,175 @@ export function useGameData(): GameData {
     const [resourceTypes, setResourceTypes] = useState<ResourceTypeDto[]>([]);
     const [receipts, setReceipts] = useState<ReceiptDto[]>([]);
     const [resources, setResources] = useState<ResourceDto[]>([]);
+    const [orders, setOrders] = useState<OrderDto[]>([]);
+    const [reputation, setReputation] = useState<NeighborReputationDto[]>([]);
+    const [blueprints, setBlueprints] = useState<BlueprintDto[]>([]);
+    const [village, setVillageState] = useState<VillageDto | null>(null);
+    const [villageLevel, setVillageLevel] = useState<VillageLevelDto | null>(null);
+    const [weather, setWeather] = useState<WeatherStateDto | null>(null);
+    const [expeditions, setExpeditions] = useState<ExpeditionStateDto | null>(null);
+    const [decor, setDecor] = useState<DecorStateDto | null>(null);
+    const [toloka, setToloka] = useState<TolokaStateDto | null>(null);
+    const [market, setMarket] = useState<MarketStateDto | null>(null);
+    const [workers, setWorkers] = useState<WorkerDto[]>([]);
     const [purchaseDomikTypes, setPurchaseDomikTypes] = useState<DomikTypeDto[] | null>(null);
+    const [recap, setRecap] = useState<RecapDto | null>(null);
+    const [events, setEvents] = useState<RecapEventDto[]>([]);
     const [now, setNow] = useState(() => Date.now());
 
     const refetching = useRef(false);
-    const domiksRef = useRef(domiks);
+    const pendingReload = useRef(false);
+    const workersRef = useRef(workers);
+    const expeditionsRef = useRef(expeditions);
+    const tolokaRef = useRef(toloka);
+    const reloadedRestDeadlinesRef = useRef<Set<string>>(new Set());
+    const reloadedTolokaBuffDeadlinesRef = useRef<Set<string>>(new Set());
 
     useEffect(() => {
-        domiksRef.current = domiks;
-    }, [domiks]);
+        workersRef.current = workers;
+    }, [workers]);
+
+    useEffect(() => {
+        expeditionsRef.current = expeditions;
+    }, [expeditions]);
+
+    useEffect(() => {
+        tolokaRef.current = toloka;
+    }, [toloka]);
 
     const reload = useCallback(async () => {
-        const [domiksData, resourcesData] = await Promise.all([
-            apiGet('Domiki/GetDomiks', domikSchema.array()),
-            apiGet('Domiki/GetResources', resourceSchema.array()),
-        ]);
-        setDomiks(domiksData);
-        setResources(resourcesData);
-    }, []);
+        const state = await getGameState();
+        const prevActive = expeditionsRef.current?.active ?? [];
+        const nextActive = state.expeditions?.active ?? [];
+        for (const finished of prevActive) {
+            if (!nextActive.some(active => active.id === finished.id)) {
+                toast.success(`Экспедиция «${finished.expeditionName}» вернулась`);
+            }
+        }
+        setDomiks(state.domiks);
+        setResources(state.resources);
+        setOrders(state.orders);
+        setReputation(state.reputation);
+        setBlueprints(state.blueprints);
+        setVillageState(state.village);
+        setVillageLevel(state.villageLevel);
+        setWorkers(state.workers);
+        setWeather(state.weather);
+        setExpeditions(state.expeditions);
+        setDecor(state.decor);
+        setToloka(state.toloka);
+        setMarket(state.market);
+        setEvents(state.events);
+        if (state.recap != null && state.recap.events.length > 0) {
+            setRecap(state.recap);
+        }
+    }, [toast]);
+
+    const scheduleReload = useCallback(() => {
+        if (refetching.current) {
+            pendingReload.current = true;
+            return;
+        }
+
+        refetching.current = true;
+
+        const run = async (): Promise<void> => {
+            try {
+                await reload();
+            } catch (err) {
+                if (err instanceof ApiError) {
+                    toast.error(err.message);
+                } else {
+                    throw err;
+                }
+            } finally {
+                if (pendingReload.current) {
+                    pendingReload.current = false;
+                    void run();
+                } else {
+                    refetching.current = false;
+                }
+            }
+        };
+
+        void run();
+    }, [reload, toast]);
 
     const refreshPurchaseTypes = useCallback(async () => {
         setPurchaseDomikTypes(await apiGet('Domiki/GetPurchaseAvaialableDomiks', domikTypeSchema.array()));
+    }, []);
+
+    const setVillage = useCallback(async (name: string, crestIcon: number, crestColor: number) => {
+        await setVillageApi(name, crestIcon, crestColor);
+        setVillageState(await getVillage());
+    }, []);
+
+    const hurryManufacture = useCallback(async (manufactureId: number) => {
+        await hurryManufactureApi(manufactureId);
+        await reload();
+    }, [reload]);
+
+    const setManufactureAutoRepeat = useCallback(async (manufactureId: number, autoRepeat: boolean) => {
+        await setManufactureAutoRepeatApi(manufactureId, autoRepeat);
+        await reload();
+    }, [reload]);
+
+    const hurryDomik = useCallback(async (domikId: number) => {
+        await hurryDomikApi(domikId);
+        await reload();
+    }, [reload]);
+
+    const startExpedition = useCallback(async (expeditionTypeId: number, workerIds?: number[]) => {
+        await startExpeditionApi(expeditionTypeId, workerIds);
+        await reload();
+    }, [reload]);
+
+    const contributeToloka = useCallback(async (amount: number) => {
+        await contributeTolokaApi(amount);
+        const [nextToloka, nextResources] = await Promise.all([
+            getToloka(),
+            apiGet('Domiki/GetResources', resourceSchema.array()),
+        ]);
+        setToloka(nextToloka);
+        setResources(nextResources);
+    }, []);
+
+    const refreshMarketAndResources = useCallback(async () => {
+        const [nextMarket, nextResources] = await Promise.all([
+            getMarket(),
+            apiGet('Domiki/GetResources', resourceSchema.array()),
+        ]);
+        setMarket(nextMarket);
+        setResources(nextResources);
+    }, []);
+
+    const postLot = useCallback(async (giveResourceTypeId: number, giveValue: number, wantResourceTypeId: number, wantValue: number) => {
+        await postLotApi(giveResourceTypeId, giveValue, wantResourceTypeId, wantValue);
+        await refreshMarketAndResources();
+    }, [refreshMarketAndResources]);
+
+    const acceptLot = useCallback(async (lotId: number) => {
+        await acceptLotApi(lotId);
+        await refreshMarketAndResources();
+    }, [refreshMarketAndResources]);
+
+    const cancelLot = useCallback(async (lotId: number) => {
+        await cancelLotApi(lotId);
+        await refreshMarketAndResources();
+    }, [refreshMarketAndResources]);
+
+    const clearRecap = useCallback(() => setRecap(null), []);
+
+    const buyDecor = useCallback(async (decorTypeId: number) => {
+        await buyDecorApi(decorTypeId);
+        const [nextDecor, nextResources, nextVillageLevel] = await Promise.all([
+            getDecor(),
+            apiGet('Domiki/GetResources', resourceSchema.array()),
+            apiGet('Domiki/GetVillageLevel', villageLevelSchema),
+        ]);
+        setDecor(nextDecor);
+        setResources(nextResources);
+        setVillageLevel(nextVillageLevel);
     }, []);
 
     useEffect(() => {
@@ -68,62 +250,131 @@ export function useGameData(): GameData {
         const controller = new AbortController();
         const { signal } = controller;
 
-        const safeLoad = async <T,>(url: string, schema: z.ZodType<T>, setter: (data: T) => void) => {
+        void (async () => {
             try {
-                setter(await apiGet(url, schema, signal));
+                const state = await getGameState(signal);
+                setDomikTypes(state.domikTypes);
+                setResourceTypes(state.resourceTypes);
+                setReceipts(state.receipts);
+                setDomiks(state.domiks);
+                setResources(state.resources);
+                setOrders(state.orders);
+                setReputation(state.reputation);
+                setBlueprints(state.blueprints);
+                setVillageState(state.village);
+                setVillageLevel(state.villageLevel);
+                setWorkers(state.workers);
+                setPurchaseDomikTypes(state.purchaseAvailableDomiks);
+                setWeather(state.weather);
+                setExpeditions(state.expeditions);
+                setDecor(state.decor);
+                setToloka(state.toloka);
+                setMarket(state.market);
+                setEvents(state.events);
+                if (state.recap != null && state.recap.events.length > 0) {
+                    setRecap(state.recap);
+                }
             } catch (err) {
                 if (err instanceof DOMException && err.name === 'AbortError') {
                     return;
                 }
                 if (err instanceof ApiError) {
                     toast.error(err.message);
-                    return;
                 }
             }
-        };
-
-        void Promise.all([
-            safeLoad('Domiki/GetDomikTypes', domikTypeSchema.array(), setDomikTypes),
-            safeLoad('Domiki/GetResourceTypes', resourceTypeSchema.array(), setResourceTypes),
-            safeLoad('Domiki/GetReceipts', receiptSchema.array(), setReceipts),
-            safeLoad('Domiki/GetDomiks', domikSchema.array(), setDomiks),
-            safeLoad('Domiki/GetResources', resourceSchema.array(), setResources),
-            safeLoad('Domiki/GetPurchaseAvaialableDomiks', domikTypeSchema.array(), setPurchaseDomikTypes),
-        ]);
+        })();
 
         return () => controller.abort();
     }, [toast]);
 
     useEffect(() => {
-        if (refetching.current) {
-            return;
-        }
+        const source = new EventSource('Domiki/Stream');
+        let opened = false;
 
-        const expired = domiksRef.current.some(domik => {
-            if (domik.finishDate != null && remainingSeconds(domik.finishDate, now) <= 0) {
-                return true;
+        source.onmessage = event => {
+            if (event.data === 'state') {
+                scheduleReload();
+                return;
             }
-            return domik.manufactures?.some(manufacture => remainingSeconds(manufacture.finishDate, now) <= 0) ?? false;
-        });
 
-        if (!expired) {
+            if (event.data === 'market') {
+                void getMarket()
+                    .then(setMarket)
+                    .catch((err: unknown) => {
+                        if (err instanceof ApiError) {
+                            toast.error(err.message);
+                            return;
+                        }
+                        throw err;
+                    });
+                return;
+            }
+
+            if (event.data === 'toloka') {
+                void getToloka()
+                    .then(setToloka)
+                    .catch((err: unknown) => {
+                        if (err instanceof ApiError) {
+                            toast.error(err.message);
+                            return;
+                        }
+                        throw err;
+                    });
+            }
+        };
+
+        source.onopen = () => {
+            if (opened) {
+                scheduleReload();
+            }
+            opened = true;
+        };
+
+        return () => source.close();
+    }, [scheduleReload, toast]);
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                scheduleReload();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [scheduleReload]);
+
+    useEffect(() => {
+        let expiredWorkerRest = false;
+        for (const worker of workersRef.current) {
+            if (worker.restUntil == null) {
+                continue;
+            }
+
+            const key = `${worker.id}:${worker.restUntil}`;
+            if (reloadedRestDeadlinesRef.current.has(key) || remainingSeconds(worker.restUntil, now) > 0) {
+                continue;
+            }
+
+            reloadedRestDeadlinesRef.current.add(key);
+            expiredWorkerRest = true;
+        }
+
+        const buffUntil = tolokaRef.current?.buffUntil;
+        const expiredTolokaBuff = buffUntil != null
+            && remainingSeconds(buffUntil, now) <= 0
+            && !reloadedTolokaBuffDeadlinesRef.current.has(`toloka:${buffUntil}`);
+
+        if (!expiredWorkerRest && !expiredTolokaBuff) {
             return;
         }
 
-        refetching.current = true;
+        if (expiredTolokaBuff) {
+            reloadedTolokaBuffDeadlinesRef.current.add(`toloka:${buffUntil}`);
+        }
 
-        void reload()
-            .catch((err: unknown) => {
-                if (err instanceof ApiError) {
-                    toast.error(err.message);
-                    return;
-                }
-                throw err;
-            })
-            .finally(() => {
-                refetching.current = false;
-            });
-    }, [now, toast, reload]);
+        scheduleReload();
+    }, [now, scheduleReload]);
 
     return {
         domiks,
@@ -131,9 +382,33 @@ export function useGameData(): GameData {
         resourceTypes,
         receipts,
         resources,
+        orders,
+        reputation,
+        blueprints,
+        village,
+        villageLevel,
+        weather,
+        expeditions,
+        decor,
+        toloka,
+        market,
+        workers,
         purchaseDomikTypes,
         now,
         reload,
         refreshPurchaseTypes,
+        setVillage,
+        hurryManufacture,
+        setManufactureAutoRepeat,
+        hurryDomik,
+        startExpedition,
+        buyDecor,
+        contributeToloka,
+        postLot,
+        acceptLot,
+        cancelLot,
+        recap,
+        clearRecap,
+        events,
     };
 }

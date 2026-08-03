@@ -86,6 +86,81 @@ namespace Domiki.Web.Data.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("Domiki.Web.Data.Blueprint", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DomikTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LogicName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text");
+
+                    b.Property<int>("NeighborId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReputationThreshold")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DomikTypeId");
+
+                    b.HasIndex("NeighborId");
+
+                    b.ToTable("Blueprints");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.DecorCost", b =>
+                {
+                    b.Property<int>("DecorTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("ResourceTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("Value")
+                        .HasColumnType("integer");
+
+                    b.HasKey("DecorTypeId", "ResourceTypeId");
+
+                    b.HasIndex("ResourceTypeId");
+
+                    b.ToTable("DecorCosts");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.DecorType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ComfortPoints")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LogicName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DecorTypes");
+                });
+
             modelBuilder.Entity("Domiki.Web.Data.Domik", b =>
                 {
                     b.Property<int>("PlayerId")
@@ -129,6 +204,9 @@ namespace Domiki.Web.Data.Migrations
 
                     b.Property<string>("Name")
                         .HasColumnType("text");
+
+                    b.Property<int>("UnlockLevel")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -225,6 +303,112 @@ namespace Domiki.Web.Data.Migrations
                     b.ToTable("DomikTypeLevelResources");
                 });
 
+            modelBuilder.Entity("Domiki.Web.Data.Expedition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ExpeditionTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("FinishDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpeditionTypeId");
+
+                    b.HasIndex("PlayerId");
+
+                    b.ToTable("Expeditions");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.ExpeditionEquipment", b =>
+                {
+                    b.Property<int>("ExpeditionTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("ResourceTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("Value")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ExpeditionTypeId", "ResourceTypeId");
+
+                    b.ToTable("ExpeditionEquipment");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.ExpeditionLoot", b =>
+                {
+                    b.Property<int>("ExpeditionTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("ResourceTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(2);
+
+                    b.Property<bool>("IsRare")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MaxValue")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MinValue")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Weight")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ExpeditionTypeId", "ResourceTypeId");
+
+                    b.ToTable("ExpeditionLoot");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.ExpeditionType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DurationSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GoldCost")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LogicName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("RollCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WorkerCount")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ExpeditionTypes");
+                });
+
             modelBuilder.Entity("Domiki.Web.Data.Manufacture", b =>
                 {
                     b.Property<int>("Id")
@@ -232,6 +416,9 @@ namespace Domiki.Web.Data.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AutoRepeat")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("DomikId")
                         .HasColumnType("integer");
@@ -242,11 +429,17 @@ namespace Domiki.Web.Data.Migrations
                     b.Property<DateTime>("FinishDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("OutputPercent")
+                        .HasColumnType("integer");
+
                     b.Property<int>("PlodderCount")
                         .HasColumnType("integer");
 
                     b.Property<int>("ReceiptId")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("UseOptional")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -274,6 +467,152 @@ namespace Domiki.Web.Data.Migrations
                     b.ToTable("ModificatorTypes");
                 });
 
+            modelBuilder.Entity("Domiki.Web.Data.Neighbor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("LogicName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("PrimaryResourceTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UnlockLevel")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Neighbors");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            LogicName = "zarechye",
+                            Name = "Заречье",
+                            PrimaryResourceTypeId = 6,
+                            UnlockLevel = 8
+                        },
+                        new
+                        {
+                            Id = 2,
+                            LogicName = "borovoe",
+                            Name = "Боровое",
+                            PrimaryResourceTypeId = 7,
+                            UnlockLevel = 8
+                        },
+                        new
+                        {
+                            Id = 3,
+                            LogicName = "kamenka",
+                            Name = "Каменка",
+                            PrimaryResourceTypeId = 2,
+                            UnlockLevel = 3
+                        },
+                        new
+                        {
+                            Id = 4,
+                            LogicName = "glinischi",
+                            Name = "Глинищи",
+                            PrimaryResourceTypeId = 4,
+                            UnlockLevel = 0
+                        },
+                        new
+                        {
+                            Id = 5,
+                            LogicName = "dubrava",
+                            Name = "Дубрава",
+                            PrimaryResourceTypeId = 3,
+                            UnlockLevel = 0
+                        });
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.NeighborReputation", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("NeighborId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("Points")
+                        .HasColumnType("integer");
+
+                    b.HasKey("PlayerId", "NeighborId");
+
+                    b.HasIndex("NeighborId");
+
+                    b.ToTable("NeighborReputations");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Order", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpireDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("NeighborId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RewardCoins")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RewardGold")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RewardReputation")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NeighborId");
+
+                    b.HasIndex("PlayerId");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.OrderResource", b =>
+                {
+                    b.Property<int>("OrderId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("ResourceTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("Value")
+                        .HasColumnType("integer");
+
+                    b.HasKey("OrderId", "ResourceTypeId");
+
+                    b.HasIndex("ResourceTypeId");
+
+                    b.ToTable("OrderResources");
+                });
+
             modelBuilder.Entity("Domiki.Web.Data.Player", b =>
                 {
                     b.Property<int>("Id")
@@ -287,6 +626,18 @@ namespace Domiki.Web.Data.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
 
+                    b.Property<int>("CrestColor")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CrestIcon")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ExpeditionsSincePity")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastSeen")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -296,12 +647,122 @@ namespace Domiki.Web.Data.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("VillageName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AspNetUserId")
                         .IsUnique();
 
+                    b.HasIndex("VillageName")
+                        .IsUnique()
+                        .HasFilter("\"VillageName\" IS NOT NULL");
+
                     b.ToTable("Players");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.PlayerBlueprint", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("BlueprintId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(2);
+
+                    b.HasKey("PlayerId", "BlueprintId");
+
+                    b.HasIndex("BlueprintId");
+
+                    b.ToTable("PlayerBlueprints");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.PlayerDecor", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("DecorTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("Count")
+                        .HasColumnType("integer");
+
+                    b.HasKey("PlayerId", "DecorTypeId");
+
+                    b.HasIndex("DecorTypeId");
+
+                    b.ToTable("PlayerDecors");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.PlayerEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Read")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlayerId", "Date");
+
+                    b.ToTable("PlayerEvents");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.PlayerPushSubscription", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Auth")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("P256dh")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Endpoint")
+                        .IsUnique();
+
+                    b.ToTable("PlayerPushSubscriptions");
                 });
 
             modelBuilder.Entity("Domiki.Web.Data.Receipt", b =>
@@ -324,6 +785,9 @@ namespace Domiki.Web.Data.Migrations
                     b.Property<int>("PlodderCount")
                         .HasColumnType("integer");
 
+                    b.Property<int>("SpeedupPercent")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.ToTable("Receipts");
@@ -342,6 +806,9 @@ namespace Domiki.Web.Data.Migrations
                     b.Property<bool>("IsInput")
                         .HasColumnType("boolean")
                         .HasColumnOrder(3);
+
+                    b.Property<bool>("IsOptional")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Value")
                         .HasColumnType("integer");
@@ -388,6 +855,353 @@ namespace Domiki.Web.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ResourceTypes");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.SeasonCounter", b =>
+                {
+                    b.Property<int>("SeasonId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("Metric")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(3);
+
+                    b.Property<int>("Value")
+                        .HasColumnType("integer");
+
+                    b.HasKey("SeasonId", "PlayerId", "Metric");
+
+                    b.HasIndex("PlayerId");
+
+                    b.HasIndex("SeasonId", "Metric");
+
+                    b.ToTable("SeasonCounters");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Toloka", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Collected")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CompletedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("TolokaTypeId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TolokaTypeId");
+
+                    b.ToTable("Tolokas");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.TolokaContribution", b =>
+                {
+                    b.Property<int>("TolokaId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("Value")
+                        .HasColumnType("integer");
+
+                    b.HasKey("TolokaId", "PlayerId");
+
+                    b.HasIndex("PlayerId");
+
+                    b.ToTable("TolokaContributions");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.TolokaType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Goal")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LogicName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("ResourceTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RotationWeight")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResourceTypeId");
+
+                    b.ToTable("TolokaTypes");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.TradeLot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CommissionCoins")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpireDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("GiveResourceTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GiveValue")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SellerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WantResourceTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WantValue")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SellerId");
+
+                    b.ToTable("TradeLots");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Trait", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DurationPercent")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LogicName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("LuckWeightPercent")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("NoFatigue")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Traits");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DurationPercent = 0,
+                            LogicName = "ordinary",
+                            LuckWeightPercent = 0,
+                            Name = "Обычный",
+                            NoFatigue = false
+                        },
+                        new
+                        {
+                            Id = 2,
+                            DurationPercent = -10,
+                            LogicName = "nimble",
+                            LuckWeightPercent = 0,
+                            Name = "Проворный",
+                            NoFatigue = false
+                        },
+                        new
+                        {
+                            Id = 3,
+                            DurationPercent = -20,
+                            LogicName = "diligent",
+                            LuckWeightPercent = 0,
+                            Name = "Работящий",
+                            NoFatigue = false
+                        },
+                        new
+                        {
+                            Id = 4,
+                            DurationPercent = 15,
+                            LogicName = "sonya",
+                            LuckWeightPercent = 0,
+                            Name = "Соня",
+                            NoFatigue = true
+                        },
+                        new
+                        {
+                            Id = 5,
+                            DurationPercent = 0,
+                            LogicName = "lucky",
+                            LuckWeightPercent = 100,
+                            Name = "Везучий",
+                            NoFatigue = false
+                        });
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.WeatherPeriod", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("WeatherTypeId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WeatherTypeId");
+
+                    b.ToTable("WeatherPeriods");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.WeatherType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("LogicName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("RotationWeight")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("WeatherTypes");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.WeatherTypeEffect", b =>
+                {
+                    b.Property<int>("WeatherTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("DomikTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("OutputPercent")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WeatherTypeId", "DomikTypeId");
+
+                    b.ToTable("WeatherTypeEffects");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Worker", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ExpeditionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ManufactureId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("RestUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("TraitId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WorkedSeconds")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpeditionId");
+
+                    b.HasIndex("ManufactureId");
+
+                    b.HasIndex("PlayerId");
+
+                    b.HasIndex("TraitId");
+
+                    b.ToTable("Workers");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.WorkerSkill", b =>
+                {
+                    b.Property<int>("WorkerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DomikTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Uses")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WorkerId", "DomikTypeId");
+
+                    b.ToTable("WorkerSkills");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -526,6 +1340,44 @@ namespace Domiki.Web.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Domiki.Web.Data.Blueprint", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.DomikType", "DomikType")
+                        .WithMany()
+                        .HasForeignKey("DomikTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domiki.Web.Data.Neighbor", "Neighbor")
+                        .WithMany()
+                        .HasForeignKey("NeighborId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DomikType");
+
+                    b.Navigation("Neighbor");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.DecorCost", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.DecorType", "DecorType")
+                        .WithMany()
+                        .HasForeignKey("DecorTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domiki.Web.Data.ResourceType", "ResourceType")
+                        .WithMany()
+                        .HasForeignKey("ResourceTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DecorType");
+
+                    b.Navigation("ResourceType");
+                });
+
             modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevel", b =>
                 {
                     b.HasOne("Domiki.Web.Data.DomikType", "DomikType")
@@ -594,6 +1446,47 @@ namespace Domiki.Web.Data.Migrations
                     b.Navigation("ResourceType");
                 });
 
+            modelBuilder.Entity("Domiki.Web.Data.Expedition", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.ExpeditionType", "ExpeditionType")
+                        .WithMany()
+                        .HasForeignKey("ExpeditionTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ExpeditionType");
+
+                    b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.ExpeditionEquipment", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.ExpeditionType", "ExpeditionType")
+                        .WithMany()
+                        .HasForeignKey("ExpeditionTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ExpeditionType");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.ExpeditionLoot", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.ExpeditionType", "ExpeditionType")
+                        .WithMany()
+                        .HasForeignKey("ExpeditionTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ExpeditionType");
+                });
+
             modelBuilder.Entity("Domiki.Web.Data.Manufacture", b =>
                 {
                     b.HasOne("Domiki.Web.Data.Domik", "Domik")
@@ -603,6 +1496,101 @@ namespace Domiki.Web.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Domik");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.NeighborReputation", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Neighbor", "Neighbor")
+                        .WithMany()
+                        .HasForeignKey("NeighborId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Neighbor");
+
+                    b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Order", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Neighbor", "Neighbor")
+                        .WithMany()
+                        .HasForeignKey("NeighborId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Neighbor");
+
+                    b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.OrderResource", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Order", "Order")
+                        .WithMany("Resources")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domiki.Web.Data.ResourceType", "ResourceType")
+                        .WithMany()
+                        .HasForeignKey("ResourceTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("ResourceType");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.PlayerBlueprint", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Blueprint", "Blueprint")
+                        .WithMany()
+                        .HasForeignKey("BlueprintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Blueprint");
+
+                    b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.PlayerDecor", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.DecorType", "DecorType")
+                        .WithMany()
+                        .HasForeignKey("DecorTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DecorType");
+
+                    b.Navigation("Player");
                 });
 
             modelBuilder.Entity("Domiki.Web.Data.ReceiptResource", b =>
@@ -633,6 +1621,133 @@ namespace Domiki.Web.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.SeasonCounter", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Toloka", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.TolokaType", "TolokaType")
+                        .WithMany()
+                        .HasForeignKey("TolokaTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TolokaType");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.TolokaContribution", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domiki.Web.Data.Toloka", "Toloka")
+                        .WithMany()
+                        .HasForeignKey("TolokaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Player");
+
+                    b.Navigation("Toloka");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.TolokaType", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.ResourceType", "ResourceType")
+                        .WithMany()
+                        .HasForeignKey("ResourceTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ResourceType");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.TradeLot", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Player", "Seller")
+                        .WithMany()
+                        .HasForeignKey("SellerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Seller");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.WeatherPeriod", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.WeatherType", "WeatherType")
+                        .WithMany()
+                        .HasForeignKey("WeatherTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WeatherType");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.WeatherTypeEffect", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.WeatherType", "WeatherType")
+                        .WithMany()
+                        .HasForeignKey("WeatherTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WeatherType");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Worker", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Expedition", "Expedition")
+                        .WithMany()
+                        .HasForeignKey("ExpeditionId");
+
+                    b.HasOne("Domiki.Web.Data.Manufacture", "Manufacture")
+                        .WithMany()
+                        .HasForeignKey("ManufactureId");
+
+                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domiki.Web.Data.Trait", "Trait")
+                        .WithMany()
+                        .HasForeignKey("TraitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Expedition");
+
+                    b.Navigation("Manufacture");
+
+                    b.Navigation("Player");
+
+                    b.Navigation("Trait");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.WorkerSkill", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Worker", "Worker")
+                        .WithMany("Skills")
+                        .HasForeignKey("WorkerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Worker");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -696,6 +1811,11 @@ namespace Domiki.Web.Data.Migrations
                     b.Navigation("Levels");
                 });
 
+            modelBuilder.Entity("Domiki.Web.Data.Order", b =>
+                {
+                    b.Navigation("Resources");
+                });
+
             modelBuilder.Entity("Domiki.Web.Data.Player", b =>
                 {
                     b.Navigation("Resources");
@@ -704,6 +1824,11 @@ namespace Domiki.Web.Data.Migrations
             modelBuilder.Entity("Domiki.Web.Data.Receipt", b =>
                 {
                     b.Navigation("Resources");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Worker", b =>
+                {
+                    b.Navigation("Skills");
                 });
 #pragma warning restore 612, 618
         }
