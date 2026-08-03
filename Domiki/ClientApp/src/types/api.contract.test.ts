@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'vitest';
@@ -14,7 +14,7 @@ type ContractSchema = {
     shape: Record<string, unknown>;
 };
 
-const modelsDirectory = resolve(fileURLToPath(import.meta.url), '../../../../Models');
+const backendDirectory = resolve(fileURLToPath(import.meta.url), '../../../..');
 
 const mappings: Record<string, ContractSchema> = {
     ActiveGoalDto: { schemaName: 'activeGoalSchema', shape: api.activeGoalSchema.shape },
@@ -23,6 +23,9 @@ const mappings: Record<string, ContractSchema> = {
     DecorTypeDto: { schemaName: 'decorTypeSchema', shape: api.decorTypeSchema.shape },
     DomikDto: { schemaName: 'domikSchema', shape: api.domikSchema.shape },
     DomikTypeDto: { schemaName: 'domikTypeSchema', shape: api.domikTypeSchema.shape },
+    ErrandDto: { schemaName: 'errandSchema', shape: api.errandSchema.shape },
+    IncidentDto: { schemaName: 'incidentSchema', shape: api.incidentSchema.shape },
+    DomikIncidentDto: { schemaName: 'domikIncidentSchema', shape: api.domikIncidentSchema.shape },
     ExpeditionDto: { schemaName: 'expeditionSchema', shape: api.expeditionSchema.shape },
     ExpeditionEquipmentDto: { schemaName: 'expeditionEquipmentSchema', shape: api.expeditionEquipmentSchema.shape },
     ExpeditionLootDto: { schemaName: 'expeditionLootSchema', shape: api.expeditionLootSchema.shape },
@@ -30,6 +33,9 @@ const mappings: Record<string, ContractSchema> = {
     ExpeditionTypeDto: { schemaName: 'expeditionTypeSchema', shape: api.expeditionTypeSchema.shape },
     GameStateDto: { schemaName: 'gameStateSchema', shape: api.gameStateSchema.shape },
     GoalsStateDto: { schemaName: 'goalsStateSchema', shape: api.goalsStateSchema.shape },
+    GuestbookDto: { schemaName: 'guestbookSchema', shape: api.guestbookSchema.shape },
+    GuestbookEntryDto: { schemaName: 'guestbookEntrySchema', shape: api.guestbookEntrySchema.shape },
+    HelpResultDto: { schemaName: 'helpResultSchema', shape: api.helpResultSchema.shape },
     ManufactureDto: { schemaName: 'manufactureSchema', shape: api.manufactureSchema.shape },
     MarketStateDto: { schemaName: 'marketStateSchema', shape: api.marketStateSchema.shape },
     ModificatorDto: { schemaName: 'modificatorSchema', shape: api.modificatorSchema.shape },
@@ -44,8 +50,11 @@ const mappings: Record<string, ContractSchema> = {
     ResourceTypeDto: { schemaName: 'resourceTypeSchema', shape: api.resourceTypeSchema.shape },
     SeasonDto: { schemaName: 'seasonSchema', shape: api.seasonSchema.shape },
     TolokaActiveBuffDto: { schemaName: 'tolokaActiveBuffSchema', shape: api.tolokaActiveBuffSchema.shape },
+    TolokaArtifactDto: { schemaName: 'tolokaArtifactSchema', shape: api.tolokaArtifactSchema.shape },
     TolokaDto: { schemaName: 'tolokaSchema', shape: api.tolokaSchema.shape },
+    TolokaPositionDto: { schemaName: 'tolokaPositionSchema', shape: api.tolokaPositionSchema.shape },
     TolokaStateDto: { schemaName: 'tolokaStateSchema', shape: api.tolokaStateSchema.shape },
+    TolokaVoteCandidateDto: { schemaName: 'tolokaVoteCandidateSchema', shape: api.tolokaVoteCandidateSchema.shape },
     TradeLotDto: { schemaName: 'tradeLotSchema', shape: api.tradeLotSchema.shape },
     UpgradeLevelDto: { schemaName: 'upgradeLevelSchema', shape: api.upgradeLevelSchema.shape },
     VillageDto: { schemaName: 'villageSchema', shape: api.villageSchema.shape },
@@ -63,9 +72,9 @@ const mappings: Record<string, ContractSchema> = {
 };
 
 const skippedDtos: Record<string, string> = {
-    ModificatorTypeDto: 'endpoint GetModificatorTypes есть, клиент не вызывает, схемы нет',
     SetVillageDto: 'request payload SetVillage отправляется без zod-схемы',
     SetFeedWorkersDto: 'request payload SetFeedWorkers отправляется без zod-схемы',
+    StartIncidentSearchDto: 'request payload StartIncidentSearch отправляется без zod-схемы',
     PushSubscribeDto: 'request payload Push/Subscribe отправляется без zod-схемы',
     PushUnsubscribeDto: 'request payload Push/Unsubscribe отправляется без zod-схемы',
 };
@@ -114,8 +123,8 @@ const getBraceDepth = (source: string, endIndex: number): number => {
 };
 
 const parseDtoClasses = (source: string): DtoClass[] => {
-    const classExpression = /\bpublic\s+class\s+(?<name>\w+Dto)\b/g;
-    const propertyExpression = /(?<attributes>(?:\s*\[[^]]+\]\s*)*)public\s+[\w.]+(?:\s*<[^>{}]+>)?(?:\?|\[\])*\s+(?<name>\w+)\s*\{\s*get;\s*(?:(?:(?:public|protected|internal|private)\s+)?(?:set|init);\s*)?\}/g;
+    const classExpression = /\bpublic\s+(?:sealed\s+)?(?:record|class)\s+(?<name>\w+Dto)\b/g;
+    const propertyExpression = /(?<attributes>(?:\s*\[[^]]+\]\s*)*)public\s+(?:required\s+)?[\w.]+(?:\s*<[^>{}]+>)?(?:\?|\[\])*\s+(?<name>\w+)\s*\{\s*get;\s*(?:(?:(?:public|protected|internal|private)\s+)?(?:set|init);\s*)?\}/g;
     const dtoClasses: DtoClass[] = [];
 
     for (const classMatch of source.matchAll(classExpression)) {
@@ -147,9 +156,13 @@ const parseDtoClasses = (source: string): DtoClass[] => {
     return dtoClasses;
 };
 
-const readDtoClasses = (): DtoClass[] => readdirSync(modelsDirectory)
-    .filter(fileName => fileName.endsWith('.cs') && fileName !== 'ApplicationUser.cs')
-    .flatMap(fileName => parseDtoClasses(readFileSync(resolve(modelsDirectory, fileName), 'utf8')));
+const readDtoClasses = (): DtoClass[] => readdirSync(backendDirectory, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => resolve(backendDirectory, entry.name, 'Dto'))
+    .filter(dtoDirectory => existsSync(dtoDirectory))
+    .flatMap(dtoDirectory => readdirSync(dtoDirectory)
+        .filter(fileName => fileName.endsWith('.cs'))
+        .flatMap(fileName => parseDtoClasses(readFileSync(resolve(dtoDirectory, fileName), 'utf8'))));
 
 describe('C# DTO and zod schema contracts', () => {
     it('models every serialized DTO property and every schema key', () => {

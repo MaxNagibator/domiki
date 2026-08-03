@@ -22,59 +22,75 @@ namespace Domiki.Web.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Domiki.Models.ApplicationUser", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("id");
 
                     b.Property<int>("AccessFailedCount")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("access_failed_count");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("concurrency_stamp");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("email");
 
                     b.Property<bool>("EmailConfirmed")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("email_confirmed");
 
                     b.Property<bool>("LockoutEnabled")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("lockout_enabled");
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lockout_end");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("normalized_email");
 
                     b.Property<string>("NormalizedUserName")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("normalized_user_name");
 
                     b.Property<string>("PasswordHash")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("password_hash");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("phone_number");
 
                     b.Property<bool>("PhoneNumberConfirmed")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("phone_number_confirmed");
 
                     b.Property<string>("SecurityStamp")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("security_stamp");
 
                     b.Property<bool>("TwoFactorEnabled")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("two_factor_enabled");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("user_name");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_asp_net_users");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -83,468 +99,747 @@ namespace Domiki.Web.Data.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
 
-                    b.ToTable("AspNetUsers", (string)null);
+                    b.ToTable("asp_net_users", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Blueprint", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Blueprint", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("DomikTypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("domik_type_id");
 
                     b.Property<string>("LogicName")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("logic_name");
 
                     b.Property<string>("Name")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
 
                     b.Property<int>("NeighborId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("neighbor_id");
 
                     b.Property<int>("ReputationThreshold")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("reputation_threshold");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_blueprints");
 
-                    b.HasIndex("DomikTypeId");
+                    b.HasIndex("DomikTypeId")
+                        .HasDatabaseName("ix_blueprints_domik_type_id");
 
-                    b.HasIndex("NeighborId");
+                    b.HasIndex("NeighborId")
+                        .HasDatabaseName("ix_blueprints_neighbor_id");
 
-                    b.ToTable("Blueprints");
+                    b.ToTable("blueprints", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DecorCost", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.DecorCost", b =>
                 {
                     b.Property<int>("DecorTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("decor_type_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("ResourceTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("resource_type_id")
                         .HasColumnOrder(2);
 
                     b.Property<int>("Value")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("value");
 
-                    b.HasKey("DecorTypeId", "ResourceTypeId");
+                    b.HasKey("DecorTypeId", "ResourceTypeId")
+                        .HasName("pk_decor_costs");
 
-                    b.HasIndex("ResourceTypeId");
+                    b.HasIndex("ResourceTypeId")
+                        .HasDatabaseName("ix_decor_costs_resource_type_id");
 
-                    b.ToTable("DecorCosts");
+                    b.ToTable("decor_costs", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DecorType", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.DecorType", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("ComfortPoints")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("comfort_points");
 
                     b.Property<bool>("IsPurchasable")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_purchasable");
 
                     b.Property<string>("LogicName")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("logic_name");
 
                     b.Property<string>("Name")
+                        .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
 
                     b.Property<int?>("NeighborId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("neighbor_id");
 
                     b.Property<int>("ReputationThreshold")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("reputation_threshold");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_decor_types");
 
-                    b.ToTable("DecorTypes");
+                    b.ToTable("decor_types", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Domik", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Domik", b =>
                 {
                     b.Property<int>("PlayerId")
                         .HasColumnType("integer")
+                        .HasColumnName("player_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("Id")
                         .HasColumnType("integer")
+                        .HasColumnName("id")
                         .HasColumnOrder(2);
 
                     b.Property<int>("Level")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("level");
 
                     b.Property<int>("TypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("type_id");
 
                     b.Property<DateTime?>("UpgradeCalculateDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("upgrade_calculate_date");
 
                     b.Property<double?>("UpgradeSeconds")
-                        .HasColumnType("double precision");
+                        .HasColumnType("double precision")
+                        .HasColumnName("upgrade_seconds");
 
-                    b.HasKey("PlayerId", "Id");
+                    b.HasKey("PlayerId", "Id")
+                        .HasName("pk_domiks");
 
-                    b.ToTable("Domiks");
+                    b.ToTable("domiks", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DomikType", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.DomikType", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("LogicName")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("logic_name");
 
                     b.Property<int>("MaxCount")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("max_count");
 
                     b.Property<string>("Name")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
 
                     b.Property<int>("UnlockLevel")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("unlock_level");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_domik_types");
 
-                    b.ToTable("DomikTypes");
+                    b.ToTable("domik_types", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DomikTypeCountGate", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.DomikTypeCountGate", b =>
                 {
                     b.Property<int>("DomikTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("domik_type_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("Ordinal")
                         .HasColumnType("integer")
+                        .HasColumnName("ordinal")
                         .HasColumnOrder(2);
 
                     b.Property<int>("UnlockLevel")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("unlock_level");
 
-                    b.HasKey("DomikTypeId", "Ordinal");
+                    b.HasKey("DomikTypeId", "Ordinal")
+                        .HasName("pk_domik_type_count_gates");
 
-                    b.ToTable("DomikTypeCountGates");
+                    b.ToTable("domik_type_count_gates", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevel", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.DomikTypeLevel", b =>
                 {
                     b.Property<int>("DomikTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("domik_type_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("Value")
                         .HasColumnType("integer")
+                        .HasColumnName("value")
                         .HasColumnOrder(2);
 
                     b.Property<int>("MaxManufactureCount")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("max_manufacture_count");
 
                     b.Property<int>("UpgradeSeconds")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("upgrade_seconds");
 
-                    b.HasKey("DomikTypeId", "Value");
+                    b.HasKey("DomikTypeId", "Value")
+                        .HasName("pk_domik_type_levels");
 
-                    b.ToTable("DomikTypeLevels");
+                    b.ToTable("domik_type_levels", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevelModificator", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.DomikTypeLevelModificator", b =>
                 {
                     b.Property<int>("DomikTypeLevelDomikTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("domik_type_level_domik_type_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("DomikTypeLevelValue")
                         .HasColumnType("integer")
+                        .HasColumnName("domik_type_level_value")
                         .HasColumnOrder(2);
 
                     b.Property<int>("ModificatorTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("modificator_type_id")
                         .HasColumnOrder(3);
 
                     b.Property<int>("Value")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("value");
 
-                    b.HasKey("DomikTypeLevelDomikTypeId", "DomikTypeLevelValue", "ModificatorTypeId");
+                    b.HasKey("DomikTypeLevelDomikTypeId", "DomikTypeLevelValue", "ModificatorTypeId")
+                        .HasName("pk_domik_type_level_modificators");
 
-                    b.HasIndex("ModificatorTypeId");
+                    b.HasIndex("ModificatorTypeId")
+                        .HasDatabaseName("ix_domik_type_level_modificators_modificator_type_id");
 
-                    b.ToTable("DomikTypeLevelModificators");
+                    b.ToTable("domik_type_level_modificators", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevelReceipt", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.DomikTypeLevelReceipt", b =>
                 {
                     b.Property<int>("DomikTypeLevelDomikTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("domik_type_level_domik_type_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("DomikTypeLevelValue")
                         .HasColumnType("integer")
+                        .HasColumnName("domik_type_level_value")
                         .HasColumnOrder(2);
 
                     b.Property<int>("ReceiptId")
                         .HasColumnType("integer")
+                        .HasColumnName("receipt_id")
                         .HasColumnOrder(3);
 
-                    b.HasKey("DomikTypeLevelDomikTypeId", "DomikTypeLevelValue", "ReceiptId");
+                    b.HasKey("DomikTypeLevelDomikTypeId", "DomikTypeLevelValue", "ReceiptId")
+                        .HasName("pk_domik_type_level_recepts");
 
-                    b.HasIndex("ReceiptId");
+                    b.HasIndex("ReceiptId")
+                        .HasDatabaseName("ix_domik_type_level_recepts_receipt_id");
 
-                    b.ToTable("DomikTypeLevelReceipts");
+                    b.ToTable("domik_type_level_recepts", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevelResource", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.DomikTypeLevelResource", b =>
                 {
                     b.Property<int>("DomikTypeLevelDomikTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("domik_type_level_domik_type_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("DomikTypeLevelValue")
                         .HasColumnType("integer")
+                        .HasColumnName("domik_type_level_value")
                         .HasColumnOrder(2);
 
                     b.Property<int>("ResourceTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("resource_type_id")
                         .HasColumnOrder(3);
 
                     b.Property<int>("Value")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("value");
 
-                    b.HasKey("DomikTypeLevelDomikTypeId", "DomikTypeLevelValue", "ResourceTypeId");
+                    b.HasKey("DomikTypeLevelDomikTypeId", "DomikTypeLevelValue", "ResourceTypeId")
+                        .HasName("pk_domik_type_level_resources");
 
-                    b.HasIndex("ResourceTypeId");
+                    b.HasIndex("ResourceTypeId")
+                        .HasDatabaseName("ix_domik_type_level_resources_resource_type_id");
 
-                    b.ToTable("DomikTypeLevelResources");
+                    b.ToTable("domik_type_level_resources", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Expedition", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Errand", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("AcceptDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accept_date");
+
+                    b.Property<int?>("ClueId")
+                        .HasColumnType("integer")
+                        .HasColumnName("clue_id");
+
+                    b.Property<DateTime>("ExpireDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expire_date");
+
+                    b.Property<DateTime?>("FinishDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finish_date");
+
+                    b.Property<int>("NeighborId")
+                        .HasColumnType("integer")
+                        .HasColumnName("neighbor_id");
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id");
+
+                    b.Property<DateTime?>("ResolvedDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_date");
+
+                    b.Property<int>("TemplateId")
+                        .HasColumnType("integer")
+                        .HasColumnName("template_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_errands");
+
+                    b.HasIndex("NeighborId")
+                        .HasDatabaseName("ix_errands_neighbor_id");
+
+                    b.HasIndex("PlayerId")
+                        .HasDatabaseName("ix_errands_player_id");
+
+                    b.ToTable("errands", (string)null);
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Expedition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("ExpeditionTypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("expedition_type_id");
 
                     b.Property<DateTime>("FinishDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finish_date");
 
                     b.Property<int>("PlayerId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id");
 
                     b.Property<bool>("Provisioned")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("provisioned");
 
                     b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_date");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_expeditions");
 
-                    b.HasIndex("ExpeditionTypeId");
+                    b.HasIndex("ExpeditionTypeId")
+                        .HasDatabaseName("ix_expeditions_expedition_type_id");
 
-                    b.HasIndex("PlayerId");
+                    b.HasIndex("PlayerId")
+                        .HasDatabaseName("ix_expeditions_player_id");
 
-                    b.ToTable("Expeditions");
+                    b.ToTable("expeditions", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.ExpeditionEquipment", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.ExpeditionEquipment", b =>
                 {
                     b.Property<int>("ExpeditionTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("expedition_type_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("ResourceTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("resource_type_id")
                         .HasColumnOrder(2);
 
                     b.Property<bool>("IsOptional")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_optional");
 
                     b.Property<int>("Value")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("value");
 
-                    b.HasKey("ExpeditionTypeId", "ResourceTypeId");
+                    b.HasKey("ExpeditionTypeId", "ResourceTypeId")
+                        .HasName("pk_expedition_equipment");
 
-                    b.ToTable("ExpeditionEquipment");
+                    b.ToTable("expedition_equipment", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.ExpeditionLoot", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.ExpeditionLoot", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int?>("BlueprintId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("blueprint_id");
 
                     b.Property<int?>("DecorTypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("decor_type_id");
 
                     b.Property<int>("ExpeditionTypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("expedition_type_id");
 
                     b.Property<bool>("IsRare")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_rare");
 
                     b.Property<int>("Kind")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("kind");
 
                     b.Property<int>("MaxValue")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("max_value");
 
                     b.Property<int>("MinValue")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("min_value");
 
                     b.Property<int?>("ResourceTypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("resource_type_id");
 
                     b.Property<int>("Weight")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("weight");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_expedition_loot");
 
-                    b.HasIndex("ExpeditionTypeId");
+                    b.HasIndex("ExpeditionTypeId")
+                        .HasDatabaseName("ix_expedition_loot_expedition_type_id");
 
-                    b.ToTable("ExpeditionLoot");
+                    b.ToTable("expedition_loot", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.ExpeditionType", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.ExpeditionType", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("DurationSeconds")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_seconds");
 
                     b.Property<int>("GoldCost")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("gold_cost");
 
                     b.Property<string>("LogicName")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("logic_name");
 
                     b.Property<string>("Name")
+                        .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
 
                     b.Property<int>("RollCount")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("roll_count");
 
                     b.Property<int>("WorkerCount")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("worker_count");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_expedition_types");
 
-                    b.ToTable("ExpeditionTypes");
+                    b.ToTable("expedition_types", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Manufacture", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.GuestbookEntry", b =>
+                {
+                    b.Property<int>("HostPlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("host_player_id")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("GuestPlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("guest_player_id")
+                        .HasColumnOrder(2);
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day")
+                        .HasColumnOrder(3);
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date");
+
+                    b.Property<int?>("PhraseId")
+                        .HasColumnType("integer")
+                        .HasColumnName("phrase_id");
+
+                    b.HasKey("HostPlayerId", "GuestPlayerId", "Day")
+                        .HasName("pk_guestbook_entries");
+
+                    b.HasIndex("GuestPlayerId")
+                        .HasDatabaseName("ix_guestbook_entries_guest_player_id");
+
+                    b.ToTable("guestbook_entries", (string)null);
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Incident", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ClueId")
+                        .HasColumnType("integer")
+                        .HasColumnName("clue_id");
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("create_date");
+
+                    b.Property<int?>("DomikTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("domik_type_id");
+
+                    b.Property<int?>("ExpeditionTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("expedition_type_id");
+
+                    b.Property<int?>("MissingWorkerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("missing_worker_id");
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id");
+
+                    b.Property<DateTime?>("ResolvedDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_date");
+
+                    b.Property<DateTime?>("SearchEndDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("search_end_date");
+
+                    b.Property<int>("SourceType")
+                        .HasColumnType("integer")
+                        .HasColumnName("source_type");
+
+                    b.Property<int>("TemplateId")
+                        .HasColumnType("integer")
+                        .HasColumnName("template_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_incidents");
+
+                    b.HasIndex("PlayerId")
+                        .HasDatabaseName("ix_incidents_player_id");
+
+                    b.ToTable("incidents", (string)null);
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Manufacture", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("AutoRepeat")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("auto_repeat");
 
                     b.Property<int>("DomikId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("domik_id");
 
                     b.Property<int>("DomikPlayerId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("domik_player_id");
 
                     b.Property<int>("DurationSeconds")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_seconds");
 
                     b.Property<DateTime>("FinishDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finish_date");
 
                     b.Property<int>("OutputPercent")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("output_percent");
 
                     b.Property<int>("PlodderCount")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("plodder_count");
 
                     b.Property<int>("ReceiptId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("receipt_id");
+
+                    b.Property<int>("SickChance")
+                        .HasColumnType("integer")
+                        .HasColumnName("sick_chance");
 
                     b.Property<bool>("UseOptional")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("use_optional");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_manufactures");
 
-                    b.HasIndex("DomikPlayerId", "DomikId");
+                    b.HasIndex("DomikPlayerId", "DomikId")
+                        .HasDatabaseName("ix_manufactures_domik_player_id_domik_id");
 
-                    b.ToTable("Manufactures");
+                    b.ToTable("manufactures", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.ModificatorType", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.ModificatorType", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("LogicName")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("logic_name");
 
                     b.Property<string>("Name")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_modificator_types");
 
-                    b.ToTable("ModificatorTypes");
+                    b.ToTable("modificator_types", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Neighbor", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Neighbor", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("LogicName")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("logic_name");
 
                     b.Property<string>("Name")
+                        .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
 
                     b.Property<int>("PrimaryResourceTypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("primary_resource_type_id");
 
                     b.Property<int?>("SecondaryResourceTypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("secondary_resource_type_id");
 
                     b.Property<int>("UnlockLevel")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("unlock_level");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_neighbors");
 
-                    b.ToTable("Neighbors");
+                    b.ToTable("neighbors", (string)null);
 
                     b.HasData(
                         new
@@ -589,416 +884,552 @@ namespace Domiki.Web.Data.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.NeighborReputation", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.NeighborReputation", b =>
                 {
                     b.Property<int>("PlayerId")
                         .HasColumnType("integer")
+                        .HasColumnName("player_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("NeighborId")
                         .HasColumnType("integer")
+                        .HasColumnName("neighbor_id")
                         .HasColumnOrder(2);
 
                     b.Property<int>("Points")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("points");
 
-                    b.HasKey("PlayerId", "NeighborId");
+                    b.HasKey("PlayerId", "NeighborId")
+                        .HasName("pk_neighbor_reputations");
 
-                    b.HasIndex("NeighborId");
+                    b.HasIndex("NeighborId")
+                        .HasDatabaseName("ix_neighbor_reputations_neighbor_id");
 
-                    b.ToTable("NeighborReputations");
+                    b.ToTable("neighbor_reputations", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Order", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Order", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreateDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("create_date");
 
                     b.Property<DateTime>("ExpireDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expire_date");
 
                     b.Property<int>("NeighborId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("neighbor_id");
 
                     b.Property<int>("PlayerId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id");
 
                     b.Property<int>("RewardCoins")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("reward_coins");
 
                     b.Property<int>("RewardGold")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("reward_gold");
 
                     b.Property<int>("RewardReputation")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("reward_reputation");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_orders");
 
-                    b.HasIndex("NeighborId");
+                    b.HasIndex("NeighborId")
+                        .HasDatabaseName("ix_orders_neighbor_id");
 
-                    b.HasIndex("PlayerId");
+                    b.HasIndex("PlayerId")
+                        .HasDatabaseName("ix_orders_player_id");
 
-                    b.ToTable("Orders");
+                    b.ToTable("orders", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.OrderResource", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.OrderResource", b =>
                 {
                     b.Property<int>("OrderId")
                         .HasColumnType("integer")
+                        .HasColumnName("order_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("ResourceTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("resource_type_id")
                         .HasColumnOrder(2);
 
                     b.Property<int>("Value")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("value");
 
-                    b.HasKey("OrderId", "ResourceTypeId");
+                    b.HasKey("OrderId", "ResourceTypeId")
+                        .HasName("pk_order_resources");
 
-                    b.HasIndex("ResourceTypeId");
+                    b.HasIndex("ResourceTypeId")
+                        .HasDatabaseName("ix_order_resources_resource_type_id");
 
-                    b.ToTable("OrderResources");
+                    b.ToTable("order_resources", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Player", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Player", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AspNetUserId")
                         .IsRequired()
                         .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("asp_net_user_id");
 
                     b.Property<int>("CrestColor")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("crest_color");
 
                     b.Property<int>("CrestIcon")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("crest_icon");
 
                     b.Property<int>("ExpeditionsSincePity")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("expeditions_since_pity");
 
                     b.Property<bool>("FeedWorkers")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("feed_workers");
 
                     b.Property<DateTime?>("GoldMinedDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("gold_mined_date");
 
                     b.Property<int>("GoldMinedToday")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("gold_mined_today");
+
+                    b.Property<DateTime?>("HelpsReceivedDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("helps_received_date");
+
+                    b.Property<int>("HelpsReceivedToday")
+                        .HasColumnType("integer")
+                        .HasColumnName("helps_received_today");
+
+                    b.Property<DateTime?>("LastDomikIncidentDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_domik_incident_date");
+
+                    b.Property<DateTime?>("LastHelpDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_help_date");
+
+                    b.Property<DateTime?>("LastIncidentDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_incident_date");
 
                     b.Property<DateTime?>("LastSeen")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen");
+
+                    b.Property<DateTime?>("LastWorkerMilestoneDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_worker_milestone_date");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
 
                     b.Property<DateTime?>("NextOrderRefillAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_order_refill_at");
 
                     b.Property<Guid>("Version")
                         .IsConcurrencyToken()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("version");
 
                     b.Property<string>("VillageName")
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("village_name");
+
+                    b.Property<int>("VisitsSinceBigGift")
+                        .HasColumnType("integer")
+                        .HasColumnName("visits_since_big_gift");
 
                     b.Property<int>("ZealCharges")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("zeal_charges");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_players");
 
                     b.HasIndex("AspNetUserId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("ix_players_asp_net_user_id");
 
                     b.HasIndex("VillageName")
                         .IsUnique()
-                        .HasFilter("\"VillageName\" IS NOT NULL");
+                        .HasDatabaseName("ix_players_village_name")
+                        .HasFilter("\"village_name\" IS NOT NULL");
 
-                    b.ToTable("Players");
+                    b.ToTable("players", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.PlayerBlueprint", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.PlayerBlueprint", b =>
                 {
                     b.Property<int>("PlayerId")
                         .HasColumnType("integer")
+                        .HasColumnName("player_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("BlueprintId")
                         .HasColumnType("integer")
+                        .HasColumnName("blueprint_id")
                         .HasColumnOrder(2);
 
-                    b.HasKey("PlayerId", "BlueprintId");
+                    b.HasKey("PlayerId", "BlueprintId")
+                        .HasName("pk_player_blueprints");
 
-                    b.HasIndex("BlueprintId");
+                    b.HasIndex("BlueprintId")
+                        .HasDatabaseName("ix_player_blueprints_blueprint_id");
 
-                    b.ToTable("PlayerBlueprints");
+                    b.ToTable("player_blueprints", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.PlayerDecor", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.PlayerDecor", b =>
                 {
                     b.Property<int>("PlayerId")
                         .HasColumnType("integer")
+                        .HasColumnName("player_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("DecorTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("decor_type_id")
                         .HasColumnOrder(2);
 
                     b.Property<int>("Count")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("count");
 
-                    b.HasKey("PlayerId", "DecorTypeId");
+                    b.HasKey("PlayerId", "DecorTypeId")
+                        .HasName("pk_player_decors");
 
-                    b.HasIndex("DecorTypeId");
+                    b.HasIndex("DecorTypeId")
+                        .HasDatabaseName("ix_player_decors_decor_type_id");
 
-                    b.ToTable("PlayerDecors");
+                    b.ToTable("player_decors", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.PlayerEvent", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.PlayerEvent", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Data")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("data");
 
                     b.Property<DateTime>("Date")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date");
 
                     b.Property<int>("PlayerId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id");
 
                     b.Property<bool>("Read")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("read");
 
                     b.Property<int>("Type")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("type");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_player_events");
 
-                    b.HasIndex("PlayerId", "Date");
+                    b.HasIndex("PlayerId", "Date")
+                        .HasDatabaseName("ix_player_events_player_id_date");
 
-                    b.ToTable("PlayerEvents");
+                    b.ToTable("player_events", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.PlayerGoal", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.PlayerGoal", b =>
                 {
                     b.Property<int>("PlayerId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id");
 
                     b.Property<int>("GoalId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("goal_id");
 
                     b.Property<DateTime>("CompleteDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("complete_date");
 
-                    b.HasKey("PlayerId", "GoalId");
+                    b.HasKey("PlayerId", "GoalId")
+                        .HasName("pk_player_goals");
 
-                    b.ToTable("PlayerGoals");
+                    b.ToTable("player_goals", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.PlayerPushSubscription", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.PlayerPushSubscription", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Auth")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("auth");
 
                     b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_date");
 
                     b.Property<string>("Endpoint")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("endpoint");
 
                     b.Property<string>("P256dh")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("p256dh");
 
                     b.Property<int>("PlayerId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_player_push_subscriptions");
 
                     b.HasIndex("Endpoint")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("ix_player_push_subscriptions_endpoint");
 
-                    b.ToTable("PlayerPushSubscriptions");
+                    b.ToTable("player_push_subscriptions", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Receipt", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Receipt", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("DurationSeconds")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_seconds");
 
                     b.Property<string>("LogicName")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("logic_name");
 
                     b.Property<string>("Name")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
 
                     b.Property<int>("OutputBonusPercent")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("output_bonus_percent");
 
                     b.Property<int>("PlodderCount")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("plodder_count");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_receipts");
 
-                    b.ToTable("Receipts");
+                    b.ToTable("receipts", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.ReceiptResource", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.ReceiptResource", b =>
                 {
                     b.Property<int>("ReceiptId")
                         .HasColumnType("integer")
+                        .HasColumnName("receipt_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("ResourceTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("resource_type_id")
                         .HasColumnOrder(2);
 
                     b.Property<bool>("IsInput")
                         .HasColumnType("boolean")
+                        .HasColumnName("is_input")
                         .HasColumnOrder(3);
 
                     b.Property<bool>("IsOptional")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_optional");
 
                     b.Property<int>("Value")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("value");
 
-                    b.HasKey("ReceiptId", "ResourceTypeId", "IsInput");
+                    b.HasKey("ReceiptId", "ResourceTypeId", "IsInput")
+                        .HasName("pk_receipt_resources");
 
-                    b.HasIndex("ResourceTypeId");
+                    b.HasIndex("ResourceTypeId")
+                        .HasDatabaseName("ix_receipt_resources_resource_type_id");
 
-                    b.ToTable("ReceiptResources");
+                    b.ToTable("receipt_resources", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Resource", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Resource", b =>
                 {
                     b.Property<int>("PlayerId")
                         .HasColumnType("integer")
+                        .HasColumnName("player_id")
                         .HasColumnOrder(2);
 
                     b.Property<int>("TypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("type_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("Value")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("value");
 
-                    b.HasKey("PlayerId", "TypeId");
+                    b.HasKey("PlayerId", "TypeId")
+                        .HasName("pk_resources");
 
-                    b.ToTable("Resources");
+                    b.ToTable("resources", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.ResourceType", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.ResourceType", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("LogicName")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("logic_name");
 
                     b.Property<string>("Name")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_resource_types");
 
-                    b.ToTable("ResourceTypes");
+                    b.ToTable("resource_types", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.SeasonCounter", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.SeasonCounter", b =>
                 {
                     b.Property<int>("SeasonId")
                         .HasColumnType("integer")
+                        .HasColumnName("season_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("PlayerId")
                         .HasColumnType("integer")
+                        .HasColumnName("player_id")
                         .HasColumnOrder(2);
 
                     b.Property<int>("Metric")
                         .HasColumnType("integer")
+                        .HasColumnName("metric")
                         .HasColumnOrder(3);
 
                     b.Property<int>("Value")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("value");
 
-                    b.HasKey("SeasonId", "PlayerId", "Metric");
+                    b.HasKey("SeasonId", "PlayerId", "Metric")
+                        .HasName("pk_season_counters");
 
-                    b.HasIndex("PlayerId");
+                    b.HasIndex("PlayerId")
+                        .HasDatabaseName("ix_season_counters_player_id");
 
-                    b.HasIndex("SeasonId", "Metric");
+                    b.HasIndex("SeasonId", "Metric")
+                        .HasDatabaseName("ix_season_counters_season_id_metric");
 
-                    b.ToTable("SeasonCounters");
+                    b.ToTable("season_counters", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.StarterGoal", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.StarterGoal", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("ConditionType")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("condition_type");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
 
                     b.Property<int>("Ordinal")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("ordinal");
 
                     b.Property<int>("Param")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("param");
 
                     b.Property<int>("Param2")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("param2");
 
                     b.Property<int>("RewardCoins")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("reward_coins");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_starter_goals");
 
-                    b.ToTable("StarterGoals");
+                    b.ToTable("starter_goals", (string)null);
 
                     b.HasData(
                         new
@@ -1093,174 +1524,283 @@ namespace Domiki.Web.Data.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Toloka", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Toloka", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("Collected")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime?>("CompletedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Goal")
-                        .HasColumnType("integer");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_date");
 
                     b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_date");
 
                     b.Property<int>("TolokaTypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("toloka_type_id");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_tolokas");
 
-                    b.HasIndex("TolokaTypeId");
+                    b.HasIndex("TolokaTypeId")
+                        .HasDatabaseName("ix_tolokas_toloka_type_id");
 
-                    b.ToTable("Tolokas");
+                    b.ToTable("tolokas", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.TolokaContribution", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.TolokaContribution", b =>
                 {
                     b.Property<int>("TolokaId")
                         .HasColumnType("integer")
+                        .HasColumnName("toloka_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("PlayerId")
                         .HasColumnType("integer")
+                        .HasColumnName("player_id")
                         .HasColumnOrder(2);
 
+                    b.Property<int>("ResourceTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("resource_type_id")
+                        .HasColumnOrder(3);
+
                     b.Property<int>("Value")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("value");
 
-                    b.HasKey("TolokaId", "PlayerId");
+                    b.HasKey("TolokaId", "PlayerId", "ResourceTypeId")
+                        .HasName("pk_toloka_contributions");
 
-                    b.HasIndex("PlayerId");
+                    b.HasIndex("PlayerId")
+                        .HasDatabaseName("ix_toloka_contributions_player_id");
 
-                    b.ToTable("TolokaContributions");
+                    b.ToTable("toloka_contributions", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.TolokaType", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.TolokaPosition", b =>
+                {
+                    b.Property<int>("TolokaId")
+                        .HasColumnType("integer")
+                        .HasColumnName("toloka_id")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("ResourceTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("resource_type_id")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("Collected")
+                        .HasColumnType("integer")
+                        .HasColumnName("collected");
+
+                    b.Property<int>("Goal")
+                        .HasColumnType("integer")
+                        .HasColumnName("goal");
+
+                    b.HasKey("TolokaId", "ResourceTypeId")
+                        .HasName("pk_toloka_positions");
+
+                    b.ToTable("toloka_positions", (string)null);
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.TolokaType", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("Goal")
-                        .HasColumnType("integer");
-
                     b.Property<string>("LogicName")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("logic_name");
 
                     b.Property<string>("Name")
+                        .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int>("ResourceTypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
 
                     b.Property<int>("RotationWeight")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("rotation_weight");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_toloka_types");
 
-                    b.HasIndex("ResourceTypeId");
-
-                    b.ToTable("TolokaTypes");
+                    b.ToTable("toloka_types", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.TolokaTypeEffect", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.TolokaTypeEffect", b =>
                 {
                     b.Property<int>("TolokaTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("toloka_type_id")
                         .HasColumnOrder(1);
 
                     b.Property<int>("DomikTypeId")
                         .HasColumnType("integer")
+                        .HasColumnName("domik_type_id")
                         .HasColumnOrder(2);
 
                     b.Property<int>("OutputPercent")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("output_percent");
 
-                    b.HasKey("TolokaTypeId", "DomikTypeId");
+                    b.HasKey("TolokaTypeId", "DomikTypeId")
+                        .HasName("pk_toloka_type_effects");
 
-                    b.ToTable("TolokaTypeEffects");
+                    b.ToTable("toloka_type_effects", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.TradeLot", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.TolokaTypePosition", b =>
+                {
+                    b.Property<int>("TolokaTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("toloka_type_id")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("ResourceTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("resource_type_id")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("Goal")
+                        .HasColumnType("integer")
+                        .HasColumnName("goal");
+
+                    b.HasKey("TolokaTypeId", "ResourceTypeId")
+                        .HasName("pk_toloka_type_positions");
+
+                    b.ToTable("toloka_type_positions", (string)null);
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.TolokaVote", b =>
+                {
+                    b.Property<int>("TolokaId")
+                        .HasColumnType("integer")
+                        .HasColumnName("toloka_id")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("CandidateTolokaTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("candidate_toloka_type_id");
+
+                    b.HasKey("TolokaId", "PlayerId")
+                        .HasName("pk_toloka_votes");
+
+                    b.ToTable("toloka_votes", (string)null);
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.TradeLot", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("CommissionCoins")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("commission_coins");
 
                     b.Property<DateTime>("CreateDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("create_date");
 
                     b.Property<DateTime>("ExpireDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expire_date");
 
                     b.Property<int>("GiveResourceTypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("give_resource_type_id");
 
                     b.Property<int>("GiveValue")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("give_value");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer")
+                        .HasColumnName("kind");
 
                     b.Property<int>("SellerId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("seller_id");
 
                     b.Property<int>("WantResourceTypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("want_resource_type_id");
 
                     b.Property<int>("WantValue")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("want_value");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_trade_lots");
 
-                    b.HasIndex("SellerId");
+                    b.HasIndex("SellerId")
+                        .HasDatabaseName("ix_trade_lots_seller_id");
 
-                    b.ToTable("TradeLots");
+                    b.ToTable("trade_lots", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Trait", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Trait", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("DurationPercent")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_percent");
 
                     b.Property<string>("LogicName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("logic_name");
 
                     b.Property<int>("LuckWeightPercent")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("luck_weight_percent");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
 
                     b.Property<bool>("NoFatigue")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("no_fatigue");
 
-                    b.HasKey("Id");
+                    b.Property<bool>("NoSick")
+                        .HasColumnType("boolean")
+                        .HasColumnName("no_sick");
 
-                    b.ToTable("Traits");
+                    b.HasKey("Id")
+                        .HasName("pk_traits");
+
+                    b.ToTable("traits", (string)null);
 
                     b.HasData(
                         new
@@ -1270,7 +1810,8 @@ namespace Domiki.Web.Data.Migrations
                             LogicName = "ordinary",
                             LuckWeightPercent = 0,
                             Name = "Обычный",
-                            NoFatigue = false
+                            NoFatigue = false,
+                            NoSick = false
                         },
                         new
                         {
@@ -1279,7 +1820,8 @@ namespace Domiki.Web.Data.Migrations
                             LogicName = "nimble",
                             LuckWeightPercent = 0,
                             Name = "Проворный",
-                            NoFatigue = false
+                            NoFatigue = false,
+                            NoSick = false
                         },
                         new
                         {
@@ -1288,7 +1830,8 @@ namespace Domiki.Web.Data.Migrations
                             LogicName = "diligent",
                             LuckWeightPercent = 0,
                             Name = "Работящий",
-                            NoFatigue = false
+                            NoFatigue = false,
+                            NoSick = false
                         },
                         new
                         {
@@ -1297,7 +1840,8 @@ namespace Domiki.Web.Data.Migrations
                             LogicName = "sonya",
                             LuckWeightPercent = 0,
                             Name = "Соня",
-                            NoFatigue = true
+                            NoFatigue = true,
+                            NoSick = false
                         },
                         new
                         {
@@ -1306,673 +1850,930 @@ namespace Domiki.Web.Data.Migrations
                             LogicName = "lucky",
                             LuckWeightPercent = 100,
                             Name = "Везучий",
-                            NoFatigue = false
+                            NoFatigue = false,
+                            NoSick = false
+                        },
+                        new
+                        {
+                            Id = 6,
+                            DurationPercent = 0,
+                            LogicName = "hardy",
+                            LuckWeightPercent = 0,
+                            Name = "Крепкий",
+                            NoFatigue = false,
+                            NoSick = true
                         });
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.WeatherPeriod", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.WeatherPeriod", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("EndDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_date");
 
                     b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_date");
 
                     b.Property<int>("WeatherTypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("weather_type_id");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_weather_periods");
 
-                    b.HasIndex("WeatherTypeId");
+                    b.HasIndex("WeatherTypeId")
+                        .HasDatabaseName("ix_weather_periods_weather_type_id");
 
-                    b.ToTable("WeatherPeriods");
+                    b.ToTable("weather_periods", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.WeatherType", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.WeatherType", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("LogicName")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int>("RotationWeight")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("WeatherTypes");
-                });
-
-            modelBuilder.Entity("Domiki.Web.Data.WeatherTypeEffect", b =>
-                {
-                    b.Property<int>("WeatherTypeId")
-                        .HasColumnType("integer")
-                        .HasColumnOrder(1);
-
-                    b.Property<int>("DomikTypeId")
-                        .HasColumnType("integer")
-                        .HasColumnOrder(2);
-
-                    b.Property<int>("OutputPercent")
-                        .HasColumnType("integer");
-
-                    b.HasKey("WeatherTypeId", "DomikTypeId");
-
-                    b.ToTable("WeatherTypeEffects");
-                });
-
-            modelBuilder.Entity("Domiki.Web.Data.Worker", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("ExpeditionId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("ManufactureId")
-                        .HasColumnType("integer");
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("logic_name");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
 
-                    b.Property<int>("PlayerId")
-                        .HasColumnType("integer");
+                    b.Property<int>("RotationWeight")
+                        .HasColumnType("integer")
+                        .HasColumnName("rotation_weight");
 
-                    b.Property<DateTime?>("RestUntil")
-                        .HasColumnType("timestamp with time zone");
+                    b.HasKey("Id")
+                        .HasName("pk_weather_types");
 
-                    b.Property<int>("TraitId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("WorkedSeconds")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ExpeditionId");
-
-                    b.HasIndex("ManufactureId");
-
-                    b.HasIndex("PlayerId");
-
-                    b.HasIndex("TraitId");
-
-                    b.ToTable("Workers");
+                    b.ToTable("weather_types", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.WorkerSkill", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.WeatherTypeEffect", b =>
                 {
-                    b.Property<int>("WorkerId")
-                        .HasColumnType("integer");
+                    b.Property<int>("WeatherTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("weather_type_id")
+                        .HasColumnOrder(1);
 
                     b.Property<int>("DomikTypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("domik_type_id")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("OutputPercent")
+                        .HasColumnType("integer")
+                        .HasColumnName("output_percent");
+
+                    b.HasKey("WeatherTypeId", "DomikTypeId")
+                        .HasName("pk_weather_type_effects");
+
+                    b.ToTable("weather_type_effects", (string)null);
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Worker", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ErrandId")
+                        .HasColumnType("integer")
+                        .HasColumnName("errand_id");
+
+                    b.Property<int>("ExpeditionCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("expedition_count");
+
+                    b.Property<int?>("ExpeditionId")
+                        .HasColumnType("integer")
+                        .HasColumnName("expedition_id");
+
+                    b.Property<DateTime>("HireDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("hire_date");
+
+                    b.Property<int?>("IncidentId")
+                        .HasColumnType("integer")
+                        .HasColumnName("incident_id");
+
+                    b.Property<int?>("ManufactureId")
+                        .HasColumnType("integer")
+                        .HasColumnName("manufacture_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id");
+
+                    b.Property<DateTime?>("RestUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("rest_until");
+
+                    b.Property<DateTime?>("SickUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sick_until");
+
+                    b.Property<int>("TraitId")
+                        .HasColumnType("integer")
+                        .HasColumnName("trait_id");
+
+                    b.Property<int>("WorkedSeconds")
+                        .HasColumnType("integer")
+                        .HasColumnName("worked_seconds");
+
+                    b.HasKey("Id")
+                        .HasName("pk_workers");
+
+                    b.HasIndex("ErrandId")
+                        .HasDatabaseName("ix_workers_errand_id");
+
+                    b.HasIndex("ExpeditionId")
+                        .HasDatabaseName("ix_workers_expedition_id");
+
+                    b.HasIndex("IncidentId")
+                        .HasDatabaseName("ix_workers_incident_id");
+
+                    b.HasIndex("ManufactureId")
+                        .HasDatabaseName("ix_workers_manufacture_id");
+
+                    b.HasIndex("PlayerId")
+                        .HasDatabaseName("ix_workers_player_id");
+
+                    b.HasIndex("TraitId")
+                        .HasDatabaseName("ix_workers_trait_id");
+
+                    b.ToTable("workers", (string)null);
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.WorkerMilestone", b =>
+                {
+                    b.Property<int>("WorkerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("worker_id");
+
+                    b.Property<int>("MilestoneType")
+                        .HasColumnType("integer")
+                        .HasColumnName("milestone_type");
+
+                    b.Property<DateTime>("GrantDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("grant_date");
+
+                    b.HasKey("WorkerId", "MilestoneType")
+                        .HasName("pk_worker_milestones");
+
+                    b.ToTable("worker_milestones", (string)null);
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.WorkerSkill", b =>
+                {
+                    b.Property<int>("WorkerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("worker_id");
+
+                    b.Property<int>("DomikTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("domik_type_id");
 
                     b.Property<int>("Uses")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("uses");
 
-                    b.HasKey("WorkerId", "DomikTypeId");
+                    b.HasKey("WorkerId", "DomikTypeId")
+                        .HasName("pk_worker_skills");
 
-                    b.ToTable("WorkerSkills");
+                    b.ToTable("worker_skills", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("id");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("concurrency_stamp");
 
                     b.Property<string>("Name")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("name");
 
                     b.Property<string>("NormalizedName")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("normalized_name");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_asp_net_roles");
 
                     b.HasIndex("NormalizedName")
                         .IsUnique()
                         .HasDatabaseName("RoleNameIndex");
 
-                    b.ToTable("AspNetRoles", (string)null);
+                    b.ToTable("asp_net_roles", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ClaimType")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("claim_type");
 
                     b.Property<string>("ClaimValue")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("claim_value");
 
                     b.Property<string>("RoleId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("role_id");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_asp_net_role_claims");
 
-                    b.HasIndex("RoleId");
+                    b.HasIndex("RoleId")
+                        .HasDatabaseName("ix_asp_net_role_claims_role_id");
 
-                    b.ToTable("AspNetRoleClaims", (string)null);
+                    b.ToTable("asp_net_role_claims", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ClaimType")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("claim_type");
 
                     b.Property<string>("ClaimValue")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("claim_value");
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_asp_net_user_claims");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_asp_net_user_claims_user_id");
 
-                    b.ToTable("AspNetUserClaims", (string)null);
+                    b.ToTable("asp_net_user_claims", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
                     b.Property<string>("LoginProvider")
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("login_provider");
 
                     b.Property<string>("ProviderKey")
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("provider_key");
 
                     b.Property<string>("ProviderDisplayName")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("provider_display_name");
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
 
-                    b.HasKey("LoginProvider", "ProviderKey");
+                    b.HasKey("LoginProvider", "ProviderKey")
+                        .HasName("pk_asp_net_user_logins");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_asp_net_user_logins_user_id");
 
-                    b.ToTable("AspNetUserLogins", (string)null);
+                    b.ToTable("asp_net_user_logins", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
                 {
                     b.Property<string>("UserId")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
 
                     b.Property<string>("RoleId")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("role_id");
 
-                    b.HasKey("UserId", "RoleId");
+                    b.HasKey("UserId", "RoleId")
+                        .HasName("pk_asp_net_user_roles");
 
-                    b.HasIndex("RoleId");
+                    b.HasIndex("RoleId")
+                        .HasDatabaseName("ix_asp_net_user_roles_role_id");
 
-                    b.ToTable("AspNetUserRoles", (string)null);
+                    b.ToTable("asp_net_user_roles", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
                     b.Property<string>("UserId")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
 
                     b.Property<string>("LoginProvider")
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("login_provider");
 
                     b.Property<string>("Name")
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("name");
 
                     b.Property<string>("Value")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("value");
 
-                    b.HasKey("UserId", "LoginProvider", "Name");
+                    b.HasKey("UserId", "LoginProvider", "Name")
+                        .HasName("pk_asp_net_user_tokens");
 
-                    b.ToTable("AspNetUserTokens", (string)null);
+                    b.ToTable("asp_net_user_tokens", (string)null);
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Blueprint", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Blueprint", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.DomikType", "DomikType")
+                    b.HasOne("Domiki.Web.Data.Entities.DomikType", "DomikType")
                         .WithMany()
                         .HasForeignKey("DomikTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_blueprints_domik_types_domik_type_id");
 
-                    b.HasOne("Domiki.Web.Data.Neighbor", "Neighbor")
+                    b.HasOne("Domiki.Web.Data.Entities.Neighbor", "Neighbor")
                         .WithMany()
                         .HasForeignKey("NeighborId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_blueprints_neighbors_neighbor_id");
 
                     b.Navigation("DomikType");
 
                     b.Navigation("Neighbor");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DecorCost", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.DecorCost", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.DecorType", "DecorType")
+                    b.HasOne("Domiki.Web.Data.Entities.DecorType", "DecorType")
                         .WithMany()
                         .HasForeignKey("DecorTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_decor_costs_decor_types_decor_type_id");
 
-                    b.HasOne("Domiki.Web.Data.ResourceType", "ResourceType")
+                    b.HasOne("Domiki.Web.Data.Entities.ResourceType", "ResourceType")
                         .WithMany()
                         .HasForeignKey("ResourceTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_decor_costs_resource_types_resource_type_id");
 
                     b.Navigation("DecorType");
 
                     b.Navigation("ResourceType");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevel", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.DomikTypeLevel", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.DomikType", "DomikType")
+                    b.HasOne("Domiki.Web.Data.Entities.DomikType", "DomikType")
                         .WithMany("Levels")
                         .HasForeignKey("DomikTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_domik_type_levels_domik_types_domik_type_id");
 
                     b.Navigation("DomikType");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevelModificator", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.DomikTypeLevelModificator", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.ModificatorType", "ModificatorType")
+                    b.HasOne("Domiki.Web.Data.Entities.ModificatorType", "ModificatorType")
                         .WithMany()
                         .HasForeignKey("ModificatorTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_domik_type_level_modificators_modificator_types_modificator");
 
-                    b.HasOne("Domiki.Web.Data.DomikTypeLevel", "DomikTypeLevel")
+                    b.HasOne("Domiki.Web.Data.Entities.DomikTypeLevel", "DomikTypeLevel")
                         .WithMany()
                         .HasForeignKey("DomikTypeLevelDomikTypeId", "DomikTypeLevelValue")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_domik_type_level_modificators_domik_type_levels_domik_type_");
 
                     b.Navigation("DomikTypeLevel");
 
                     b.Navigation("ModificatorType");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevelReceipt", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.DomikTypeLevelReceipt", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.Receipt", "Receipt")
+                    b.HasOne("Domiki.Web.Data.Entities.Receipt", "Receipt")
                         .WithMany()
                         .HasForeignKey("ReceiptId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_domik_type_level_recepts_receipts_receipt_id");
 
-                    b.HasOne("Domiki.Web.Data.DomikTypeLevel", "DomikTypeLevel")
+                    b.HasOne("Domiki.Web.Data.Entities.DomikTypeLevel", "DomikTypeLevel")
                         .WithMany()
                         .HasForeignKey("DomikTypeLevelDomikTypeId", "DomikTypeLevelValue")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_domik_type_level_recepts_domik_type_levels_domik_type_level");
 
                     b.Navigation("DomikTypeLevel");
 
                     b.Navigation("Receipt");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevelResource", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.DomikTypeLevelResource", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.ResourceType", "ResourceType")
+                    b.HasOne("Domiki.Web.Data.Entities.ResourceType", "ResourceType")
                         .WithMany()
                         .HasForeignKey("ResourceTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_domik_type_level_resources_resource_types_resource_type_id");
 
-                    b.HasOne("Domiki.Web.Data.DomikTypeLevel", "DomikTypeLevel")
+                    b.HasOne("Domiki.Web.Data.Entities.DomikTypeLevel", "DomikTypeLevel")
                         .WithMany()
                         .HasForeignKey("DomikTypeLevelDomikTypeId", "DomikTypeLevelValue")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_domik_type_level_resources_domik_type_levels_domik_type_lev");
 
                     b.Navigation("DomikTypeLevel");
 
                     b.Navigation("ResourceType");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Expedition", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Errand", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.ExpeditionType", "ExpeditionType")
+                    b.HasOne("Domiki.Web.Data.Entities.Neighbor", "Neighbor")
                         .WithMany()
-                        .HasForeignKey("ExpeditionTypeId")
+                        .HasForeignKey("NeighborId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_errands_neighbors_neighbor_id");
 
-                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "Player")
                         .WithMany()
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_errands_players_player_id");
+
+                    b.Navigation("Neighbor");
+
+                    b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Expedition", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Entities.ExpeditionType", "ExpeditionType")
+                        .WithMany()
+                        .HasForeignKey("ExpeditionTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_expeditions_expedition_types_expedition_type_id");
+
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_expeditions_players_player_id");
 
                     b.Navigation("ExpeditionType");
 
                     b.Navigation("Player");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.ExpeditionEquipment", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.ExpeditionEquipment", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.ExpeditionType", "ExpeditionType")
+                    b.HasOne("Domiki.Web.Data.Entities.ExpeditionType", "ExpeditionType")
                         .WithMany()
                         .HasForeignKey("ExpeditionTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_expedition_equipment_expedition_types_expedition_type_id");
 
                     b.Navigation("ExpeditionType");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.ExpeditionLoot", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.ExpeditionLoot", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.ExpeditionType", "ExpeditionType")
+                    b.HasOne("Domiki.Web.Data.Entities.ExpeditionType", "ExpeditionType")
                         .WithMany()
                         .HasForeignKey("ExpeditionTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_expedition_loot_expedition_types_expedition_type_id");
 
                     b.Navigation("ExpeditionType");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Manufacture", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.GuestbookEntry", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.Domik", "Domik")
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "GuestPlayer")
+                        .WithMany()
+                        .HasForeignKey("GuestPlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_guestbook_entries_players_guest_player_id");
+
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "HostPlayer")
+                        .WithMany()
+                        .HasForeignKey("HostPlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_guestbook_entries_players_host_player_id");
+
+                    b.Navigation("GuestPlayer");
+
+                    b.Navigation("HostPlayer");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Incident", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_incidents_players_player_id");
+
+                    b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Manufacture", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Entities.Domik", "Domik")
                         .WithMany("Manufactures")
                         .HasForeignKey("DomikPlayerId", "DomikId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_manufactures_domiks_domik_player_id_domik_id");
 
                     b.Navigation("Domik");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.NeighborReputation", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.NeighborReputation", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.Neighbor", "Neighbor")
+                    b.HasOne("Domiki.Web.Data.Entities.Neighbor", "Neighbor")
                         .WithMany()
                         .HasForeignKey("NeighborId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_neighbor_reputations_neighbors_neighbor_id");
 
-                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "Player")
                         .WithMany()
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_neighbor_reputations_players_player_id");
 
                     b.Navigation("Neighbor");
 
                     b.Navigation("Player");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Order", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Order", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.Neighbor", "Neighbor")
+                    b.HasOne("Domiki.Web.Data.Entities.Neighbor", "Neighbor")
                         .WithMany()
                         .HasForeignKey("NeighborId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_orders_neighbors_neighbor_id");
 
-                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "Player")
                         .WithMany()
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_orders_players_player_id");
 
                     b.Navigation("Neighbor");
 
                     b.Navigation("Player");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.OrderResource", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.OrderResource", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.Order", "Order")
+                    b.HasOne("Domiki.Web.Data.Entities.Order", "Order")
                         .WithMany("Resources")
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_order_resources_orders_order_id");
 
-                    b.HasOne("Domiki.Web.Data.ResourceType", "ResourceType")
+                    b.HasOne("Domiki.Web.Data.Entities.ResourceType", "ResourceType")
                         .WithMany()
                         .HasForeignKey("ResourceTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_order_resources_resource_types_resource_type_id");
 
                     b.Navigation("Order");
 
                     b.Navigation("ResourceType");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.PlayerBlueprint", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.PlayerBlueprint", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.Blueprint", "Blueprint")
+                    b.HasOne("Domiki.Web.Data.Entities.Blueprint", "Blueprint")
                         .WithMany()
                         .HasForeignKey("BlueprintId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_player_blueprints_blueprints_blueprint_id");
 
-                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "Player")
                         .WithMany()
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_player_blueprints_players_player_id");
 
                     b.Navigation("Blueprint");
 
                     b.Navigation("Player");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.PlayerDecor", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.PlayerDecor", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.DecorType", "DecorType")
+                    b.HasOne("Domiki.Web.Data.Entities.DecorType", "DecorType")
                         .WithMany()
                         .HasForeignKey("DecorTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_player_decors_decor_types_decor_type_id");
 
-                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "Player")
                         .WithMany()
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_player_decors_players_player_id");
 
                     b.Navigation("DecorType");
 
                     b.Navigation("Player");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.ReceiptResource", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.ReceiptResource", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.Receipt", "Receipt")
+                    b.HasOne("Domiki.Web.Data.Entities.Receipt", "Receipt")
                         .WithMany("Resources")
                         .HasForeignKey("ReceiptId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_receipt_resources_receipts_receipt_id");
 
-                    b.HasOne("Domiki.Web.Data.ResourceType", "ResourceType")
+                    b.HasOne("Domiki.Web.Data.Entities.ResourceType", "ResourceType")
                         .WithMany()
                         .HasForeignKey("ResourceTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_receipt_resources_resource_types_resource_type_id");
 
                     b.Navigation("Receipt");
 
                     b.Navigation("ResourceType");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Resource", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Resource", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "Player")
                         .WithMany("Resources")
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_resources_players_player_id");
 
                     b.Navigation("Player");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.SeasonCounter", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.SeasonCounter", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "Player")
                         .WithMany()
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_season_counters_players_player_id");
 
                     b.Navigation("Player");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Toloka", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Toloka", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.TolokaType", "TolokaType")
+                    b.HasOne("Domiki.Web.Data.Entities.TolokaType", "TolokaType")
                         .WithMany()
                         .HasForeignKey("TolokaTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_tolokas_toloka_types_toloka_type_id");
 
                     b.Navigation("TolokaType");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.TolokaContribution", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.TolokaContribution", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "Player")
                         .WithMany()
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_toloka_contributions_players_player_id");
 
-                    b.HasOne("Domiki.Web.Data.Toloka", "Toloka")
+                    b.HasOne("Domiki.Web.Data.Entities.Toloka", "Toloka")
                         .WithMany()
                         .HasForeignKey("TolokaId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_toloka_contributions_tolokas_toloka_id");
 
                     b.Navigation("Player");
 
                     b.Navigation("Toloka");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.TolokaType", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.TolokaPosition", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.ResourceType", "ResourceType")
+                    b.HasOne("Domiki.Web.Data.Entities.Toloka", "Toloka")
                         .WithMany()
-                        .HasForeignKey("ResourceTypeId")
+                        .HasForeignKey("TolokaId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_toloka_positions_tolokas_toloka_id");
 
-                    b.Navigation("ResourceType");
+                    b.Navigation("Toloka");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.TolokaTypeEffect", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.TolokaTypeEffect", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.TolokaType", "TolokaType")
+                    b.HasOne("Domiki.Web.Data.Entities.TolokaType", "TolokaType")
                         .WithMany()
                         .HasForeignKey("TolokaTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_toloka_type_effects_toloka_types_toloka_type_id");
 
                     b.Navigation("TolokaType");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.TradeLot", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.TolokaTypePosition", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.Player", "Seller")
+                    b.HasOne("Domiki.Web.Data.Entities.TolokaType", "TolokaType")
+                        .WithMany()
+                        .HasForeignKey("TolokaTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_toloka_type_positions_toloka_types_toloka_type_id");
+
+                    b.Navigation("TolokaType");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.TolokaVote", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Entities.Toloka", "Toloka")
+                        .WithMany()
+                        .HasForeignKey("TolokaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_toloka_votes_tolokas_toloka_id");
+
+                    b.Navigation("Toloka");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.TradeLot", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "Seller")
                         .WithMany()
                         .HasForeignKey("SellerId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_trade_lots_players_seller_id");
 
                     b.Navigation("Seller");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.WeatherPeriod", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.WeatherPeriod", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.WeatherType", "WeatherType")
+                    b.HasOne("Domiki.Web.Data.Entities.WeatherType", "WeatherType")
                         .WithMany()
                         .HasForeignKey("WeatherTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_weather_periods_weather_types_weather_type_id");
 
                     b.Navigation("WeatherType");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.WeatherTypeEffect", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.WeatherTypeEffect", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.WeatherType", "WeatherType")
+                    b.HasOne("Domiki.Web.Data.Entities.WeatherType", "WeatherType")
                         .WithMany()
                         .HasForeignKey("WeatherTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_weather_type_effects_weather_types_weather_type_id");
 
                     b.Navigation("WeatherType");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Worker", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Worker", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.Expedition", "Expedition")
+                    b.HasOne("Domiki.Web.Data.Entities.Errand", "Errand")
                         .WithMany()
-                        .HasForeignKey("ExpeditionId");
+                        .HasForeignKey("ErrandId")
+                        .HasConstraintName("fk_workers_errands_errand_id");
 
-                    b.HasOne("Domiki.Web.Data.Manufacture", "Manufacture")
+                    b.HasOne("Domiki.Web.Data.Entities.Expedition", "Expedition")
                         .WithMany()
-                        .HasForeignKey("ManufactureId");
+                        .HasForeignKey("ExpeditionId")
+                        .HasConstraintName("fk_workers_expeditions_expedition_id");
 
-                    b.HasOne("Domiki.Web.Data.Player", "Player")
+                    b.HasOne("Domiki.Web.Data.Entities.Incident", "Incident")
+                        .WithMany()
+                        .HasForeignKey("IncidentId")
+                        .HasConstraintName("fk_workers_incidents_incident_id");
+
+                    b.HasOne("Domiki.Web.Data.Entities.Manufacture", "Manufacture")
+                        .WithMany()
+                        .HasForeignKey("ManufactureId")
+                        .HasConstraintName("fk_workers_manufactures_manufacture_id");
+
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "Player")
                         .WithMany()
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_workers_players_player_id");
 
-                    b.HasOne("Domiki.Web.Data.Trait", "Trait")
+                    b.HasOne("Domiki.Web.Data.Entities.Trait", "Trait")
                         .WithMany()
                         .HasForeignKey("TraitId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_workers_traits_trait_id");
+
+                    b.Navigation("Errand");
 
                     b.Navigation("Expedition");
+
+                    b.Navigation("Incident");
 
                     b.Navigation("Manufacture");
 
@@ -1981,13 +2782,24 @@ namespace Domiki.Web.Data.Migrations
                     b.Navigation("Trait");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.WorkerSkill", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.WorkerMilestone", b =>
                 {
-                    b.HasOne("Domiki.Web.Data.Worker", "Worker")
+                    b.HasOne("Domiki.Web.Data.Entities.Worker", null)
+                        .WithMany()
+                        .HasForeignKey("WorkerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_worker_milestones_workers_worker_id");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.WorkerSkill", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Entities.Worker", "Worker")
                         .WithMany("Skills")
                         .HasForeignKey("WorkerId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_worker_skills_workers_worker_id");
 
                     b.Navigation("Worker");
                 });
@@ -1998,25 +2810,28 @@ namespace Domiki.Web.Data.Migrations
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_asp_net_role_claims_asp_net_roles_role_id");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("Domiki.Models.ApplicationUser", null)
+                    b.HasOne("Domiki.Web.Data.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_asp_net_user_claims_asp_net_users_user_id");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("Domiki.Models.ApplicationUser", null)
+                    b.HasOne("Domiki.Web.Data.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_asp_net_user_logins_asp_net_users_user_id");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
@@ -2025,50 +2840,53 @@ namespace Domiki.Web.Data.Migrations
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_asp_net_user_roles_asp_net_roles_role_id");
 
-                    b.HasOne("Domiki.Models.ApplicationUser", null)
+                    b.HasOne("Domiki.Web.Data.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_asp_net_user_roles_asp_net_users_user_id");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("Domiki.Models.ApplicationUser", null)
+                    b.HasOne("Domiki.Web.Data.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_asp_net_user_tokens_asp_net_users_user_id");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Domik", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Domik", b =>
                 {
                     b.Navigation("Manufactures");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.DomikType", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.DomikType", b =>
                 {
                     b.Navigation("Levels");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Order", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Order", b =>
                 {
                     b.Navigation("Resources");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Player", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Player", b =>
                 {
                     b.Navigation("Resources");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Receipt", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Receipt", b =>
                 {
                     b.Navigation("Resources");
                 });
 
-            modelBuilder.Entity("Domiki.Web.Data.Worker", b =>
+            modelBuilder.Entity("Domiki.Web.Data.Entities.Worker", b =>
                 {
                     b.Navigation("Skills");
                 });

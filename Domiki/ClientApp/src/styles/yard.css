@@ -1,0 +1,84 @@
+.yard {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.yard-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+}
+
+.yard-title {
+    margin: 0;
+}
+
+.yard-toggle {
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+    .yard-toggle:hover {
+        color: var(--pine);
+    }
+
+.yard-stage {
+    position: relative;
+    height: clamp(150px, 22vh, 240px);
+}
+
+.yard-scroll {
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--pine) var(--plank-dark);
+}
+
+    .yard-scroll::-webkit-scrollbar {
+        height: 10px;
+    }
+
+    .yard-scroll::-webkit-scrollbar-track {
+        background: var(--plank-dark);
+        border-top: 2px solid var(--ink);
+    }
+
+    .yard-scroll::-webkit-scrollbar-thumb {
+        background: var(--pine);
+        border: 2px solid var(--ink);
+    }
+
+.yard-svg {
+    display: block;
+    width: auto;
+    height: 100%;
+    margin-inline: auto;
+    image-rendering: pixelated;
+}
+
+.yard-domik {
+    cursor: pointer;
+    outline: none;
+}
+
+.yard-vignette {
+    cursor: pointer;
+    outline: none;
+}
+
+    .yard-domik:focus-visible,
+    .yard-vignette:focus-visible {
+        outline: 2px solid #e8b83a;
+        outline-offset: 2px;
+    }

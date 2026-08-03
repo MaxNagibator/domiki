@@ -8,12 +8,20 @@ import MapPinIcon from 'pixelarticons/svg/map-pin.svg?react';
 import HeartIcon from 'pixelarticons/svg/heart.svg?react';
 import CalendarIcon from 'pixelarticons/svg/calendar.svg?react';
 import ClockIcon from 'pixelarticons/svg/clock.svg?react';
-import { ApiError, getWorld, visitVillage } from '../services/api';
-import { useToast } from '../services/toast';
-import { DEFAULT_VILLAGE_ICON, VILLAGE_CREST_COLORS, VILLAGE_CREST_ICONS } from '../constants/village';
-import { formatDuration, remainingSeconds } from '../utils/time';
+import BookOpenIcon from 'pixelarticons/svg/book-open.svg?react';
+import TrophyIcon from 'pixelarticons/svg/trophy.svg?react';
+import HandIcon from 'pixelarticons/svg/hand.svg?react';
+import { ApiError, getWorld, helpVillage, leaveGuestbookEntry, visitVillage } from '../services/api';
+import { useToast } from '../services/toastContext';
+import { GUESTBOOK_PHRASES } from '../constants/guestbookPhrases';
+import { formatDuration, formatRelativeTime, remainingSeconds } from '../utils/time';
+import { pluralRu } from '../utils/plural';
 import { StatChip } from './StatChip';
 import { PixelLoader } from './PixelLoader';
+import { WorldMap } from './WorldMap';
+import { Crest } from './Crest';
+import { GuestbookEntryRow } from './GuestbookEntryRow';
+import { villageKey } from '../utils/worldMap';
 import type { VillageVisitDto, WorldDto, WorldVillageDto } from '../types/api';
 
 type SortKey = 'level' | 'seasonOrders' | 'seasonToloka' | 'seasonExpeditions' | 'comfort';
@@ -27,17 +35,6 @@ const SORT_META: Record<SortKey, { label: string; Icon: typeof HomeIcon }> = {
 };
 
 const SORT_TABS = (Object.keys(SORT_META) as SortKey[]).map(key => ({ key, ...SORT_META[key] }));
-
-const Crest = ({ icon, color }: { icon: number; color: number }) => {
-    const Icon = VILLAGE_CREST_ICONS[icon] ?? DEFAULT_VILLAGE_ICON;
-    const backgroundColor = VILLAGE_CREST_COLORS[color] ?? VILLAGE_CREST_COLORS[0];
-
-    return (
-        <span className="crest-badge" style={{ backgroundColor }}>
-            <Icon className="crest-ico" aria-hidden="true" />
-        </span>
-    );
-};
 
 const LevelBreakdown = ({ visit }: { visit: VillageVisitDto }) => (
     <div className="world-level-grid">
@@ -55,7 +52,11 @@ export const WorldPage = () => {
     const [visit, setVisit] = useState<VillageVisitDto | null>(null);
     const [visitLoading, setVisitLoading] = useState(false);
     const [sortKey, setSortKey] = useState<SortKey>('level');
+    const [focus, setFocus] = useState<{ key: string; seq: number } | null>(null);
     const [now, setNow] = useState(() => Date.now());
+    const [guestbookPhraseId, setGuestbookPhraseId] = useState<number | null>(null);
+    const [guestbookBusy, setGuestbookBusy] = useState(false);
+    const [helpBusy, setHelpBusy] = useState(false);
     const visitControllerRef = useRef<AbortController | null>(null);
 
     useEffect(() => () => { visitControllerRef.current?.abort(); }, []);
@@ -105,6 +106,7 @@ export const WorldPage = () => {
 
     const openVillage = async (village: WorldVillageDto) => {
         visitControllerRef.current?.abort();
+        setGuestbookPhraseId(null);
 
         if (village.playerId == null) {
             visitControllerRef.current = null;
@@ -134,6 +136,53 @@ export const WorldPage = () => {
             if (visitControllerRef.current === controller) {
                 setVisitLoading(false);
             }
+        }
+    };
+
+    const submitGuestbookEntry = async () => {
+        const target = selectedVillage;
+        if (target?.playerId == null || guestbookPhraseId == null) {
+            return;
+        }
+        const controllerBefore = visitControllerRef.current;
+        setGuestbookBusy(true);
+        try {
+            await leaveGuestbookEntry(target.playerId, guestbookPhraseId);
+            if (visitControllerRef.current === controllerBefore) {
+                await openVillage(target);
+            }
+        } catch (err) {
+            if (err instanceof ApiError) {
+                toast.error(err.message);
+                return;
+            }
+            throw err;
+        } finally {
+            setGuestbookBusy(false);
+        }
+    };
+
+    const submitHelp = async () => {
+        const target = selectedVillage;
+        if (target?.playerId == null) {
+            return;
+        }
+        const controllerBefore = visitControllerRef.current;
+        setHelpBusy(true);
+        try {
+            const result = await helpVillage(target.playerId);
+            toast.success(`Вы подсобили: ${result.domikTypeName} освободится на ${formatDuration(result.reducedSeconds)} раньше, +${result.rewardCoins} монет`);
+            if (visitControllerRef.current === controllerBefore) {
+                await openVillage(target);
+            }
+        } catch (err) {
+            if (err instanceof ApiError) {
+                toast.error(err.message);
+                return;
+            }
+            throw err;
+        } finally {
+            setHelpBusy(false);
         }
     };
 
@@ -182,37 +231,89 @@ export const WorldPage = () => {
             </section>
 
             <section className="wiki-section world-layout">
-                <div className="world-list pixel-panel">
-                    {sortedVillages.map((village, index) => (
-                        <button
-                            type="button"
-                            key={`${village.playerId ?? 'npc'}-${village.villageName}`}
-                            className={'world-row' + (village.isMe ? ' world-row-me' : '') + (selectedVillage === village ? ' world-row-selected' : '')}
-                            onClick={() => { void openVillage(village); }}
-                            title={village.isNpc ? 'Сосед' : 'Визит'}
-                        >
-                            <span className="world-rank">{index + 1}</span>
-                            <Crest icon={village.crestIcon} color={village.crestColor} />
-                            <span className="world-name">
-                                {village.villageName}
-                                {village.isMe && <span className="world-tag">моя</span>}
-                                {village.isNpc && <span className="world-tag">NPC</span>}
-                            </span>
-                            <span className="world-metric" title={activeMetric.label}>
-                                {sortKey !== 'level' &&
-                                    <>
-                                        <activeMetric.Icon className="world-metric-ico" aria-hidden="true" />
-                                        {village[sortKey]}
-                                    </>
-                                }
-                            </span>
-                            <span className="world-level">{village.level}</span>
-                        </button>
-                    ))}
+                <div className="world-main">
+                    <WorldMap
+                        villages={world.villages}
+                        metricKey={sortKey}
+                        metricLabel={activeMetric.label}
+                        selectedKey={selectedVillage == null ? null : villageKey(selectedVillage)}
+                        onSelect={village => { void openVillage(village); }}
+                        focus={focus}
+                    />
+                    <div className="world-ledger pixel-panel">
+                        <h2 className="panel-title world-ledger-title">
+                            <activeMetric.Icon className="world-tab-ico" aria-hidden="true" />
+                            Летопись – {activeMetric.label}
+                        </h2>
+                        {sortedVillages.slice(0, 10).map((village, index) => (
+                            <button
+                                type="button"
+                                key={villageKey(village)}
+                                className={'world-row' + (village.isMe ? ' world-row-me' : '') + (selectedVillage === village ? ' world-row-selected' : '')}
+                                onClick={() => {
+                                    void openVillage(village);
+                                    setFocus({ key: villageKey(village), seq: Date.now() });
+                                }}
+                                title={village.isNpc ? 'Сосед' : 'Визит'}
+                            >
+                                <span className="world-rank">{index + 1}</span>
+                                <Crest icon={village.crestIcon} color={village.crestColor} />
+                                <span className="world-name">
+                                    {village.villageName}
+                                    {village.isMe && <span className="world-tag">моя</span>}
+                                    {village.isNpc && <span className="world-tag">NPC</span>}
+                                </span>
+                                <span className="world-metric" title={activeMetric.label}>
+                                    {sortKey !== 'level' &&
+                                        <>
+                                            <activeMetric.Icon className="world-metric-ico" aria-hidden="true" />
+                                            {village[sortKey]}
+                                        </>
+                                    }
+                                </span>
+                                <span className="world-level">{village.level}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="world-artifacts pixel-panel">
+                        <h2 className="panel-title world-artifacts-title">
+                            <TrophyIcon className="world-tab-ico" aria-hidden="true" />
+                            Всем миром
+                        </h2>
+                        {world.tolokaArtifacts.length === 0
+                            ? <p className="hint">Ещё ни одна толока не завершена</p>
+                            : (
+                                <div className="world-artifacts-list">
+                                    {world.tolokaArtifacts.map((artifact, index) => (
+                                        <div key={`${artifact.completedDate}-${index}`} className="world-artifact-row">
+                                            <span className="world-artifact-main">
+                                                {artifact.name} – сезон {artifact.seasonNumber}, {artifact.participants} {pluralRu(artifact.participants, 'участник', 'участника', 'участников')}
+                                            </span>
+                                            <span className="world-artifact-sub">
+                                                {artifact.resourcesText} · {formatRelativeTime(artifact.completedDate, now)}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )
+                        }
+                    </div>
                 </div>
 
                 <aside className="world-visit pixel-panel">
-                    {selectedVillage == null && <p className="hint">Выбери деревню</p>}
+                    {selectedVillage == null &&
+                        <div className="world-legend">
+                            <h2 className="panel-title">Весь мир — на ладони</h2>
+                            <p className="hint">Исследуй долину, находи сильнейшие артели и заглядывай в гости. Карта живая: тяни её и меняй масштаб.</p>
+                            <ul className="world-legend-list">
+                                <li>Поселения растут вместе с обжитостью</li>
+                                <li>Золотой вымпел отмечает твою деревню</li>
+                                <li>Номер над поляной — место в сезонном топ-3</li>
+                                <li>Большая эмблема — торговое село соседей</li>
+                            </ul>
+                        </div>
+                    }
                     {selectedVillage != null && selectedVillage.isNpc &&
                         <div className="world-visit-head">
                             <Crest icon={selectedVillage.crestIcon} color={selectedVillage.crestColor} />
@@ -242,6 +343,75 @@ export const WorldPage = () => {
                                         {g.count > 1 && <span className="world-building-count">×{g.count}</span>}
                                     </div>
                                 ))}
+                            </div>
+
+                            {selectedVillage?.isMe !== true &&
+                                <div className="world-help-action">
+                                    {visit.canHelp &&
+                                        <button type="button" className="btn-game" disabled={helpBusy}
+                                            onClick={() => { void submitHelp(); }}>
+                                            <HandIcon className="btn-ico" aria-hidden="true" />
+                                            Подсобить
+                                        </button>
+                                    }
+                                    {!visit.canHelp && visit.alreadyHelpedToday &&
+                                        <p className="hint world-help-status">Вы уже подсобили сегодня</p>
+                                    }
+                                    {!visit.canHelp && !visit.alreadyHelpedToday && visit.hostCapReached &&
+                                        <p className="hint world-help-status">Этой деревне сегодня уже подсобили</p>
+                                    }
+                                    {!visit.canHelp && !visit.alreadyHelpedToday && !visit.hostCapReached && !visit.hasActiveWork &&
+                                        <p className="hint world-help-status">Сейчас у деревни нет активных работ</p>
+                                    }
+                                    {!visit.canHelp && !visit.alreadyHelpedToday && !visit.hostCapReached && visit.hasActiveWork &&
+                                        <p className="hint world-help-status">Откроется при обжитости {visit.helpUnlockLevel}</p>
+                                    }
+                                </div>
+                            }
+
+                            <div className="world-guestbook">
+                                <h3 className="panel-title world-guestbook-title">
+                                    <BookOpenIcon className="world-guestbook-ico" aria-hidden="true" />
+                                    Книга гостей
+                                </h3>
+                                {visit.guestbook.length === 0
+                                    ? <p className="hint">Пока никто не расписался</p>
+                                    : (
+                                        <div className="world-guestbook-list">
+                                            {visit.guestbook.map(entry => (
+                                                <GuestbookEntryRow key={`${entry.guestPlayerId}-${entry.date}`} entry={entry} now={now} />
+                                            ))}
+                                        </div>
+                                    )
+                                }
+                                {selectedVillage?.isMe !== true &&
+                                    <div className="world-guestbook-action">
+                                        {visit.canLeaveEntry &&
+                                            <>
+                                                <div className="world-guestbook-phrases">
+                                                    {Object.entries(GUESTBOOK_PHRASES).map(([id, text]) => (
+                                                        <button type="button" key={id}
+                                                            className={'world-guestbook-phrase' + (guestbookPhraseId === Number(id) ? ' world-guestbook-phrase-active' : '')}
+                                                            onClick={() => { setGuestbookPhraseId(Number(id)); }}>
+                                                            {text}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <button type="button" className="btn-game" disabled={guestbookPhraseId == null || guestbookBusy}
+                                                    onClick={() => { void submitGuestbookEntry(); }}>
+                                                    <BookOpenIcon className="btn-ico" aria-hidden="true" />
+                                                    Расписаться
+                                                </button>
+                                            </>
+                                        }
+                                        {!visit.canLeaveEntry && visit.alreadyLeftToday &&
+                                            <p className="hint world-guestbook-status">Вы уже расписались сегодня</p>
+                                        }
+                                        {!visit.canLeaveEntry && !visit.alreadyLeftToday &&
+                                            <p className="hint world-guestbook-status">Чтобы расписаться, нужна своя деревня с обжитостью {visit.guestbookUnlockLevel}</p>
+                                        }
+                                    </div>
+                                }
                             </div>
                         </>
                     }

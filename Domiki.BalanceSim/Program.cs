@@ -1,7 +1,9 @@
 ﻿using Domiki.BalanceSim;
-using Domiki.Web.Business.Core;
+using Domiki.Web.Data.Entities;
 using Domiki.Web.Data;
+using Domiki.Web.Reference;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 
 var configuration = new ConfigurationBuilder()
@@ -17,8 +19,7 @@ var options = new DbContextOptionsBuilder<ApplicationDbContext>()
     .UseNpgsql(connectionString)
     .Options;
 
-using var context = new ApplicationDbContext(options);
-var resources = new ResourceManager(context);
+var resources = new ResourceManager(new PooledDbContextFactory<ApplicationDbContext>(options));
 var data = SimulationData.Load(resources);
 var simulator = new BalanceSimulator(data);
 if (args.Contains("--ftue", StringComparer.OrdinalIgnoreCase))

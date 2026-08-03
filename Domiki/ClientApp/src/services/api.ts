@@ -1,23 +1,23 @@
 import { z } from 'zod';
+import { reportServerVersion } from './appVersion';
 import { authService } from './auth';
 import {
     decorStateSchema,
-    expeditionStateSchema,
     tolokaStateSchema,
     marketStateSchema,
     gameStateSchema,
-    ResponseType,
-    responseEnvelopeSchema,
-    seasonSchema,
+    guestbookSchema,
+    helpResultSchema,
+    problemDetailsSchema,
     villageSchema,
     worldSchema,
     villageVisitSchema,
     type DecorStateDto,
-    type ExpeditionStateDto,
     type GameStateDto,
+    type GuestbookDto,
+    type HelpResultDto,
     type TolokaStateDto,
     type MarketStateDto,
-    type SeasonDto,
     type VillageDto,
     type VillageVisitDto,
     type WorldDto,
@@ -29,8 +29,6 @@ export class ApiError extends Error {
         this.name = 'ApiError';
     }
 }
-
-const errorMessageType: number = ResponseType.ErrorMessage;
 
 async function request<T>(method: 'GET' | 'POST', url: string, schema: z.ZodType<T> | null, signal?: AbortSignal, body?: unknown): Promise<T> {
     let res: Response;
@@ -52,9 +50,21 @@ async function request<T>(method: 'GET' | 'POST', url: string, schema: z.ZodType
         throw new ApiError('Сеть недоступна. Попробуйте позже.');
     }
 
+    reportServerVersion(res.headers.get('X-App-Version'));
+
     if (res.status === 401) {
         authService.signIn();
         return new Promise<T>(() => {});
+    }
+
+    if (!res.ok) {
+        const body: unknown = await res.json().catch(() => null);
+        const problem = problemDetailsSchema.safeParse(body);
+        throw new ApiError(problem.success && problem.data.detail != null ? problem.data.detail : 'Неизвестная ошибка сервера.');
+    }
+
+    if (schema == null) {
+        return undefined as T;
     }
 
     let json: unknown;
@@ -64,21 +74,7 @@ async function request<T>(method: 'GET' | 'POST', url: string, schema: z.ZodType
         throw new ApiError('Некорректный ответ сервера.');
     }
 
-    const envelope = responseEnvelopeSchema.safeParse(json);
-    if (!envelope.success) {
-        throw new ApiError('Некорректный ответ сервера.');
-    }
-
-    if (envelope.data.type === errorMessageType) {
-        const message = typeof envelope.data.content === 'string' ? envelope.data.content : 'Неизвестная ошибка сервера.';
-        throw new ApiError(message);
-    }
-
-    if (schema == null) {
-        return undefined as T;
-    }
-
-    const parsed = schema.safeParse(envelope.data.content);
+    const parsed = schema.safeParse(json);
     if (!parsed.success) {
         throw new ApiError('Сервер вернул данные в неожиданном формате.');
     }
@@ -98,6 +94,17 @@ export async function apiPost(url: string, signal?: AbortSignal): Promise<void> 
 
 export const completeOrder = (orderId: number, signal?: AbortSignal): Promise<void> =>
     apiPost(`Domiki/CompleteOrder/${orderId}`, signal);
+
+export const acceptErrand = (errandId: number, clueId: number, workerIds: number[], signal?: AbortSignal): Promise<void> => {
+    const workerIdsQuery = workerIds.map(id => `&workerIds=${id}`).join('');
+    return apiPost(`Domiki/AcceptErrand/${errandId}?clueId=${clueId}${workerIdsQuery}`, signal);
+};
+
+export const cancelErrand = (errandId: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/CancelErrand/${errandId}`, signal);
+
+export const startIncidentSearch = (incidentId: number, clueId: number, workerIds: number[], signal?: AbortSignal): Promise<void> =>
+    request('POST', 'Domiki/StartIncidentSearch', null, signal, { incidentId, clueId, workerIds });
 
 export const hurryManufacture = (manufactureId: number, signal?: AbortSignal): Promise<void> =>
     apiPost(`Domiki/HurryManufacture/${manufactureId}`, signal);
@@ -123,11 +130,14 @@ export const getWorld = (signal?: AbortSignal): Promise<WorldDto> =>
 export const visitVillage = (playerId: number, signal?: AbortSignal): Promise<VillageVisitDto> =>
     apiGet(`Domiki/VisitVillage/${playerId}`, villageVisitSchema, signal);
 
-export const getSeason = (signal?: AbortSignal): Promise<SeasonDto> =>
-    apiGet('Domiki/GetSeason', seasonSchema, signal);
+export const leaveGuestbookEntry = (hostPlayerId: number, phraseId: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/LeaveGuestbookEntry/${hostPlayerId}?phraseId=${phraseId}`, signal);
 
-export const getExpeditions = (signal?: AbortSignal): Promise<ExpeditionStateDto | null> =>
-    apiGet('Domiki/GetExpeditions', expeditionStateSchema.nullable(), signal);
+export const getGuestbook = (signal?: AbortSignal): Promise<GuestbookDto> =>
+    apiGet('Domiki/GetGuestbook', guestbookSchema, signal);
+
+export const helpVillage = (hostPlayerId: number, signal?: AbortSignal): Promise<HelpResultDto> =>
+    request('POST', `Domiki/HelpVillage/${hostPlayerId}`, helpResultSchema, signal);
 
 export const startExpedition = (expeditionTypeId: number, workerIds?: number[], provisions?: boolean, signal?: AbortSignal): Promise<void> => {
     const query = [
@@ -146,14 +156,17 @@ export const buyDecor = (decorTypeId: number, signal?: AbortSignal): Promise<voi
 export const getToloka = (signal?: AbortSignal): Promise<TolokaStateDto | null> =>
     apiGet('Domiki/GetToloka', tolokaStateSchema.nullable(), signal);
 
-export const contributeToloka = (amount: number, signal?: AbortSignal): Promise<void> =>
-    apiPost(`Domiki/ContributeToloka/${amount}`, signal);
+export const contributeToloka = (resourceTypeId: number, amount: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/ContributeToloka/${resourceTypeId}/${amount}`, signal);
+
+export const voteToloka = (tolokaTypeId: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/VoteToloka/${tolokaTypeId}`, signal);
 
 export const getMarket = (signal?: AbortSignal): Promise<MarketStateDto | null> =>
     apiGet('Domiki/GetMarket', marketStateSchema.nullable(), signal);
 
-export const postLot = (giveResourceTypeId: number, giveValue: number, wantResourceTypeId: number, wantValue: number, signal?: AbortSignal): Promise<void> =>
-    apiPost(`Domiki/PostLot?giveResourceTypeId=${giveResourceTypeId}&giveValue=${giveValue}&wantResourceTypeId=${wantResourceTypeId}&wantValue=${wantValue}`, signal);
+export const postLot = (kind: number, giveResourceTypeId: number, giveValue: number, wantResourceTypeId: number, wantValue: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/PostLot?kind=${kind}&giveResourceTypeId=${giveResourceTypeId}&giveValue=${giveValue}&wantResourceTypeId=${wantResourceTypeId}&wantValue=${wantValue}`, signal);
 
 export const acceptLot = (lotId: number, signal?: AbortSignal): Promise<void> =>
     apiPost(`Domiki/AcceptLot/${lotId}`, signal);

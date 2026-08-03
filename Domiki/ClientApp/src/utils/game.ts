@@ -5,6 +5,8 @@ export const INSTA_FINISH_SECONDS_PER_GOLD = 3600;
 export const INSTA_FINISH_MAX_GOLD = 6;
 export const GOLD_RESOURCE_TYPE_ID = 5;
 export const COIN_RESOURCE_TYPE_ID = 1;
+export const SICK_CHANCE_PERCENT = 15;
+export const SICK_MIN_VILLAGE_LEVEL = 15;
 export const ZEAL_X4_THRESHOLD = 16;
 
 export const EXPEDITION_LOOT_KIND_RESOURCE = 1;
@@ -209,7 +211,7 @@ export function computeReceiptView(
 }
 
 export function isWorkerFree(worker: WorkerDto, now: number): boolean {
-    return worker.manufactureId == null && worker.expeditionId == null
+    return worker.manufactureId == null && worker.expeditionId == null && worker.errandId == null && worker.incidentId == null
         && (worker.restUntil == null || remainingSeconds(worker.restUntil, now) <= 0);
 }
 
@@ -294,4 +296,23 @@ export function sortDomiks(domiks: DomikDto[], domikTypes: DomikTypeDto[], resou
         return copy.sort((a, b) => b.level - a.level || a.typeId - b.typeId);
     }
     return copy.sort((a, b) => attentionRank(a, domikTypes, resources) - attentionRank(b, domikTypes, resources));
+}
+
+export function strongestWeatherEffect(effects: { domikTypeId: number; outputPercent: number }[], domikTypes: DomikTypeDto[]): { delta: number; domikType: DomikTypeDto } | null {
+    const typeById = new Map(domikTypes.map(type => [type.id, type]));
+    let best: { delta: number; domikType: DomikTypeDto } | null = null;
+    for (const effect of effects) {
+        if (effect.outputPercent === 100) {
+            continue;
+        }
+        const domikType = typeById.get(effect.domikTypeId);
+        if (domikType == null) {
+            continue;
+        }
+        const delta = effect.outputPercent - 100;
+        if (best == null || Math.abs(delta) > Math.abs(best.delta)) {
+            best = { delta, domikType };
+        }
+    }
+    return best;
 }

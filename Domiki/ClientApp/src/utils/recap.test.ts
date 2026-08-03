@@ -58,4 +58,72 @@ describe('buildRecapView', () => {
 
         expect(loot[3]).toEqual({ kind: 4, isRare: true, blueprintId: 2, blueprintName: 'Чертёж каменотёса' });
     });
+
+    it('parses ordinary and big neighbor gifts', () => {
+        const recap = buildRecapView([
+            { type: 'NeighborGift', date: '2026-07-10T00:06:00Z', data: { neighborId: 2, resources: [{ resourceTypeId: 3, value: 12 }], decorTypeId: null, visitIndex: 4, big: false } },
+            { type: 'NeighborGift', date: '2026-07-10T00:07:00Z', data: { neighborId: 5, resources: [], decorTypeId: 8, visitIndex: 7, big: true } },
+        ]);
+
+        expect(recap.gifts).toEqual([
+            { neighborId: 2, resources: [{ resourceTypeId: 3, value: 12 }], decorTypeId: null, visitIndex: 4, big: false, date: '2026-07-10T00:06:00Z' },
+            { neighborId: 5, resources: [], decorTypeId: 8, visitIndex: 7, big: true, date: '2026-07-10T00:07:00Z' },
+        ]);
+    });
+
+    it('silently ignores a neighbor gift without a neighbor id', () => {
+        const recap = buildRecapView([
+            { type: 'NeighborGift', date: '2026-07-10T00:08:00Z', data: { resources: [], visitIndex: 1, big: false } },
+        ]);
+
+        expect(recap.gifts).toEqual([]);
+    });
+
+    it('parses a guestbook entry left while away', () => {
+        const recap = buildRecapView([
+            { type: 'GuestbookEntryLeft', date: '2026-07-10T00:09:00Z', data: { guestVillageName: 'Заречье', guestCrestIcon: 2, guestCrestColor: 4, phraseId: 3 } },
+        ]);
+
+        expect(recap.guestbookEntries).toEqual([
+            { guestVillageName: 'Заречье', guestCrestIcon: 2, guestCrestColor: 4, phraseId: 3, date: '2026-07-10T00:09:00Z' },
+        ]);
+    });
+
+    it('silently ignores a guestbook entry without a guest village name', () => {
+        const recap = buildRecapView([
+            { type: 'GuestbookEntryLeft', date: '2026-07-10T00:10:00Z', data: { guestCrestIcon: 2, guestCrestColor: 4, phraseId: 3 } },
+        ]);
+
+        expect(recap.guestbookEntries).toEqual([]);
+    });
+
+    it('parses a village help received while away', () => {
+        const recap = buildRecapView([
+            { type: 'VillageHelped', date: '2026-07-10T00:11:00Z', data: { guestVillageName: 'Заречье', guestCrestIcon: 2, guestCrestColor: 4, domikTypeName: 'Лесопилка', reducedSeconds: 600 } },
+        ]);
+
+        expect(recap.villageHelped).toEqual([
+            { guestVillageName: 'Заречье', guestCrestIcon: 2, guestCrestColor: 4, domikTypeName: 'Лесопилка', reducedSeconds: 600, date: '2026-07-10T00:11:00Z' },
+        ]);
+    });
+
+    it('silently ignores a village help entry without a duration', () => {
+        const recap = buildRecapView([
+            { type: 'VillageHelped', date: '2026-07-10T00:12:00Z', data: { guestVillageName: 'Заречье', guestCrestIcon: 2, guestCrestColor: 4, domikTypeName: 'Лесопилка' } },
+        ]);
+
+        expect(recap.villageHelped).toEqual([]);
+    });
+
+    it('parses started and resolved building incidents', () => {
+        const recap = buildRecapView([
+            { type: 'DomikIncidentStarted', date: '2026-07-10T00:13:00Z', data: { domikTypeId: 3, templateId: 2 } },
+            { type: 'DomikIncidentResolved', date: '2026-07-10T00:14:00Z', data: { autoResolved: false, domikTypeId: 3, templateId: 2, clueId: 1, resourceTypeId: 5, value: 12, traitUpgraded: true, newTrait: 'Везучий', newTraitLogicName: 'lucky', heroWorkerName: 'Аким', heroWorkerGender: 0, upgradedWorkerName: 'Степан' } },
+        ]);
+
+        expect(recap.domikIncidents).toEqual([
+            { kind: 'started', domikTypeId: 3, templateId: 2 },
+            { kind: 'resolved', autoResolved: false, domikTypeId: 3, templateId: 2, clueId: 1, resourceTypeId: 5, value: 12, traitUpgraded: true, newTrait: 'Везучий', newTraitLogicName: 'lucky', heroWorkerName: 'Аким', heroWorkerGender: 0, upgradedWorkerName: 'Степан' },
+        ]);
+    });
 });

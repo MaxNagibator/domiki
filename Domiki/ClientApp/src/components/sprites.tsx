@@ -59,6 +59,8 @@ import RareExpeditionFindSprite from '../assets/abstract/rare_expedition_find.sv
 import ExpeditionHardeningSprite from '../assets/abstract/expedition_hardening.svg?react';
 import BlueprintSprite from '../assets/abstract/blueprint.svg?react';
 import UntouchedDepositsSprite from '../assets/abstract/untouched_deposits.svg?react';
+import JournalAbstractSprite from '../assets/abstract/journal.svg?react';
+import ElderOrderSprite from '../assets/abstract/elder_order.svg?react';
 import MechObzhitostSprite from '../assets/mechanics/obzhitost.svg?react';
 import MechOrdersSprite from '../assets/mechanics/orders.svg?react';
 import MechWorkersSprite from '../assets/mechanics/workers.svg?react';
@@ -68,6 +70,7 @@ import MechExpeditionsSprite from '../assets/mechanics/expeditions.svg?react';
 import MechMarketSprite from '../assets/mechanics/market.svg?react';
 import MechTolokaSprite from '../assets/mechanics/toloka.svg?react';
 import MechDecorSprite from '../assets/mechanics/decor.svg?react';
+import MechGiftsSprite from '../assets/mechanics/gifts.svg?react';
 import ClayResSprite from '../assets/resourceTypes/clay.svg?react';
 import CoinResSprite from '../assets/resourceTypes/coin.svg?react';
 import GoldResSprite from '../assets/resourceTypes/gold.svg?react';
@@ -132,6 +135,8 @@ const tolokaSprites: Record<string, SpriteComponent> = {
     bridge: BridgeSprite,
     granary: GranarySprite,
     kiln: KilnSprite,
+    // TODO: караван – заглушка эмблемой толоки, нарисовать canon-спрайт (ASSETS.md арт-долг)
+    caravan: MechTolokaSprite,
 };
 
 const weatherSprites: Record<string, SpriteComponent> = {
@@ -186,6 +191,8 @@ const abstractSprites: Record<string, SpriteComponent> = {
     expedition_hardening: ExpeditionHardeningSprite,
     blueprint: BlueprintSprite,
     untouched_deposits: UntouchedDepositsSprite,
+    journal: JournalAbstractSprite,
+    elder_order: ElderOrderSprite,
 };
 
 const resourceSprites: Record<string, SpriteComponent> = {
@@ -227,15 +234,14 @@ const warnUnknownSprite = (kind: string, logicName: string) => {
     }
 };
 
-const makeIconSprite = (kind: string, sprites: Record<string, SpriteComponent>, fallback?: SpriteComponent) =>
-    ({ logicName, size = 32, ...props }: IconSpriteProps) => {
-        const mappedSprite = sprites[logicName];
-        if (mappedSprite == null) {
-            warnUnknownSprite(kind, logicName);
-        }
-        const Sprite = mappedSprite ?? fallback;
-        return Sprite == null ? null : <Sprite data-size={size} {...cleanSpriteProps(props)} />;
-    };
+const renderIconSprite = (kind: string, sprites: Record<string, SpriteComponent>, fallback: SpriteComponent | undefined, { logicName, size = 32, ...props }: IconSpriteProps) => {
+    const mappedSprite = sprites[logicName];
+    if (mappedSprite == null) {
+        warnUnknownSprite(kind, logicName);
+    }
+    const Sprite = mappedSprite ?? fallback;
+    return Sprite == null ? null : <Sprite data-size={size} {...cleanSpriteProps(props)} />;
+};
 
 const mechanicSprites: Record<string, SpriteComponent> = {
     obzhitost: MechObzhitostSprite,
@@ -247,15 +253,16 @@ const mechanicSprites: Record<string, SpriteComponent> = {
     market: MechMarketSprite,
     toloka: MechTolokaSprite,
     decor: MechDecorSprite,
+    gifts: MechGiftsSprite,
 };
 
-export const MechanicSprite = makeIconSprite('mechanic', mechanicSprites);
-export const WeatherSprite = makeIconSprite('weather', weatherSprites);
-export const DecorSprite = makeIconSprite('decor', decorSprites);
-export const TraitSprite = makeIconSprite('trait', traitSprites, TraitOrdinarySprite);
-export const NeighborSprite = makeIconSprite('neighbor', neighborSprites, NeighborGenericSprite);
-export const AbstractSprite = makeIconSprite('abstract', abstractSprites);
-export const ResourceSprite = makeIconSprite('resource', resourceSprites);
+export const MechanicSprite = (props: IconSpriteProps) => <>{renderIconSprite('mechanic', mechanicSprites, undefined, props)}</>;
+export const WeatherSprite = (props: IconSpriteProps) => <>{renderIconSprite('weather', weatherSprites, undefined, props)}</>;
+export const DecorSprite = (props: IconSpriteProps) => <>{renderIconSprite('decor', decorSprites, undefined, props)}</>;
+export const TraitSprite = (props: IconSpriteProps) => <>{renderIconSprite('trait', traitSprites, TraitOrdinarySprite, props)}</>;
+export const NeighborSprite = (props: IconSpriteProps) => <>{renderIconSprite('neighbor', neighborSprites, NeighborGenericSprite, props)}</>;
+export const AbstractSprite = (props: IconSpriteProps) => <>{renderIconSprite('abstract', abstractSprites, undefined, props)}</>;
+export const ResourceSprite = (props: IconSpriteProps) => <>{renderIconSprite('resource', resourceSprites, undefined, props)}</>;
 
 interface SpriteProps extends SVGProps<SVGSVGElement> {
     logicName: string;
@@ -329,7 +336,7 @@ const fallbackLook = (name: string): WorkerLook => {
 
 interface WorkerSpriteProps extends SVGProps<SVGSVGElement> {
     name: string;
-    state?: 'idle' | 'working' | 'resting';
+    state?: 'idle' | 'working' | 'resting' | 'sick';
     skilled?: boolean;
 }
 

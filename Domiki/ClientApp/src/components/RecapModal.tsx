@@ -1,16 +1,28 @@
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import BackpackIcon from 'pixelarticons/svg/backpack.svg?react';
 import StoreIcon from 'pixelarticons/svg/store.svg?react';
 import BuildingIcon from 'pixelarticons/svg/building.svg?react';
 import BuildingCommunityIcon from 'pixelarticons/svg/building-community.svg?react';
 import GridIcon from 'pixelarticons/svg/grid-3x3.svg?react';
+import GiftIcon from 'pixelarticons/svg/gift.svg?react';
 import CloseIcon from 'pixelarticons/svg/close.svg?react';
-import type { DecorTypeDto, DomikTypeDto, ExpeditionTypeDto, ResourceTypeDto, TolokaStateDto } from '../types/api';
+import BookOpenIcon from 'pixelarticons/svg/book-open.svg?react';
+import type { DecorTypeDto, DomikTypeDto, ExpeditionTypeDto, NeighborReputationDto, ResourceTypeDto, TolokaStateDto } from '../types/api';
 import type { RecapView } from '../utils/recap';
+import { lootEntryKey } from '../utils/recap';
 import { EXPEDITION_LOOT_KIND_DECOR, EXPEDITION_LOOT_KIND_TRAIT_UPGRADE } from '../utils/game';
+import { withStableKeys } from '../utils/keys';
 import { formatDuration } from '../utils/time';
+import { pluralRu } from '../utils/plural';
+import { genderForm, traitLabel } from '../utils/gender';
+import { pickGiftText } from '../utils/giftTexts';
+import { getIncidentTemplate, incidentText } from '../utils/incidentTexts';
+import { domikIncidentText, getDomikIncidentTemplate } from '../utils/domikIncidentTexts';
+import { guestbookPhraseText } from '../constants/guestbookPhrases';
 import { DomikSprite } from './sprites';
 import { ResourceChip } from './ResourceChip';
+import { GiftVisitDots } from './GiftVisitDots';
+import { Crest } from './Crest';
 
 interface RecapModalProps {
     awaySeconds: number;
@@ -19,23 +31,30 @@ interface RecapModalProps {
     domikTypes: DomikTypeDto[];
     decorTypes: DecorTypeDto[];
     expeditionTypes: ExpeditionTypeDto[];
+    neighbors: NeighborReputationDto[];
     toloka: TolokaStateDto | null;
     onClose: () => void;
 }
 
-const pluralRu = (n: number, one: string, few: string, many: string) => {
-    const mod10 = n % 10;
-    const mod100 = n % 100;
-    if (mod10 === 1 && mod100 !== 11) {
-        return one;
-    }
-    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
-        return few;
-    }
-    return many;
-};
+export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decorTypes, expeditionTypes, neighbors, toloka, onClose }: RecapModalProps) => {
+    const dialogRef = useRef<HTMLDialogElement>(null);
 
-export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decorTypes, expeditionTypes, toloka, onClose }: RecapModalProps) => {
+    useLayoutEffect(() => {
+        const dialog = dialogRef.current;
+        if (dialog != null && !dialog.open) {
+            dialog.showModal();
+        }
+    }, []);
+
+    const expeditions = withStableKeys(view.expeditions, e => String(e.expeditionTypeId));
+    const market = withStableKeys(view.market, e => `${e.kind}-${e.give.typeId}`);
+    const upgrades = withStableKeys(view.upgrades, e => `${e.domikTypeId}-${e.level}`);
+    const tolokaEntries = withStableKeys(view.toloka, e => String(e.tolokaTypeId));
+    const gifts = withStableKeys(view.gifts, gift => `${gift.neighborId}-${gift.date}`);
+    const guestbookEntries = withStableKeys(view.guestbookEntries, entry => `${entry.guestVillageName}-${entry.date}`);
+    const incidents = withStableKeys(view.incidents, incident => `${incident.kind}-${incident.workerName}-${incident.templateId}-${incident.clueId ?? ''}`);
+    const domikIncidents = withStableKeys(view.domikIncidents, incident => `${incident.kind}-${incident.domikTypeId}-${incident.templateId}-${incident.clueId ?? ''}`);
+
     const trophies = useMemo(() => {
         const producedTotal = view.produced.reduce((sum, resource) => sum + resource.value, 0);
         return [
@@ -44,149 +63,227 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
             { key: 'exp', Icon: BackpackIcon, num: view.expeditions.length, cap: pluralRu(view.expeditions.length, 'экспедиция', 'экспедиции', 'экспедиций') },
             { key: 'market', Icon: StoreIcon, num: view.market.length, cap: pluralRu(view.market.length, 'сделка', 'сделки', 'сделок') },
             { key: 'toloka', Icon: BuildingCommunityIcon, num: view.toloka.length, cap: pluralRu(view.toloka.length, 'толока', 'толоки', 'толок') },
+            { key: 'gift', Icon: GiftIcon, num: view.gifts.length, cap: pluralRu(view.gifts.length, 'гостинец', 'гостинца', 'гостинцев') },
+            { key: 'guestbook', Icon: BookOpenIcon, num: view.guestbookEntries.length, cap: pluralRu(view.guestbookEntries.length, 'гость', 'гостя', 'гостей') },
         ].filter(trophy => trophy.num > 0);
     }, [view]);
 
     return (
-        <div className="modal-backdrop" role="presentation">
-            <section className="recap-modal pixel-panel" role="dialog" aria-modal="true" aria-label="Пока вас не было">
-                <div className="recap-hero">
-                    <div className="recap-ribbon" aria-hidden="true">
-                        {Array.from({ length: 16 }, (_, index) => <i key={index} />)}
-                    </div>
-                    <div className="recap-hero-head">
-                        <div>
-                            <h2 className="recap-title">С возвращением!</h2>
-                            <span className="recap-since">Вас не было {formatDuration(awaySeconds)}</span>
-                        </div>
-                        <button type="button" className="recap-close" title="Закрыть" onClick={onClose}>
-                            <CloseIcon aria-hidden="true" />
-                        </button>
-                    </div>
-                    <p className="recap-subtitle">Деревня трудилась без устали – вот что успели ваши домовята.</p>
+        <dialog ref={dialogRef} className="recap-modal pixel-panel" aria-label="Пока вас не было" onClose={onClose}>
+            <div className="recap-hero">
+                <div className="recap-ribbon" aria-hidden="true">
+                    {Array.from({ length: 16 }, (_, index) => <i key={index} />)}
                 </div>
-                {trophies.length > 0 &&
-                    <div className="recap-trophies">
-                        {trophies.map(trophy => (
-                            <span key={trophy.key} className="recap-trophy" data-tone={trophy.key}>
-                                <span className="tr-ico"><trophy.Icon aria-hidden="true" /></span>
-                                <span className="tr-body">
-                                    <span className="tr-num">{trophy.num}</span>
-                                    <span className="tr-cap">{trophy.cap}</span>
-                                </span>
-                            </span>
-                        ))}
+                <div className="recap-hero-head">
+                    <div>
+                        <h2 className="recap-title">С возвращением!</h2>
+                        <span className="recap-since">Вас не было {formatDuration(awaySeconds)}</span>
                     </div>
-                }
-                {view.expeditions.length > 0 &&
-                    <div className="recap-section" data-tone="exp">
-                        <div className="recap-section-head">
-                            <span className="recap-section-badge"><BackpackIcon aria-hidden="true" /></span>
-                            <h3 className="recap-section-title">Экспедиции</h3>
-                            <span className="recap-section-count">{view.expeditions.length}</span>
-                        </div>
-                        {view.expeditions.map((event, index) => {
-                            const name = expeditionTypes.find(type => type.id === event.expeditionTypeId)?.name ?? `Экспедиция #${event.expeditionTypeId}`;
-                            return (
-                                <div key={`${event.expeditionTypeId}-${index}`} className="recap-row">
-                                    <BackpackIcon className="recap-row-ico" aria-hidden="true" />
-                                    <span className="recap-line">{name}</span>
-                                    <div className="recap-chips">
-                                        {event.loot.map((loot, lootIndex) => {
-                                            if (loot.kind === EXPEDITION_LOOT_KIND_DECOR) {
-                                                const decorType = decorTypes.find(x => x.id === loot.decorTypeId);
-                                                return <span key={lootIndex} className="recap-fallback">Нашли {decorType?.name ?? 'декор'}</span>;
-                                            }
-                                            if (loot.kind === EXPEDITION_LOOT_KIND_TRAIT_UPGRADE) {
-                                                return <span key={lootIndex} className="recap-fallback">{loot.workerName} закалился: {loot.newTrait}</span>;
-                                            }
-                                            const type = resourceTypes.find(resourceType => resourceType.id === loot.typeId);
+                    <button type="button" className="recap-close" title="Закрыть" onClick={onClose}>
+                        <CloseIcon aria-hidden="true" />
+                    </button>
+                </div>
+                <p className="recap-subtitle">Деревня трудилась без устали – вот что успели ваши домовята.</p>
+            </div>
+            {trophies.length > 0 &&
+                <div className="recap-trophies">
+                    {trophies.map(trophy => (
+                        <span key={trophy.key} className="recap-trophy" data-tone={trophy.key}>
+                            <span className="tr-ico"><trophy.Icon aria-hidden="true" /></span>
+                            <span className="tr-body">
+                                <span className="tr-num">{trophy.num}</span>
+                                <span className="tr-cap">{trophy.cap}</span>
+                            </span>
+                        </span>
+                    ))}
+                </div>
+            }
+            {gifts.length > 0 &&
+                <div className="recap-section" data-tone="gift">
+                    <div className="recap-section-head">
+                        <span className="recap-section-badge"><GiftIcon aria-hidden="true" /></span>
+                        <h3 className="recap-section-title">Гостинец от соседей</h3>
+                        <span className="recap-section-count">{gifts.length}</span>
+                    </div>
+                    {gifts.map(({ key, item: gift }) => {
+                        const neighbor = neighbors.find(item => item.neighborId === gift.neighborId);
+                        const neighborName = neighbor?.neighborName ?? `Сосед #${gift.neighborId}`;
+                        const decorName = gift.decorTypeId == null ? 'Декор не указан' : decorTypes.find(decorType => decorType.id === gift.decorTypeId)?.name ?? `Декор #${gift.decorTypeId}`;
+                        return (
+                            <div key={key} className="recap-row gift-row">
+                                <div className="gift-head">
+                                    <GiftIcon className="recap-row-ico" aria-hidden="true" />
+                                    <span className={neighbor == null ? 'recap-fallback' : 'recap-line'}>{neighborName}</span>
+                                </div>
+                                <p className="gift-note">{pickGiftText(gift.neighborId, gift.big, gift.date)}</p>
+                                {gift.big
+                                    ? <span className="gift-decor">{decorName}</span>
+                                    : <div className="recap-chips">
+                                        {withStableKeys(gift.resources, resource => String(resource.resourceTypeId)).map(({ key: resourceKey, item: resource }) => {
+                                            const type = resourceTypes.find(resourceType => resourceType.id === resource.resourceTypeId);
                                             return type == null
-                                                ? <span key={lootIndex} className="recap-fallback">Ресурс #{loot.typeId} ×{loot.value}</span>
-                                                : <ResourceChip key={lootIndex} resourceType={type} value={loot.value ?? 0} rare={loot.isRare} />;
+                                                ? <span key={resourceKey} className="recap-fallback">Ресурс #{resource.resourceTypeId} ×{resource.value}</span>
+                                                : <ResourceChip key={resourceKey} resourceType={type} value={resource.value} />;
                                         })}
                                     </div>
+                                }
+                                <div className="gift-visits">
+                                    <GiftVisitDots visitIndex={gift.visitIndex} big={gift.big} />
+                                    <span className="gift-visit-label">{gift.big ? 'Большой гостинец!' : 'Большой гостинец – каждый 7-й визит'}</span>
                                 </div>
-                            );
-                        })}
+                            </div>
+                        );
+                    })}
+                </div>
+            }
+            {expeditions.length > 0 &&
+                <div className="recap-section" data-tone="exp">
+                    <div className="recap-section-head">
+                        <span className="recap-section-badge"><BackpackIcon aria-hidden="true" /></span>
+                        <h3 className="recap-section-title">Экспедиции</h3>
+                        <span className="recap-section-count">{expeditions.length}</span>
                     </div>
-                }
-                {view.market.length > 0 &&
-                    <div className="recap-section" data-tone="market">
-                        <div className="recap-section-head">
-                            <span className="recap-section-badge"><StoreIcon aria-hidden="true" /></span>
-                            <h3 className="recap-section-title">Ярмарка</h3>
-                            <span className="recap-section-count">{view.market.length}</span>
-                        </div>
-                        {view.market.map((event, index) => {
-                            const give = resourceTypes.find(type => type.id === event.give.typeId);
-                            const want = event.want == null ? null : resourceTypes.find(type => type.id === event.want?.typeId);
-                            return (
-                                <div key={`${event.kind}-${index}`} className="recap-row">
-                                    <StoreIcon className="recap-row-ico" aria-hidden="true" />
-                                    <span className="recap-line">{event.kind === 'sold' ? 'Продано' : 'Лот истёк –'}</span>
-                                    {give == null ? <span className="recap-fallback">Ресурс #{event.give.typeId} ×{event.give.value}</span> : <ResourceChip resourceType={give} value={event.give.value} />}
-                                    {event.kind === 'sold' && event.want != null &&
-                                        <>
-                                            <span className="recap-arrow">→ получено</span>
-                                            {want == null ? <span className="recap-fallback">Ресурс #{event.want.typeId} ×{event.want.value}</span> : <ResourceChip resourceType={want} value={event.want.value} />}
-                                        </>
-                                    }
-                                    {event.kind === 'expired' && <span className="recap-line">возвращён</span>}
+                    {expeditions.map(({ key, item: event }) => {
+                        const name = expeditionTypes.find(type => type.id === event.expeditionTypeId)?.name ?? `Экспедиция #${event.expeditionTypeId}`;
+                        return (
+                            <div key={key} className="recap-row">
+                                <BackpackIcon className="recap-row-ico" aria-hidden="true" />
+                                <span className="recap-line">{name}</span>
+                                <div className="recap-chips">
+                                    {withStableKeys(event.loot, lootEntryKey).map(({ key: lootKey, item: loot }) => {
+                                        if (loot.kind === EXPEDITION_LOOT_KIND_DECOR) {
+                                            const decorType = decorTypes.find(x => x.id === loot.decorTypeId);
+                                            return <span key={lootKey} className="recap-fallback">Нашли {decorType?.name ?? 'декор'}</span>;
+                                        }
+                                        if (loot.kind === EXPEDITION_LOOT_KIND_TRAIT_UPGRADE) {
+                                            return <span key={lootKey} className="recap-fallback">{loot.workerName} {genderForm(loot.workerGender, 'закалился', 'закалилась')}: {traitLabel(loot.newTraitLogicName ?? '', loot.newTrait ?? '', loot.workerGender)}</span>;
+                                        }
+                                        const type = resourceTypes.find(resourceType => resourceType.id === loot.typeId);
+                                        return type == null
+                                            ? <span key={lootKey} className="recap-fallback">Ресурс #{loot.typeId} ×{loot.value}</span>
+                                            : <ResourceChip key={lootKey} resourceType={type} value={loot.value ?? 0} rare={loot.isRare} />;
+                                    })}
                                 </div>
-                            );
+                            </div>
+                        );
+                    })}
+                </div>
+            }
+            {market.length > 0 &&
+                <div className="recap-section" data-tone="market">
+                    <div className="recap-section-head">
+                        <span className="recap-section-badge"><StoreIcon aria-hidden="true" /></span>
+                        <h3 className="recap-section-title">Ярмарка</h3>
+                        <span className="recap-section-count">{market.length}</span>
+                    </div>
+                    {market.map(({ key, item: event }) => {
+                        const give = resourceTypes.find(type => type.id === event.give.typeId);
+                        const want = event.want == null ? null : resourceTypes.find(type => type.id === event.want?.typeId);
+                        return (
+                            <div key={key} className="recap-row">
+                                <StoreIcon className="recap-row-ico" aria-hidden="true" />
+                                <span className="recap-line">{event.kind === 'sold' ? 'Продано' : 'Лот истёк –'}</span>
+                                {give == null ? <span className="recap-fallback">Ресурс #{event.give.typeId} ×{event.give.value}</span> : <ResourceChip resourceType={give} value={event.give.value} />}
+                                {event.kind === 'sold' && event.want != null &&
+                                    <>
+                                        <span className="recap-arrow">→ получено</span>
+                                        {want == null ? <span className="recap-fallback">Ресурс #{event.want.typeId} ×{event.want.value}</span> : <ResourceChip resourceType={want} value={event.want.value} />}
+                                    </>
+                                }
+                                {event.kind === 'expired' && <span className="recap-line">возвращён</span>}
+                            </div>
+                        );
+                    })}
+                </div>
+            }
+            {view.produced.length > 0 &&
+                <div className="recap-section" data-tone="prod">
+                    <div className="recap-section-head">
+                        <span className="recap-section-badge"><GridIcon aria-hidden="true" /></span>
+                        <h3 className="recap-section-title">Произведено</h3>
+                        <span className="recap-section-count">{view.produced.length}</span>
+                    </div>
+                    <div className="recap-chips">
+                        {view.produced.map(resource => {
+                            const type = resourceTypes.find(resourceType => resourceType.id === resource.typeId);
+                            return type == null
+                                ? <span key={resource.typeId} className="recap-fallback">Ресурс #{resource.typeId} ×{resource.value}</span>
+                                : <ResourceChip key={resource.typeId} resourceType={type} value={resource.value} />;
                         })}
                     </div>
-                }
-                {view.produced.length > 0 &&
-                    <div className="recap-section" data-tone="prod">
-                        <div className="recap-section-head">
-                            <span className="recap-section-badge"><GridIcon aria-hidden="true" /></span>
-                            <h3 className="recap-section-title">Произведено</h3>
-                            <span className="recap-section-count">{view.produced.length}</span>
-                        </div>
-                        <div className="recap-chips">
-                            {view.produced.map(resource => {
-                                const type = resourceTypes.find(resourceType => resourceType.id === resource.typeId);
-                                return type == null
-                                    ? <span key={resource.typeId} className="recap-fallback">Ресурс #{resource.typeId} ×{resource.value}</span>
-                                    : <ResourceChip key={resource.typeId} resourceType={type} value={resource.value} />;
-                            })}
-                        </div>
+                </div>
+            }
+            {upgrades.length > 0 &&
+                <div className="recap-section" data-tone="build">
+                    <div className="recap-section-head">
+                        <span className="recap-section-badge"><BuildingIcon aria-hidden="true" /></span>
+                        <h3 className="recap-section-title">Постройки улучшены</h3>
+                        <span className="recap-section-count">{upgrades.length}</span>
                     </div>
-                }
-                {view.upgrades.length > 0 &&
-                    <div className="recap-section" data-tone="build">
-                        <div className="recap-section-head">
-                            <span className="recap-section-badge"><BuildingIcon aria-hidden="true" /></span>
-                            <h3 className="recap-section-title">Постройки улучшены</h3>
-                            <span className="recap-section-count">{view.upgrades.length}</span>
-                        </div>
-                        {view.upgrades.map((event, index) => {
-                            const type = domikTypes.find(domikType => domikType.id === event.domikTypeId);
-                            return (
-                                <div key={`${event.domikTypeId}-${index}`} className="recap-row">
-                                    {type != null && <DomikSprite className="recap-domik-sprite" logicName={type.logicName} level={event.level} />}
-                                    <span className="recap-line">{type?.name ?? `Постройка #${event.domikTypeId}`} → ур. {event.level}</span>
-                                </div>
-                            );
-                        })}
+                    {upgrades.map(({ key, item: event }) => {
+                        const type = domikTypes.find(domikType => domikType.id === event.domikTypeId);
+                        return (
+                            <div key={key} className="recap-row">
+                                {type != null && <DomikSprite className="recap-domik-sprite" logicName={type.logicName} level={event.level} />}
+                                <span className="recap-line">{type?.name ?? `Постройка #${event.domikTypeId}`} → ур. {event.level}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            }
+            {tolokaEntries.length > 0 &&
+                <div className="recap-section" data-tone="toloka">
+                    <div className="recap-section-head">
+                        <span className="recap-section-badge"><BuildingCommunityIcon aria-hidden="true" /></span>
+                        <h3 className="recap-section-title">Толока завершена</h3>
+                        <span className="recap-section-count">{tolokaEntries.length}</span>
                     </div>
-                }
-                {view.toloka.length > 0 &&
-                    <div className="recap-section" data-tone="toloka">
-                        <div className="recap-section-head">
-                            <span className="recap-section-badge"><BuildingCommunityIcon aria-hidden="true" /></span>
-                            <h3 className="recap-section-title">Толока завершена</h3>
-                            <span className="recap-section-count">{view.toloka.length}</span>
-                        </div>
-                        {view.toloka.map((event, index) => {
-                            const name = toloka?.active.tolokaTypeId === event.tolokaTypeId ? toloka.active.name : `Толока #${event.tolokaTypeId}`;
-                            return <span key={`${event.tolokaTypeId}-${index}`} className="recap-line">{name}</span>;
-                        })}
+                    {tolokaEntries.map(({ key, item: event }) => {
+                        const name = toloka?.active.tolokaTypeId === event.tolokaTypeId ? toloka.active.name : `Толока #${event.tolokaTypeId}`;
+                        return <span key={key} className="recap-line">{name}</span>;
+                    })}
+                </div>
+            }
+            {guestbookEntries.length > 0 &&
+                <div className="recap-section" data-tone="guestbook">
+                    <div className="recap-section-head">
+                        <span className="recap-section-badge"><BookOpenIcon aria-hidden="true" /></span>
+                        <h3 className="recap-section-title">Книга гостей</h3>
+                        <span className="recap-section-count">{guestbookEntries.length}</span>
                     </div>
-                }
-            </section>
-        </div>
+                    {guestbookEntries.map(({ key, item: entry }) => (
+                        <div key={key} className="recap-row">
+                            <Crest icon={entry.guestCrestIcon} color={entry.guestCrestColor} className="crest-badge-small" />
+                            <span className="recap-line">{entry.guestVillageName}: «{guestbookPhraseText(entry.phraseId)}»</span>
+                        </div>
+                    ))}
+                </div>
+            }
+            {incidents.length > 0 &&
+                <div className="recap-section" data-tone="exp">
+                    <div className="recap-section-head"><span className="recap-section-badge"><BackpackIcon aria-hidden="true" /></span><h3 className="recap-section-title">Происшествия</h3><span className="recap-section-count">{incidents.length}</span></div>
+                    {incidents.map(({ key, item: incident }) => {
+                        const template = getIncidentTemplate(incident.templateId);
+                        const text = incident.kind === 'missing' ? `${incident.workerName} ${genderForm(incident.workerGender, 'задержался', 'задержалась')} в походе – есть зацепки` : incident.autoReturned ? incidentText('{имя} вернул{ся|ась} сам{|а} – дорогу на{шёл|шла} без подмоги.', incident.workerName, incident.workerGender) : incidentText(template.resolutions[incident.clueId ?? 0] ?? '', incident.workerName, incident.workerGender);
+                        const resourceType = incident.resourceTypeId == null ? undefined : resourceTypes.find(type => type.id === incident.resourceTypeId);
+                        return <div key={key} className="recap-row"><BackpackIcon className="recap-row-ico" aria-hidden="true" /><span className="recap-line">{text}</span>{incident.kind === 'missing' && <span className="recap-fallback">«{template.title}»</span>}{incident.kind === 'resolved' && !incident.autoReturned && <div className="recap-chips">{resourceType != null && incident.value != null && <ResourceChip resourceType={resourceType} value={incident.value} />}{incident.traitUpgraded === true && incident.newTrait != null && <span className="recap-fallback">Черта: {traitLabel(incident.newTraitLogicName ?? '', incident.newTrait, incident.workerGender)}</span>}<i className="recap-line">{incidentText(template.epilogue, incident.workerName, incident.workerGender)}</i></div>}</div>;
+                    })}
+                </div>
+            }
+            {domikIncidents.length > 0 &&
+                <div className="recap-section" data-tone="exp">
+                    <div className="recap-section-head"><span className="recap-section-badge"><BackpackIcon aria-hidden="true" /></span><h3 className="recap-section-title">Загадки построек</h3><span className="recap-section-count">{domikIncidents.length}</span></div>
+                    {domikIncidents.map(({ key, item: incident }) => {
+                        const template = getDomikIncidentTemplate(incident.templateId);
+                        const domikName = domikTypes.find(type => type.id === incident.domikTypeId)?.name ?? `Постройке #${incident.domikTypeId}`;
+                        const heroName = incident.heroWorkerName ?? '';
+                        const heroGender = incident.heroWorkerGender;
+                        const text = incident.kind === 'started' ? `В ${domikName} что-то неспокойно – есть зацепки` : incident.autoResolved ? `Загадка в ${domikName} разгадалась сама` : domikIncidentText(template.resolutions[incident.clueId ?? 0] ?? '', domikName, heroName, heroGender);
+                        const resourceType = incident.resourceTypeId == null ? undefined : resourceTypes.find(type => type.id === incident.resourceTypeId);
+                        return <div key={key} className="recap-row"><BackpackIcon className="recap-row-ico" aria-hidden="true" /><span className="recap-line">{text}</span>{incident.kind === 'started' && <span className="recap-fallback">«{template.title}»</span>}{incident.kind === 'resolved' && !incident.autoResolved && <div className="recap-chips">{resourceType != null && incident.value != null && <ResourceChip resourceType={resourceType} value={incident.value} />}{incident.traitUpgraded === true && incident.newTrait != null && <span className="recap-fallback">Черта: {incident.upgradedWorkerName ?? 'Трудяга'} – {traitLabel(incident.newTraitLogicName ?? '', incident.newTrait, heroGender)}</span>}<i className="recap-line">{domikIncidentText(template.epilogue, domikName, heroName, heroGender)}</i></div>}</div>;
+                    })}
+                </div>
+            }
+        </dialog>
     );
 };
