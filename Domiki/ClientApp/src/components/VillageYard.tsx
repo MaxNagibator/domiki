@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DecorStateDto, DomikDto, DomikTypeDto, VillageLevelDto, WeatherPeriodDto, WorkerDto } from '../types/api';
+import { workIntensity } from '../utils/game';
+import { weatherMark, weatherMarkSpeech } from '../utils/weather';
 import { hashString } from '../utils/worldMap';
 import { layoutYard, YARD_H, type YardGreen, type YardSpot } from '../utils/yardMap';
-import { DecorSprite, DomikSprite, MechanicSprite, NeighborSprite } from './sprites';
+import { DecorSprite, DomikSprite, MechanicSprite, NeighborSprite, SheepSprite, WeatherSprite } from './sprites';
+import '../styles/yard.css';
 
 const GRASS_CLEAR = '#a9bd8d';
 const GRASS_SHADOW = '#7f9863';
@@ -15,10 +18,15 @@ const PINE = '#40632f';
 const LEAF = '#4f9a3c';
 const TRUNK = '#6f4a24';
 const GOLD = '#e8b83a';
+const NERF_MARK = '#c25b33';
 
 const TREE_COLORS = [PINE_DARK, PINE, LEAF] as const;
 const FOLK_SHIRTS = ['#b04a3a', '#4a7ab5', '#7f9863', '#b8863b'] as const;
 const FOLK_CAP = 6;
+const SHEEP_CAP = 3;
+const SHEEP_SPACING = 44;
+const SHEEP_WALK = 10;
+const SHEEP_STEP_MS = 2000;
 
 const YardTree = ({ green }: { green: YardGreen }) => {
     const color = TREE_COLORS[green.kind] ?? PINE;
@@ -76,6 +84,21 @@ const YardCart = ({ x, y, title }: { x: number; y: number; title: string }) => (
     </g>
 );
 
+const YardSheep = ({ x, y, phase }: { x: number; y: number; phase: number }) => {
+    const step = phase % 4;
+    const shifted = step === 1 || step === 2;
+    const walking = step % 2 === 1;
+    return (
+        <g className="yard-sheep" style={{ transform: `translate(${x + (shifted ? SHEEP_WALK : -SHEEP_WALK)}px, ${y}px)` }}>
+            <title>Овца</title>
+            <rect x={-9} y={0} width={18} height={2} fill={GRASS_SHADOW} />
+            <g transform={step === 3 ? 'scale(-1,1)' : undefined}>
+                <SheepSprite state={walking ? 'walking' : 'idle'} x={-12} y={-20} width={24} height={24} />
+            </g>
+        </g>
+    );
+};
+
 const SelectionBrackets = ({ x, y }: { x: number; y: number }) => {
     const left = x - 36;
     const right = x + 36;
@@ -132,8 +155,29 @@ const freeFolkPlacements = (workers: WorkerDto[], spots: YardSpot[], domikTypes:
         : { x: 40 + index * 14, y: firstPathY + 30, name: worker.name });
 };
 
+interface SheepPlacement { key: string; x: number; y: number; }
+
+const sheepPlacements = (spots: YardSpot[], domikTypes: DomikTypeDto[]): SheepPlacement[] => {
+    const placements: SheepPlacement[] = [];
+    for (const spot of spots) {
+        if (domikTypes.find(type => type.id === spot.domik.typeId)?.logicName !== 'sheepfold') {
+            continue;
+        }
+        const count = Math.min(SHEEP_CAP, Math.max(1, spot.domik.level));
+        for (let index = 0; index < count && placements.length < SHEEP_CAP; index++) {
+            placements.push({
+                key: `${spot.domik.id}:${index}`,
+                x: spot.x + (index - (count - 1) / 2) * SHEEP_SPACING,
+                y: Math.min(YARD_H - 8, spot.y + 46 + (index % 2) * 8),
+            });
+        }
+    }
+    return placements;
+};
+
 export const VillageYard = ({ domiks, domikTypes, decor, workers, villageLevel, currentWeather, selectedDomikId, displayName, onSelect, recapPending, onOpenRecap, activeExpeditionNames, friendNeighbor }: VillageYardProps) => {
     const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem('domiki.yard.collapsed') === '1');
+    const [sheepPhase, setSheepPhase] = useState(0);
     const scrollRef = useRef<HTMLDivElement>(null);
     const scrolledToRef = useRef<number | null>(null);
     const owned = decor?.owned;
@@ -142,6 +186,16 @@ export const VillageYard = ({ domiks, domikTypes, decor, workers, villageLevel, 
         () => layoutYard(domiks, owned ?? [], level ?? 0),
         [domiks, owned, level],
     );
+
+    const sheep = useMemo(() => sheepPlacements(layout.spots, domikTypes), [layout, domikTypes]);
+
+    useEffect(() => {
+        if (sheep.length === 0 || collapsed || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            return;
+        }
+        const timer = setInterval(() => { setSheepPhase(prev => prev + 1); }, SHEEP_STEP_MS);
+        return () => { clearInterval(timer); };
+    }, [sheep, collapsed]);
 
     useEffect(() => {
         const scroll = scrollRef.current;
@@ -222,9 +276,12 @@ export const VillageYard = ({ domiks, domikTypes, decor, workers, villageLevel, 
                                     return null;
                                 }
                                 const selected = selectedDomikId === spot.domik.id;
+                                const intensity = workIntensity(spot.domik, domikType);
+                                const mark = weatherMark(currentWeather, spot.domik.typeId);
                                 return (
                                     <g key={spot.domik.id} className={'yard-domik' + (selected ? ' yard-domik-selected' : '')}
-                                        role="button" tabIndex={0} aria-label={displayName(spot.domik)}
+                                        role="button" tabIndex={0}
+                                        aria-label={displayName(spot.domik) + (mark == null ? '' : weatherMarkSpeech(mark))}
                                         onClick={() => { onSelect(spot.domik.id); }}
                                         onKeyDown={event => {
                                             if (event.key === 'Enter' || event.key === ' ') {
@@ -234,12 +291,25 @@ export const VillageYard = ({ domiks, domikTypes, decor, workers, villageLevel, 
                                         }}>
                                         <DomikSprite logicName={domikType.logicName} level={spot.domik.level}
                                             working={(spot.domik.manufactures?.length ?? 0) > 0}
+                                            data-motion={intensity === 'normal' ? undefined : intensity}
                                             x={spot.x - 32} y={spot.y - 46} width={64} height={64} />
+                                        {mark != null &&
+                                            <g className="yard-weather-mark" aria-hidden="true">
+                                                <title>{mark.title}</title>
+                                                <rect x={spot.x - 24} y={spot.y - 2} width={48} height={mark.buff ? 4 : 2}
+                                                    fill={mark.buff ? PINE : NERF_MARK} />
+                                                <WeatherSprite logicName={mark.weatherLogicName} size={24}
+                                                    x={spot.x + 14} y={spot.y - 52} width={16} height={16} />
+                                            </g>
+                                        }
                                         {selected && <SelectionBrackets x={spot.x} y={spot.y} />}
                                     </g>
                                 );
                             })}
                             {layout.trees.map(tree => <YardTree key={`${tree.x}:${tree.y}`} green={tree} />)}
+                            {sheep.map((placement, index) =>
+                                <YardSheep key={placement.key} x={placement.x} y={placement.y} phase={sheepPhase + index} />,
+                            )}
                             {recapPending &&
                                 <g className="yard-vignette" role="button" tabIndex={0}
                                     aria-label="Гостинец ждёт – открыть сводку"

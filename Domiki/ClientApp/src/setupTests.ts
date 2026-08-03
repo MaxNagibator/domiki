@@ -22,6 +22,18 @@ globalThis.fetch = vi.fn().mockResolvedValue({
     }),
 });
 
+HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+    this.open = true;
+};
+
+HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement, returnValue?: string) {
+    this.open = false;
+    if (returnValue != null) {
+        this.returnValue = returnValue;
+    }
+    this.dispatchEvent(new Event('close'));
+};
+
 Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: vi.fn().mockImplementation((query: string) => ({

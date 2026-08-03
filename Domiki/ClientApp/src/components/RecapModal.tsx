@@ -1,12 +1,7 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
-import BackpackIcon from 'pixelarticons/svg/backpack.svg?react';
-import StoreIcon from 'pixelarticons/svg/store.svg?react';
+import type { CSSProperties, FC, SVGProps } from 'react';
 import BuildingIcon from 'pixelarticons/svg/building.svg?react';
-import BuildingCommunityIcon from 'pixelarticons/svg/building-community.svg?react';
-import GridIcon from 'pixelarticons/svg/grid-3x3.svg?react';
-import GiftIcon from 'pixelarticons/svg/gift.svg?react';
 import CloseIcon from 'pixelarticons/svg/close.svg?react';
-import BookOpenIcon from 'pixelarticons/svg/book-open.svg?react';
 import type { DecorTypeDto, DomikTypeDto, ExpeditionTypeDto, NeighborReputationDto, ResourceTypeDto, TolokaStateDto } from '../types/api';
 import type { RecapView } from '../utils/recap';
 import { lootEntryKey } from '../utils/recap';
@@ -19,10 +14,18 @@ import { pickGiftText } from '../utils/giftTexts';
 import { getIncidentTemplate, incidentText } from '../utils/incidentTexts';
 import { domikIncidentText, getDomikIncidentTemplate } from '../utils/domikIncidentTexts';
 import { guestbookPhraseText } from '../constants/guestbookPhrases';
-import { DomikSprite } from './sprites';
+import { AbstractSprite, DomikSprite, MechanicSprite } from './sprites';
 import { ResourceChip } from './ResourceChip';
+import { ProgressBar } from './ProgressBar';
 import { GiftVisitDots } from './GiftVisitDots';
 import { Crest } from './Crest';
+
+const GiftTrophyIcon: FC<SVGProps<SVGSVGElement>> = props => <MechanicSprite logicName="gifts" {...props} />;
+const GuestbookTrophyIcon: FC<SVGProps<SVGSVGElement>> = props => <MechanicSprite logicName="guestbook" {...props} />;
+const ExpeditionTrophyIcon: FC<SVGProps<SVGSVGElement>> = props => <MechanicSprite logicName="expeditions" {...props} />;
+const MarketTrophyIcon: FC<SVGProps<SVGSVGElement>> = props => <MechanicSprite logicName="market" {...props} />;
+const TolokaTrophyIcon: FC<SVGProps<SVGSVGElement>> = props => <MechanicSprite logicName="toloka" {...props} />;
+const ProductionTrophyIcon: FC<SVGProps<SVGSVGElement>> = props => <AbstractSprite logicName="production_recipe" {...props} />;
 
 interface RecapModalProps {
     awaySeconds: number;
@@ -54,17 +57,20 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
     const guestbookEntries = withStableKeys(view.guestbookEntries, entry => `${entry.guestVillageName}-${entry.date}`);
     const incidents = withStableKeys(view.incidents, incident => `${incident.kind}-${incident.workerName}-${incident.templateId}-${incident.clueId ?? ''}`);
     const domikIncidents = withStableKeys(view.domikIncidents, incident => `${incident.kind}-${incident.domikTypeId}-${incident.templateId}-${incident.clueId ?? ''}`);
+    const manufactureRepeatFailures = withStableKeys(view.manufactureRepeatFailures, failure => `${failure.domikTypeId}-${failure.reason}`);
+    const manufactureStops = withStableKeys(view.manufactureStops, stop => `${stop.kind}-${stop.domikTypeId}-${stop.resourceTypeId}`);
+    const tolokaProgress = toloka?.progress ?? null;
 
     const trophies = useMemo(() => {
         const producedTotal = view.produced.reduce((sum, resource) => sum + resource.value, 0);
         return [
-            { key: 'prod', Icon: GridIcon, num: producedTotal, cap: pluralRu(producedTotal, 'ресурс', 'ресурса', 'ресурсов') },
+            { key: 'prod', Icon: ProductionTrophyIcon, num: producedTotal, cap: pluralRu(producedTotal, 'ресурс', 'ресурса', 'ресурсов') },
             { key: 'build', Icon: BuildingIcon, num: view.upgrades.length, cap: pluralRu(view.upgrades.length, 'постройка', 'постройки', 'построек') },
-            { key: 'exp', Icon: BackpackIcon, num: view.expeditions.length, cap: pluralRu(view.expeditions.length, 'экспедиция', 'экспедиции', 'экспедиций') },
-            { key: 'market', Icon: StoreIcon, num: view.market.length, cap: pluralRu(view.market.length, 'сделка', 'сделки', 'сделок') },
-            { key: 'toloka', Icon: BuildingCommunityIcon, num: view.toloka.length, cap: pluralRu(view.toloka.length, 'толока', 'толоки', 'толок') },
-            { key: 'gift', Icon: GiftIcon, num: view.gifts.length, cap: pluralRu(view.gifts.length, 'гостинец', 'гостинца', 'гостинцев') },
-            { key: 'guestbook', Icon: BookOpenIcon, num: view.guestbookEntries.length, cap: pluralRu(view.guestbookEntries.length, 'гость', 'гостя', 'гостей') },
+            { key: 'exp', Icon: ExpeditionTrophyIcon, num: view.expeditions.length, cap: pluralRu(view.expeditions.length, 'экспедиция', 'экспедиции', 'экспедиций') },
+            { key: 'market', Icon: MarketTrophyIcon, num: view.market.length, cap: pluralRu(view.market.length, 'сделка', 'сделки', 'сделок') },
+            { key: 'toloka', Icon: TolokaTrophyIcon, num: view.toloka.length, cap: pluralRu(view.toloka.length, 'толока', 'толоки', 'толок') },
+            { key: 'gift', Icon: GiftTrophyIcon, num: view.gifts.length, cap: pluralRu(view.gifts.length, 'гостинец', 'гостинца', 'гостинцев') },
+            { key: 'guestbook', Icon: GuestbookTrophyIcon, num: view.guestbookEntries.length, cap: pluralRu(view.guestbookEntries.length, 'гость', 'гостя', 'гостей') },
         ].filter(trophy => trophy.num > 0);
     }, [view]);
 
@@ -101,7 +107,7 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
             {gifts.length > 0 &&
                 <div className="recap-section" data-tone="gift">
                     <div className="recap-section-head">
-                        <span className="recap-section-badge"><GiftIcon aria-hidden="true" /></span>
+                        <span className="recap-section-badge"><MechanicSprite logicName="gifts" size={24} aria-hidden="true" /></span>
                         <h3 className="recap-section-title">Гостинец от соседей</h3>
                         <span className="recap-section-count">{gifts.length}</span>
                     </div>
@@ -112,7 +118,7 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
                         return (
                             <div key={key} className="recap-row gift-row">
                                 <div className="gift-head">
-                                    <GiftIcon className="recap-row-ico" aria-hidden="true" />
+                                    <MechanicSprite logicName="gifts" size={24} className="recap-row-ico" aria-hidden="true" />
                                     <span className={neighbor == null ? 'recap-fallback' : 'recap-line'}>{neighborName}</span>
                                 </div>
                                 <p className="gift-note">{pickGiftText(gift.neighborId, gift.big, gift.date)}</p>
@@ -139,7 +145,7 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
             {expeditions.length > 0 &&
                 <div className="recap-section" data-tone="exp">
                     <div className="recap-section-head">
-                        <span className="recap-section-badge"><BackpackIcon aria-hidden="true" /></span>
+                        <span className="recap-section-badge"><MechanicSprite logicName="expeditions" size={24} aria-hidden="true" /></span>
                         <h3 className="recap-section-title">Экспедиции</h3>
                         <span className="recap-section-count">{expeditions.length}</span>
                     </div>
@@ -147,7 +153,7 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
                         const name = expeditionTypes.find(type => type.id === event.expeditionTypeId)?.name ?? `Экспедиция #${event.expeditionTypeId}`;
                         return (
                             <div key={key} className="recap-row">
-                                <BackpackIcon className="recap-row-ico" aria-hidden="true" />
+                                <MechanicSprite logicName="expeditions" size={24} className="recap-row-ico" aria-hidden="true" />
                                 <span className="recap-line">{name}</span>
                                 <div className="recap-chips">
                                     {withStableKeys(event.loot, lootEntryKey).map(({ key: lootKey, item: loot }) => {
@@ -172,7 +178,7 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
             {market.length > 0 &&
                 <div className="recap-section" data-tone="market">
                     <div className="recap-section-head">
-                        <span className="recap-section-badge"><StoreIcon aria-hidden="true" /></span>
+                        <span className="recap-section-badge"><MechanicSprite logicName="market" size={24} aria-hidden="true" /></span>
                         <h3 className="recap-section-title">Ярмарка</h3>
                         <span className="recap-section-count">{market.length}</span>
                     </div>
@@ -181,7 +187,7 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
                         const want = event.want == null ? null : resourceTypes.find(type => type.id === event.want?.typeId);
                         return (
                             <div key={key} className="recap-row">
-                                <StoreIcon className="recap-row-ico" aria-hidden="true" />
+                                <MechanicSprite logicName="market" size={24} className="recap-row-ico" aria-hidden="true" />
                                 <span className="recap-line">{event.kind === 'sold' ? 'Продано' : 'Лот истёк –'}</span>
                                 {give == null ? <span className="recap-fallback">Ресурс #{event.give.typeId} ×{event.give.value}</span> : <ResourceChip resourceType={give} value={event.give.value} />}
                                 {event.kind === 'sold' && event.want != null &&
@@ -199,7 +205,7 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
             {view.produced.length > 0 &&
                 <div className="recap-section" data-tone="prod">
                     <div className="recap-section-head">
-                        <span className="recap-section-badge"><GridIcon aria-hidden="true" /></span>
+                        <span className="recap-section-badge"><AbstractSprite logicName="production_recipe" size={24} aria-hidden="true" /></span>
                         <h3 className="recap-section-title">Произведено</h3>
                         <span className="recap-section-count">{view.produced.length}</span>
                     </div>
@@ -231,10 +237,60 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
                     })}
                 </div>
             }
+            {manufactureRepeatFailures.length > 0 &&
+                <div className="recap-section" data-tone="prod">
+                    <div className="recap-section-head">
+                        <span className="recap-section-badge"><AbstractSprite logicName="production_recipe" size={24} aria-hidden="true" /></span>
+                        <h3 className="recap-section-title">Наряды заглохли</h3>
+                        <span className="recap-section-count">{manufactureRepeatFailures.length}</span>
+                    </div>
+                    {manufactureRepeatFailures.map(({ key, item: failure }) => {
+                        const domikType = domikTypes.find(type => type.id === failure.domikTypeId);
+                        return (
+                            <div key={key} className="recap-row">
+                                {domikType != null && <DomikSprite className="recap-domik-sprite" logicName={domikType.logicName} />}
+                                <span className="recap-line">{failure.reason}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            }
+            {manufactureStops.length > 0 &&
+                <div className="recap-section" data-tone="prod">
+                    <div className="recap-section-head">
+                        <span className="recap-section-badge"><AbstractSprite logicName="production_recipe" size={24} aria-hidden="true" /></span>
+                        <h3 className="recap-section-title">Наряды снялись сами</h3>
+                        <span className="recap-section-count">{manufactureStops.length}</span>
+                    </div>
+                    {manufactureStops.map(({ key, item: stop }) => {
+                        const domikType = domikTypes.find(type => type.id === stop.domikTypeId);
+                        const resourceName = resourceTypes.find(type => type.id === stop.resourceTypeId)?.name ?? 'припас';
+                        return (
+                            <div key={key} className="recap-row">
+                                {domikType != null && <DomikSprite className="recap-domik-sprite" logicName={domikType.logicName} />}
+                                <span className="recap-line">
+                                    {stop.kind === 'measure'
+                                        ? `${resourceName} дошёл до ${stop.value ?? 0} – наряд снят`
+                                        : `${resourceName} под заповедью – наряд встал`}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+            }
+            {view.cloakWornOut > 0 &&
+                <div className="recap-section" data-tone="build">
+                    <span className="recap-line">
+                        {view.cloakWornOut === 1
+                            ? 'Плащ отслужил пятьдесят смен и рассыпался'
+                            : `Плащей отслужило своё: ${view.cloakWornOut}`}
+                    </span>
+                </div>
+            }
             {tolokaEntries.length > 0 &&
                 <div className="recap-section" data-tone="toloka">
                     <div className="recap-section-head">
-                        <span className="recap-section-badge"><BuildingCommunityIcon aria-hidden="true" /></span>
+                        <span className="recap-section-badge"><MechanicSprite logicName="toloka" size={24} aria-hidden="true" /></span>
                         <h3 className="recap-section-title">Толока завершена</h3>
                         <span className="recap-section-count">{tolokaEntries.length}</span>
                     </div>
@@ -244,10 +300,22 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
                     })}
                 </div>
             }
+            {tolokaProgress != null &&
+                <div className="recap-section" data-tone="toloka">
+                    <div className="recap-section-head">
+                        <span className="recap-section-badge"><MechanicSprite logicName="toloka" size={24} aria-hidden="true" /></span>
+                        <h3 className="recap-section-title">Толока подросла</h3>
+                    </div>
+                    <div className="recap-toloka-grow" style={{ '--recap-was': `${tolokaProgress.beforePermille / 10}%` } as CSSProperties}>
+                        <ProgressBar value={tolokaProgress.afterPermille} max={1000}
+                            label={`${tolokaProgress.name}: было ${Math.round(tolokaProgress.beforePermille / 10)} %, стало ${Math.round(tolokaProgress.afterPermille / 10)} %`} />
+                    </div>
+                </div>
+            }
             {guestbookEntries.length > 0 &&
                 <div className="recap-section" data-tone="guestbook">
                     <div className="recap-section-head">
-                        <span className="recap-section-badge"><BookOpenIcon aria-hidden="true" /></span>
+                        <span className="recap-section-badge"><MechanicSprite logicName="guestbook" size={24} aria-hidden="true" /></span>
                         <h3 className="recap-section-title">Книга гостей</h3>
                         <span className="recap-section-count">{guestbookEntries.length}</span>
                     </div>
@@ -261,18 +329,18 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
             }
             {incidents.length > 0 &&
                 <div className="recap-section" data-tone="exp">
-                    <div className="recap-section-head"><span className="recap-section-badge"><BackpackIcon aria-hidden="true" /></span><h3 className="recap-section-title">Происшествия</h3><span className="recap-section-count">{incidents.length}</span></div>
+                    <div className="recap-section-head"><span className="recap-section-badge"><AbstractSprite logicName="incident" size={24} aria-hidden="true" /></span><h3 className="recap-section-title">Происшествия</h3><span className="recap-section-count">{incidents.length}</span></div>
                     {incidents.map(({ key, item: incident }) => {
                         const template = getIncidentTemplate(incident.templateId);
                         const text = incident.kind === 'missing' ? `${incident.workerName} ${genderForm(incident.workerGender, 'задержался', 'задержалась')} в походе – есть зацепки` : incident.autoReturned ? incidentText('{имя} вернул{ся|ась} сам{|а} – дорогу на{шёл|шла} без подмоги.', incident.workerName, incident.workerGender) : incidentText(template.resolutions[incident.clueId ?? 0] ?? '', incident.workerName, incident.workerGender);
                         const resourceType = incident.resourceTypeId == null ? undefined : resourceTypes.find(type => type.id === incident.resourceTypeId);
-                        return <div key={key} className="recap-row"><BackpackIcon className="recap-row-ico" aria-hidden="true" /><span className="recap-line">{text}</span>{incident.kind === 'missing' && <span className="recap-fallback">«{template.title}»</span>}{incident.kind === 'resolved' && !incident.autoReturned && <div className="recap-chips">{resourceType != null && incident.value != null && <ResourceChip resourceType={resourceType} value={incident.value} />}{incident.traitUpgraded === true && incident.newTrait != null && <span className="recap-fallback">Черта: {traitLabel(incident.newTraitLogicName ?? '', incident.newTrait, incident.workerGender)}</span>}<i className="recap-line">{incidentText(template.epilogue, incident.workerName, incident.workerGender)}</i></div>}</div>;
+                        return <div key={key} className="recap-row"><AbstractSprite logicName="incident" size={24} className="recap-row-ico" aria-hidden="true" /><span className="recap-line">{text}</span>{incident.kind === 'missing' && <span className="recap-fallback">«{template.title}»</span>}{incident.kind === 'resolved' && !incident.autoReturned && <div className="recap-chips">{resourceType != null && incident.value != null && <ResourceChip resourceType={resourceType} value={incident.value} />}{incident.traitUpgraded === true && incident.newTrait != null && <span className="recap-fallback">Черта: {traitLabel(incident.newTraitLogicName ?? '', incident.newTrait, incident.workerGender)}</span>}<i className="recap-line">{incidentText(template.epilogue, incident.workerName, incident.workerGender)}</i></div>}</div>;
                     })}
                 </div>
             }
             {domikIncidents.length > 0 &&
                 <div className="recap-section" data-tone="exp">
-                    <div className="recap-section-head"><span className="recap-section-badge"><BackpackIcon aria-hidden="true" /></span><h3 className="recap-section-title">Загадки построек</h3><span className="recap-section-count">{domikIncidents.length}</span></div>
+                    <div className="recap-section-head"><span className="recap-section-badge"><AbstractSprite logicName="incident" size={24} aria-hidden="true" /></span><h3 className="recap-section-title">Загадки построек</h3><span className="recap-section-count">{domikIncidents.length}</span></div>
                     {domikIncidents.map(({ key, item: incident }) => {
                         const template = getDomikIncidentTemplate(incident.templateId);
                         const domikName = domikTypes.find(type => type.id === incident.domikTypeId)?.name ?? `Постройке #${incident.domikTypeId}`;
@@ -280,7 +348,7 @@ export const RecapModal = ({ awaySeconds, view, resourceTypes, domikTypes, decor
                         const heroGender = incident.heroWorkerGender;
                         const text = incident.kind === 'started' ? `В ${domikName} что-то неспокойно – есть зацепки` : incident.autoResolved ? `Загадка в ${domikName} разгадалась сама` : domikIncidentText(template.resolutions[incident.clueId ?? 0] ?? '', domikName, heroName, heroGender);
                         const resourceType = incident.resourceTypeId == null ? undefined : resourceTypes.find(type => type.id === incident.resourceTypeId);
-                        return <div key={key} className="recap-row"><BackpackIcon className="recap-row-ico" aria-hidden="true" /><span className="recap-line">{text}</span>{incident.kind === 'started' && <span className="recap-fallback">«{template.title}»</span>}{incident.kind === 'resolved' && !incident.autoResolved && <div className="recap-chips">{resourceType != null && incident.value != null && <ResourceChip resourceType={resourceType} value={incident.value} />}{incident.traitUpgraded === true && incident.newTrait != null && <span className="recap-fallback">Черта: {incident.upgradedWorkerName ?? 'Трудяга'} – {traitLabel(incident.newTraitLogicName ?? '', incident.newTrait, heroGender)}</span>}<i className="recap-line">{domikIncidentText(template.epilogue, domikName, heroName, heroGender)}</i></div>}</div>;
+                        return <div key={key} className="recap-row"><AbstractSprite logicName="incident" size={24} className="recap-row-ico" aria-hidden="true" /><span className="recap-line">{text}</span>{incident.kind === 'started' && <span className="recap-fallback">«{template.title}»</span>}{incident.kind === 'resolved' && !incident.autoResolved && <div className="recap-chips">{resourceType != null && incident.value != null && <ResourceChip resourceType={resourceType} value={incident.value} />}{incident.traitUpgraded === true && incident.newTrait != null && <span className="recap-fallback">Черта: {incident.upgradedWorkerName ?? 'Трудяга'} – {traitLabel(incident.newTraitLogicName ?? '', incident.newTrait, heroGender)}</span>}<i className="recap-line">{domikIncidentText(template.epilogue, domikName, heroName, heroGender)}</i></div>}</div>;
                     })}
                 </div>
             }

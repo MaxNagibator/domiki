@@ -16,8 +16,7 @@
 .receipt-head {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    gap: 9px;
     width: 100%;
     padding: 8px 10px;
     background: none;
@@ -37,21 +36,92 @@
         outline-offset: -3px;
     }
 
+.receipt-yield {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    min-width: 60px;
+    padding-right: 9px;
+    border-right: 2px dotted rgba(51, 41, 26, .25);
+}
+
+.receipt-yield-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+    .receipt-yield-item svg,
+    .receipt-yield-item img {
+        width: 24px;
+        height: 24px;
+        image-rendering: pixelated;
+    }
+
+.receipt-yield-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--pine-dark);
+    font-variant-numeric: tabular-nums;
+}
+
+.receipt-main {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
 .receipt-name {
     font-size: 13px;
     font-weight: 700;
 }
 
-.receipt-blocked .receipt-name {
+.receipt-meta {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+}
+
+.receipt-lack {
+    font-size: 11px;
+    font-weight: 700;
     color: var(--roof);
 }
 
-.receipt-cost {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
+.receipt-blocked {
+    background: var(--plank);
+    border-color: rgba(51, 41, 26, .45);
 }
+
+    .receipt-blocked .receipt-name,
+    .receipt-blocked .receipt-yield-value {
+        color: var(--ink-muted);
+    }
+
+    .receipt-blocked .receipt-yield,
+    .receipt-blocked .receipt-stat {
+        opacity: .65;
+    }
+
+.receipt-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: var(--ink-muted);
+}
+
+    .receipt-divider::after {
+        content: "";
+        flex: 1 1 auto;
+        height: 0;
+        border-top: 2px dotted rgba(51, 41, 26, .3);
+    }
 
 .receipt-zeal {
     padding: 2px 4px;
@@ -63,19 +133,28 @@
     clip-path: var(--cut);
 }
 
-    .receipt-cost img, .receipt-cost svg {
-        width: 18px;
-        height: 18px;
-        image-rendering: pixelated;
-    }
+.receipt-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+}
 
-    .receipt-cost .resource-box {
-        gap: 5px;
+    .receipt-stat img,
+    .receipt-stat svg {
+        width: 16px;
+        height: 16px;
+        image-rendering: pixelated;
     }
 
 .receipt-caret {
     width: 16px;
     height: 16px;
+    flex-shrink: 0;
+    align-self: center;
     transition: transform 0.12s;
 }
 
@@ -87,8 +166,10 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
-    padding: 0 10px 10px;
+    gap: 10px;
+    padding: 10px;
+    background: #f5ebd2;
+    border-top: 2px solid rgba(51, 41, 26, .25);
 }
 
 .receipt-io {
@@ -104,14 +185,25 @@
 }
 
 .receipt-io-label {
-    flex: 0 0 44px;
+    flex: 0 0 46px;
+    padding-top: 2px;
     font-family: var(--pixel);
-    font-size: 11px;
-    color: var(--pine);
+    font-size: 10px;
+    color: var(--ink-muted);
 }
 
     .receipt-io-row .resources {
-        gap: 4px 12px;
+        gap: 4px 10px;
+    }
+
+    .receipt-io-row .resource-box {
+        gap: 4px;
+    }
+
+    .receipt-io-row .resource-box img,
+    .receipt-io-row .resource-box svg {
+        width: 20px;
+        height: 20px;
     }
 
 .receipt-row .note-warn {
@@ -120,6 +212,9 @@
 
 .resource-shortfall {
     flex-wrap: wrap;
+    padding: 7px 9px;
+    background: rgba(194, 91, 51, .09);
+    border: 2px solid rgba(194, 91, 51, .3);
 }
 
 .resource-shortfall .resources {
@@ -200,17 +295,48 @@
         background: var(--coin);
     }
 
-.receipt-mode {
+.receipt-options {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    background: #fffaec;
+    border: 2px solid var(--ink);
+    clip-path: var(--cut);
 }
 
+    .receipt-options .receipt-optional {
+        align-self: stretch;
+        gap: 8px;
+        padding: 7px 9px;
+        font-size: 12px;
+        background: none;
+        border: none;
+        clip-path: none;
+    }
+
+        .receipt-options .receipt-optional:not(:first-child) {
+            border-top: 2px dotted rgba(51, 41, 26, .25);
+        }
+
+        .receipt-options .receipt-optional:hover {
+            background: var(--plank-dark);
+        }
+
+        .receipt-options .receipt-optional:has(input:checked) {
+            background: #fff7e0;
+        }
+
+    .receipt-options .receipt-repeat-hint {
+        margin: 0;
+        padding: 0 9px 8px 32px;
+        background: #fff7e0;
+    }
+
 .receipt-mode-count {
+    margin-left: auto;
     font-size: 12px;
     font-weight: 700;
     color: var(--pine);
+    white-space: nowrap;
 }
 
 .worker-picker {
@@ -366,10 +492,6 @@
     border: 2px solid var(--ink);
 }
 
-.receipt-repeat-hint {
-    margin: -4px 0 2px 22px;
-}
-
 progress {
     display: block;
     width: 100%;
@@ -474,9 +596,7 @@ progress {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .plot,
-    .btn-game,
-    .btn-ghost {
+    .plot {
         transition: none;
     }
 
@@ -489,4 +609,49 @@ progress {
     .actions {
         animation: none;
     }
+}
+
+.manufacture-measure {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    width: 100%;
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 2px dashed var(--plank-dark);
+}
+
+.manufacture-measure-hint {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--ink-muted);
+}
+
+.manufacture-measure-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 12px;
+}
+
+    .manufacture-measure-row select {
+        max-width: 140px;
+    }
+
+    .manufacture-measure-row input {
+        width: 72px;
+    }
+
+.manufacture-measure-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.resource-chip-name {
+    gap: 4px;
+    font-weight: 700;
 }

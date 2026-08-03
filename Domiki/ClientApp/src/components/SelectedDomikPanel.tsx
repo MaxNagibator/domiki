@@ -1,28 +1,34 @@
-import { useReducer } from 'react';
-import type { Dispatch } from 'react';
+import { useReducer, useState } from 'react';
+import type { Dispatch, KeyboardEvent, Ref } from 'react';
 import ArrowUpIcon from 'pixelarticons/svg/arrow-up.svg?react';
+import BriefcaseIcon from 'pixelarticons/svg/briefcase.svg?react';
 import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
+import ClockIcon from 'pixelarticons/svg/clock.svg?react';
 import CloseIcon from 'pixelarticons/svg/close.svg?react';
-import GridIcon from 'pixelarticons/svg/grid-3x3.svg?react';
 import InfoBoxIcon from 'pixelarticons/svg/info-box.svg?react';
 import PlayIcon from 'pixelarticons/svg/play.svg?react';
-import ZapIcon from 'pixelarticons/svg/zap.svg?react';
-import type { DomikTypeDto, GoalsStateDto, ReceiptDto, ResourceDto, ResourceTypeDto, SelectedDomikView, VillageLevelDto, WeatherEffectDto, WeatherPeriodDto, WorkerDto } from '../types/api';
+import type { DomikTypeDto, GoalsStateDto, ReceiptDto, ResourceDto, ResourceTypeDto, SelectedDomikView, SickTypeDto, VillageLevelDto, WeatherEffectDto, WeatherPeriodDto, WorkerDto } from '../types/api';
 import type { DomikNamer } from '../utils/domikNames';
-import { SICK_CHANCE_PERCENT, SICK_MIN_VILLAGE_LEVEL, canInstaFinish, computeReceiptView, instaFinishCost, isWorkerFree, progressPercent, resourceShortfall, workerFitness } from '../utils/game';
+import { SICK_MIN_VILLAGE_LEVEL, computeReceiptView, isWorkerFree, progressPercent, resourceShortfall, workIntensity, workerFitness } from '../utils/game';
 import { formatDuration, remainingSeconds } from '../utils/time';
+import { formatOutputDelta, sickRiskPercent, sickTypeForWeather, weatherMark } from '../utils/weather';
 import { domikLore } from '../utils/domikLore';
 import { pluralRu } from '../utils/plural';
 import { isSkilledWorker } from '../utils/worker';
 import { ManufactureBox } from './ManufactureBox';
 import { ActionButton } from './ActionButton';
+import { HurryButton } from './HurryButton';
 import { StatChip } from './StatChip';
 import { ProgressBar } from './ProgressBar';
 import { ResourcesBox } from './ResourcesBox';
-import { AbstractSprite, ResourceSprite, WorkerSprite } from './sprites';
+import { WeatherMark } from './WeatherMark';
+import { AbstractSprite, DomikSprite, ResourceSprite, WorkerSprite } from './sprites';
+
+const MEASURE_MIN_LEVEL = 2;
+const SHOWN_OUTPUTS = 2;
 
 interface ReceiptUiState {
-    expandedId: number | null;
+    expandedIds: ReadonlySet<number>;
     optionalIds: ReadonlySet<number>;
     autoRepeatIds: ReadonlySet<number>;
     manualIds: ReadonlySet<number>;
@@ -38,7 +44,7 @@ type ReceiptUiAction =
     | { type: 'clearWorkers'; id: number };
 
 const initialReceiptUiState: ReceiptUiState = {
-    expandedId: null,
+    expandedIds: new Set(),
     optionalIds: new Set(),
     autoRepeatIds: new Set(),
     manualIds: new Set(),
@@ -58,7 +64,7 @@ const toggledSet = (set: ReadonlySet<number>, id: number): ReadonlySet<number> =
 const receiptUiReducer = (state: ReceiptUiState, action: ReceiptUiAction): ReceiptUiState => {
     switch (action.type) {
         case 'toggleExpand':
-            return { ...state, expandedId: state.expandedId === action.id ? null : action.id };
+            return { ...state, expandedIds: toggledSet(state.expandedIds, action.id) };
         case 'toggleOptional':
             return { ...state, optionalIds: toggledSet(state.optionalIds, action.id) };
         case 'toggleAutoRepeat':
@@ -89,6 +95,7 @@ interface ReceiptRowProps {
     goals: GoalsStateDto | null;
     villageLevel: VillageLevelDto | null;
     weatherEffect: WeatherEffectDto | null;
+    sickName: string | null;
     now: number;
     plodderFree: number;
     atManufactureCap: boolean;
@@ -100,7 +107,7 @@ interface ReceiptRowProps {
     formatShortfall: (cost: { typeId: number; value: number }[]) => string;
 }
 
-const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, workers, goals, villageLevel, weatherEffect, now, plodderFree, atManufactureCap, runningManufactures, maxManufactures, ui, dispatch, onStart, formatShortfall }: ReceiptRowProps) => {
+const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, workers, goals, villageLevel, weatherEffect, sickName, now, plodderFree, atManufactureCap, runningManufactures, maxManufactures, ui, dispatch, onStart, formatShortfall }: ReceiptRowProps) => {
     const { expanded, useOptional, autoRepeat, isManual, selectedWorkerIds } = ui;
     const hasOptional = receipt.optionalInputResources.length > 0;
     const view = computeReceiptView(receipt, resources, plodderFree, hasOptional && useOptional, goals?.zealCharges, domikType);
@@ -113,7 +120,7 @@ const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, wor
     const missingResources = resourceShortfall(view.inputs, resources);
     const missingResourcesText = formatShortfall(view.inputs);
     const automaticWorkerShortfall = Math.max(0, receipt.plodderCount - plodderFree);
-    const capReason = atManufactureCap ? `Все слоты заняты: ${runningManufactures} / ${maxManufactures}` : null;
+    const capReason = atManufactureCap ? `Все места заняты: ${runningManufactures} из ${maxManufactures}` : null;
     const canRun = (isManual
         ? view.hasResources && validSelectedIds.length === receipt.plodderCount
         : view.canRun) && !atManufactureCap;
@@ -139,25 +146,43 @@ const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, wor
             }
         });
 
+    const lackLabel = !view.hasResources ? 'нет припасов' : !view.hasPlodders ? 'нет трудяг' : null;
+
     return (
         <div className={'receipt-row' + (expanded ? ' receipt-open' : '') + (view.canRun ? '' : ' receipt-blocked')}>
             <button type="button" className="receipt-head"
                 aria-expanded={expanded}
                 onClick={() => dispatch({ type: 'toggleExpand', id: receipt.id })}>
-                <span className="receipt-name">{receipt.name}</span>
-                <span className="receipt-cost">
-                    {!view.canRun &&
-                        <img className="receipt-warn" src="/images/upgrade_no_resources.png"
-                            alt="" title={summaryBlockTitle} />
-                    }
-                    <span className="resource-box" title="Трудяги">
-                        <img src="/images/modificatorTypes/plodder.png" alt="Трудяги" />
-                        <span className="resource-value">{receipt.plodderCount}</span>
+                {receipt.outputResources.length > 0 &&
+                    <span className="receipt-yield">
+                        {receipt.outputResources.slice(0, SHOWN_OUTPUTS).map(output => {
+                            const outputType = resourceTypes.find(type => type.id === output.typeId);
+                            return outputType == null ? null : (
+                                <span key={output.typeId} className="receipt-yield-item"
+                                    aria-label={`даёт ${outputType.name}: ${output.value}`}>
+                                    <ResourceSprite logicName={outputType.logicName} size={24} aria-hidden="true" />
+                                    <span className="receipt-yield-value">×{output.value}</span>
+                                </span>
+                            );
+                        })}
                     </span>
-                    <span className="timer">{formatDuration(view.effectiveDurationSeconds)}</span>
-                    {view.zealMultiplier > 1 && <span className="receipt-zeal">×{view.zealMultiplier}</span>}
-                    <ChevronDownIcon className="receipt-caret" aria-hidden="true" />
+                }
+                <span className="receipt-main">
+                    <span className="receipt-name">{receipt.name}</span>
+                    <span className="receipt-meta">
+                        <span className="receipt-stat" title="Трудяги на смену">
+                            <img src="/images/modificatorTypes/plodder.png" alt="Трудяги" />
+                            {receipt.plodderCount}
+                        </span>
+                        <span className="receipt-stat" title="Длительность смены">
+                            <ClockIcon aria-hidden="true" />
+                            {formatDuration(view.effectiveDurationSeconds)}
+                        </span>
+                        {view.zealMultiplier > 1 && <span className="receipt-zeal">×{view.zealMultiplier}</span>}
+                        {lackLabel != null && <span className="receipt-lack" title={summaryBlockTitle}>{lackLabel}</span>}
+                    </span>
                 </span>
+                <ChevronDownIcon className="receipt-caret" aria-hidden="true" />
             </button>
             {expanded &&
                 <div className="receipt-body">
@@ -168,51 +193,51 @@ const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, wor
                                 <ResourcesBox resources={view.inputs} resourceTypes={resourceTypes} have={resources} />
                             </div>
                         }
-                        {receipt.outputResources.length > 0 &&
+                        {receipt.outputResources.length > SHOWN_OUTPUTS &&
                             <div className="receipt-io-row">
                                 <span className="receipt-io-label">Даёт</span>
                                 <ResourcesBox resources={receipt.outputResources} resourceTypes={resourceTypes} />
                             </div>
                         }
                     </div>
-                    {hasOptional &&
-                        <label className="receipt-optional">
-                            <input type="checkbox" checked={useOptional}
-                                onChange={() => dispatch({ type: 'toggleOptional', id: receipt.id })} />
-                            с инструментом (+{receipt.outputBonusPercent}% выхода)
-                        </label>
-                    }
-                    <label className="receipt-optional">
-                        <input type="checkbox" checked={autoRepeat}
-                            onChange={() => dispatch({ type: 'toggleAutoRepeat', id: receipt.id })} />
-                        Повторять смену автоматически
-                    </label>
-                    {autoRepeat &&
-                        <p className="receipt-repeat-hint">
-                            После каждой смены этот рецепт запустится снова, пока хватает ресурсов и трудяги могут работать.
-                        </p>
-                    }
                     {weatherEffect != null &&
                         <p className="weather-modifier">
-                            Погода: {weatherEffect.outputPercent >= 100 ? '+' : ''}{weatherEffect.outputPercent - 100} % выход
+                            Погода: {formatOutputDelta(weatherEffect.outputPercent - 100)} выход
                         </p>
                     }
-                    {weatherEffect != null && weatherEffect.outputPercent > 100 && (villageLevel?.level ?? 0) >= SICK_MIN_VILLAGE_LEVEL &&
+                    {weatherEffect != null && sickName != null && weatherEffect.outputPercent > 100 && (villageLevel?.level ?? 0) >= SICK_MIN_VILLAGE_LEVEL &&
                         <p className="weather-modifier weather-modifier--risk">
-                            Риск простуды {SICK_CHANCE_PERCENT} %
+                            {sickName}: риск {sickRiskPercent(weatherEffect.outputPercent)} %
                         </p>
                     }
-                    <div className="receipt-mode">
+                    <div className="receipt-options">
+                        {hasOptional &&
+                            <label className="receipt-optional">
+                                <input type="checkbox" checked={useOptional}
+                                    onChange={() => dispatch({ type: 'toggleOptional', id: receipt.id })} />
+                                с инструментом (+{receipt.outputBonusPercent}% выхода)
+                            </label>
+                        }
+                        <label className="receipt-optional">
+                            <input type="checkbox" checked={autoRepeat}
+                                onChange={() => dispatch({ type: 'toggleAutoRepeat', id: receipt.id })} />
+                            Поставить наряд на смену
+                        </label>
+                        {autoRepeat &&
+                            <p className="receipt-repeat-hint">
+                                По наряду смена возобновится сама, пока хватает припасов и трудяги могут работать.
+                            </p>
+                        }
                         <label className="receipt-optional">
                             <input type="checkbox" checked={isManual}
                                 onChange={() => dispatch({ type: 'toggleManual', id: receipt.id })} />
-                            Выбрать трудяг вручную
+                            Выбрать трудяг списком
+                            {isManual &&
+                                <span className="receipt-mode-count">
+                                    выбрано {validSelectedIds.length} / {receipt.plodderCount}
+                                </span>
+                            }
                         </label>
-                        {isManual &&
-                            <span className="receipt-mode-count">
-                                выбрано {validSelectedIds.length} / {receipt.plodderCount}
-                            </span>
-                        }
                     </div>
                     {isManual &&
                         <div className="worker-picker">
@@ -242,10 +267,9 @@ const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, wor
                         <PlayIcon className="btn-ico" aria-hidden="true" />
                         Запустить
                     </ActionButton>
-                     {!canRun &&
+                     {!canRun && (!view.hasResources || workerBlockReason != null) &&
                         <div className="note-warn resource-shortfall">
                             <img src="/images/upgrade_no_resources.png" alt="" />
-                            {capReason != null && <span>{capReason}</span>}
                             {!view.hasResources
                                 ? <><span>Не хватает</span><ResourcesBox resources={missingResources} resourceTypes={resourceTypes} showNames /></>
                                 : null}
@@ -258,6 +282,78 @@ const ReceiptRow = ({ receipt, domikId, domikType, resources, resourceTypes, wor
     );
 };
 
+type PanelView = 'work' | 'grow';
+type GrowPip = 'none' | 'available' | 'affordable' | 'building';
+
+interface PanelTabsProps {
+    active: PanelView;
+    onSelect: (view: PanelView) => void;
+    workPip: boolean;
+    growPip: GrowPip;
+    available: Record<PanelView, boolean>;
+}
+
+const growPipLabel: Record<GrowPip, string> = {
+    none: '',
+    available: ', есть улучшение',
+    affordable: ', улучшение по карману',
+    building: ', идёт улучшение',
+};
+
+const PanelTabs = ({ active, onSelect, workPip, growPip, available }: PanelTabsProps) => {
+    const order: PanelView[] = ['work', 'grow'];
+    const onKey = (event: KeyboardEvent<HTMLButtonElement>, view: PanelView) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+            return;
+        }
+        event.preventDefault();
+        const other: PanelView = view === 'work' ? 'grow' : 'work';
+        const next: PanelView = event.key === 'Home' ? 'work' : event.key === 'End' ? 'grow' : other;
+        if (!available[next]) {
+            return;
+        }
+        onSelect(next);
+        requestAnimationFrame(() => document.getElementById(`panel-tab-${next}`)?.focus());
+    };
+
+    return (
+        <div className="panel-tabs" role="tablist" aria-label="Разделы постройки">
+            {order.map(view => {
+                const isActive = view === active;
+                const isWork = view === 'work';
+                const isAvailable = available[view];
+                const showPip = !isActive && (isWork ? workPip : growPip !== 'none');
+                const pipClass = isWork ? 'panel-tab-pip--idle' : `panel-tab-pip--${growPip}`;
+                const label = isWork ? 'Дела' : 'Рост';
+                const emptyTitle = isWork ? 'Дел на этом дворе пока нет' : 'Расти дальше некуда';
+                const ariaLabel = !isAvailable
+                    ? `${label}: ${emptyTitle}`
+                    : isWork
+                        ? workPip ? 'Дела, есть свободное место' : undefined
+                        : growPip === 'none' ? undefined : `Рост${growPipLabel[growPip]}`;
+                return (
+                    <button key={view} type="button" role="tab" id={`panel-tab-${view}`}
+                        aria-selected={isActive}
+                        aria-controls="panel-view"
+                        aria-label={ariaLabel}
+                        disabled={!isAvailable}
+                        title={isAvailable ? undefined : emptyTitle}
+                        tabIndex={isActive ? 0 : -1}
+                        className={'panel-tab' + (isActive ? ' panel-tab-active' : '')}
+                        onKeyDown={event => onKey(event, view)}
+                        onClick={() => onSelect(view)}>
+                        {isWork
+                            ? <BriefcaseIcon className="panel-tab-ico" aria-hidden="true" />
+                            : <ArrowUpIcon className="panel-tab-ico" aria-hidden="true" />}
+                        {label}
+                        {showPip && <span className={'panel-tab-pip ' + pipClass} aria-hidden="true" />}
+                    </button>
+                );
+            })}
+        </div>
+    );
+};
+
 interface UpgradeBenefits {
     plodderDelta: number;
     manufactureDelta: number;
@@ -265,6 +361,7 @@ interface UpgradeBenefits {
 }
 
 interface SelectedDomikPanelProps {
+    ref?: Ref<HTMLElement>;
     selected: SelectedDomikView | null;
     resources: ResourceDto[];
     resourceTypes: ResourceTypeDto[];
@@ -273,6 +370,7 @@ interface SelectedDomikPanelProps {
     goals: GoalsStateDto | null;
     villageLevel: VillageLevelDto | null;
     currentWeather: WeatherPeriodDto | null;
+    sickTypes: SickTypeDto[];
     now: number;
     goldValue: number;
     goldType: ResourceTypeDto | undefined;
@@ -284,10 +382,18 @@ interface SelectedDomikPanelProps {
     onStartManufacture: (domikId: number, receiptId: number, useOptional: boolean, autoRepeat: boolean, workerIds?: number[]) => Promise<boolean>;
     onHurryManufacture: (manufactureId: number) => void;
     onToggleManufactureRepeat: (manufactureId: number, next: boolean) => void;
+    elderHouseLevel: number;
+    onSetManufactureMeasure: (manufactureId: number, resourceTypeId: number | null, value: number | null) => void;
 }
 
-export const SelectedDomikPanel = ({ selected, resources, resourceTypes, receipts, workers, goals, villageLevel, currentWeather, now, goldValue, goldType, plodderFree, displayName, onClose, onUpgrade, onHurryDomik, onStartManufacture, onHurryManufacture, onToggleManufactureRepeat }: SelectedDomikPanelProps) => {
+export const SelectedDomikPanel = ({ ref, selected, resources, resourceTypes, receipts, workers, goals, villageLevel, currentWeather, sickTypes, now, goldValue, goldType, plodderFree, displayName, onClose, onUpgrade, onHurryDomik, onStartManufacture, onHurryManufacture, onToggleManufactureRepeat, elderHouseLevel, onSetManufactureMeasure }: SelectedDomikPanelProps) => {
     const [ui, dispatch] = useReducer(receiptUiReducer, initialReceiptUiState);
+    const [tab, setTab] = useState<PanelView>('work');
+    const [tabbedDomikId, setTabbedDomikId] = useState(selected?.domik.id);
+    if (selected?.domik.id !== tabbedDomikId) {
+        setTabbedDomikId(selected?.domik.id);
+        setTab('work');
+    }
 
     const upgradeBenefits: UpgradeBenefits | null = selected?.upgrade == null
         ? null
@@ -317,27 +423,88 @@ export const SelectedDomikPanel = ({ selected, resources, resourceTypes, receipt
     const maxManufactures = selected?.domikType.levels.find(level => level.value === selected.domik.level)?.maxManufactureCount ?? 0;
     const runningManufactures = selected?.domik.manufactures?.length ?? 0;
     const atManufactureCap = maxManufactures > 0 && runningManufactures >= maxManufactures;
+    const crestIntensity = selected == null ? 'normal' : workIntensity(selected.domik, selected.domikType);
     const weatherEffect = selected == null
         ? null
         : currentWeather?.effects.find(effect => effect.domikTypeId === selected.domikType.id) ?? null;
+    const sickName = sickTypeForWeather(sickTypes, currentWeather?.weatherTypeId)?.name ?? null;
+    const crestWeather = selected == null ? null : weatherMark(currentWeather, selected.domikType.id);
     const formatShortfall = (cost: { typeId: number; value: number }[]) => resourceShortfall(cost, resources)
         .map(item => `${resourceTypes.find(type => type.id === item.typeId)?.name ?? `ресурс #${item.typeId}`} ×${item.value}`)
         .join(', ');
 
+    const isBuilding = selected?.domik.finishDate != null;
+    const hasGrow = selected?.upgrade != null || isBuilding;
+    const hasWork = selected != null && (selected.receipts.length > 0 || runningManufactures > 0);
+    const showTabs = hasWork && hasGrow;
+    const activeView: PanelView = showTabs ? tab : hasWork ? 'work' : 'grow';
+    const idlePip = hasWork && maxManufactures > 0 && runningManufactures < maxManufactures && selected.receipts.length > 0;
+    const growPip: GrowPip = isBuilding
+        ? 'building'
+        : selected?.upgrade != null
+            ? selected.upgrade.hasResources ? 'affordable' : 'available'
+            : 'none';
+    const runningTimers = (selected?.domik.manufactures ?? [])
+        .map(manufacture => remainingSeconds(manufacture.finishDate, now))
+        .filter(seconds => seconds > 0);
+    const soonestManufacture = runningTimers.length > 0 ? Math.min(...runningTimers) : null;
+    const statusTimer = isBuilding
+        ? selected.remainingText ?? null
+        : soonestManufacture != null ? formatDuration(soonestManufacture) : null;
+    const freeSlots = maxManufactures - runningManufactures;
+    const slotsText = `${freeSlots}/${maxManufactures} свободно`;
+    const readyReceipts: ReceiptDto[] = [];
+    const blockedReceipts: ReceiptDto[] = [];
+    for (const receipt of selected?.receipts ?? []) {
+        const canRun = computeReceiptView(receipt, resources, plodderFree, false, goals?.zealCharges, selected?.domikType).canRun;
+        (canRun ? readyReceipts : blockedReceipts).push(receipt);
+    }
+
+    const renderReceipt = (receipt: ReceiptDto, view: SelectedDomikView) =>
+        <ReceiptRow key={receipt.id}
+            receipt={receipt}
+            domikId={view.domik.id}
+            domikType={view.domikType}
+            resources={resources}
+            resourceTypes={resourceTypes}
+            workers={workers}
+            goals={goals}
+            villageLevel={villageLevel}
+            weatherEffect={weatherEffect}
+            sickName={sickName}
+            now={now}
+            plodderFree={plodderFree}
+            atManufactureCap={atManufactureCap}
+            runningManufactures={runningManufactures}
+            maxManufactures={maxManufactures}
+            ui={{
+                expanded: ui.expandedIds.has(receipt.id),
+                useOptional: ui.optionalIds.has(receipt.id),
+                autoRepeat: ui.autoRepeatIds.has(receipt.id),
+                isManual: ui.manualIds.has(receipt.id),
+                selectedWorkerIds: ui.workersByReceipt[receipt.id] ?? [],
+            }}
+            dispatch={dispatch}
+            onStart={onStartManufacture}
+            formatShortfall={formatShortfall} />;
+
     return (
-        <aside className={'actions pixel-panel' + (selected == null ? ' actions--empty' : '')}>
-            <button type="button" className="actions-close" title="Закрыть" onClick={onClose}>
-                <CloseIcon className="btn-ico" aria-hidden="true" />
-            </button>
+        <aside ref={ref} className={'actions pixel-panel' + (selected == null ? ' actions--empty' : '')}>
             {selected == null &&
                 <p className="hint">Выберите домик в деревне – здесь появятся улучшение и производство.</p>
             }
             {selected != null &&
                 <div>
                     <div className="actions-heading">
+                        <button type="button" className="actions-close" title="Закрыть" onClick={onClose}>
+                            <CloseIcon className="btn-ico" aria-hidden="true" />
+                        </button>
+                        <DomikSprite className="panel-crest" logicName={selected.domikType.logicName}
+                            level={selected.domik.level} working={runningManufactures > 0}
+                            data-motion={crestIntensity === 'normal' ? undefined : crestIntensity} aria-hidden="true" />
+                        <div className="panel-ident">
                         <h3 className="panel-title">
                             {displayName(selected.domik.typeId, selected.domik.id, selected.domikType.name, selected.domikType.logicName)}
-                            <span className="domik-level">ур. {selected.domik.level}</span>
                             {domikLore[selected.domikType.logicName] != null &&
                                 <span className="lore-tip" tabIndex={0} aria-label="Описание постройки">
                                     <InfoBoxIcon className="lore-tip-ico" aria-hidden="true" />
@@ -345,8 +512,41 @@ export const SelectedDomikPanel = ({ selected, resources, resourceTypes, receipt
                                 </span>
                             }
                         </h3>
+                        <div className="panel-level" aria-label={`Уровень ${selected.domik.level} из ${selected.domikType.maxLevel}`}>
+                            <span className="panel-level-value">ур. {selected.domik.level}</span>
+                            <span className="panel-notches" aria-hidden="true">
+                                {Array.from({ length: selected.domikType.maxLevel }, (_, index) =>
+                                    <span key={index} className={'panel-notch' + (index < selected.domik.level ? ' panel-notch--cut' : '')} />)}
+                            </span>
+                            {crestWeather != null && <WeatherMark key={crestWeather.weatherLogicName} mark={crestWeather} full />}
+                        </div>
+                        <div className="panel-status">
+                            {maxManufactures > 0 &&
+                                <span className={'panel-status-item' + (atManufactureCap ? ' panel-status-item--full' : '')}
+                                    title="Места для одновременных смен">
+                                    <AbstractSprite logicName="production_recipe" size={24} className="panel-status-ico" aria-hidden="true" />
+                                    {slotsText}
+                                </span>
+                            }
+                            {statusTimer != null &&
+                                <span className="panel-status-item"
+                                    title={isBuilding ? 'До конца улучшения' : 'До ближайшей готовой смены'}>
+                                    {isBuilding
+                                        ? <ArrowUpIcon className="panel-status-ico" aria-hidden="true" />
+                                        : <ClockIcon className="panel-status-ico" aria-hidden="true" />}
+                                    {statusTimer}
+                                </span>
+                            }
+                        </div>
+                        </div>
+                        <PanelTabs active={activeView} onSelect={setTab} workPip={idlePip} growPip={growPip}
+                            available={{ work: hasWork, grow: hasGrow }} />
                     </div>
-                    {selected.upgrade != null &&
+                    <div className="panel-view" id="panel-view" role="tabpanel">
+                    {!hasWork && !hasGrow &&
+                        <p className="hint panel-view-empty">Постройка выросла до предела, и работы для неё нет.</p>
+                    }
+                    {activeView === 'grow' && selected.upgrade != null &&
                         <div className="panel-block">
                             <div className="upgrade-row">
                                 <span className="panel-label">Улучшение до ур. {selected.upgrade.nextLevel}</span>
@@ -360,7 +560,7 @@ export const SelectedDomikPanel = ({ selected, resources, resourceTypes, receipt
                                                 +{upgradeBenefits.plodderDelta} {pluralRu(upgradeBenefits.plodderDelta, 'трудяга', 'трудяги', 'трудяг')}
                                             </StatChip>}
                                         {upgradeBenefits.manufactureDelta > 0 &&
-                                            <StatChip icon={<GridIcon className="stat-chip-ico" aria-hidden="true" />} title="Одновременные производства">
+                                            <StatChip icon={<AbstractSprite logicName="production_recipe" size={24} className="stat-chip-ico" aria-hidden="true" />} title="Одновременные производства">
                                                 +{upgradeBenefits.manufactureDelta} {pluralRu(upgradeBenefits.manufactureDelta, 'производство', 'производства', 'производств')}
                                             </StatChip>}
                                         {upgradeBenefits.newReceipts.slice(0, 3).map(receipt =>
@@ -383,79 +583,28 @@ export const SelectedDomikPanel = ({ selected, resources, resourceTypes, receipt
                             </ActionButton>
                         </div>
                     }
-                    {selected.domik.finishDate != null &&
+                    {activeView === 'grow' && selected.domik.finishDate != null &&
                         <div className="panel-block">
-                            {(() => {
-                                const hurryCost = instaFinishCost(selected.domik.finishDate, now);
-                                const tooFar = !canInstaFinish(selected.domik.finishDate, now);
-                                const notEnoughGold = goldValue < hurryCost;
-                                const hurryTitle = tooFar
-                                    ? `До конца ${selected.remainingText ?? ''}; ускорение доступно в последние 6 ч`
-                                    : notEnoughGold ? `Не хватает золота: ${hurryCost - goldValue}` : undefined;
-
-                                return (
-                                    <>
-                                        <ProgressBar value={progressPercent(selected.domik.finishDate, selected.domik.upgradeSeconds ?? 0, now)} max={100} label={selected.remainingText ?? ''} />
-                                        <ActionButton className="btn-game"
-                                            disabled={tooFar || notEnoughGold}
-                                            title={hurryTitle}
-                                            onClick={() => onHurryDomik(selected.domik.id)}>
-                                            <ZapIcon className="btn-ico" aria-hidden="true" />
-                                            Поторопить – {Math.max(1, hurryCost)}
-                                            {goldType != null &&
-                                                <ResourceSprite logicName={goldType.logicName} className="hurry-cost-ico" aria-hidden="true" />
-                                            }
-                                        </ActionButton>
-                                    </>
-                                );
-                            })()}
+                            <ProgressBar value={progressPercent(selected.domik.finishDate, selected.domik.upgradeSeconds ?? 0, now)} max={100} label={selected.remainingText ?? ''} />
+                            <HurryButton finishDate={selected.domik.finishDate} now={now} goldValue={goldValue} goldType={goldType}
+                                remainingText={selected.remainingText ?? ''} onHurry={() => { onHurryDomik(selected.domik.id); }} />
                         </div>
                     }
-                    {selected.receipts.length > 0 &&
+                    {activeView === 'work' && selected.receipts.length > 0 &&
                         <div className="panel-block">
-                            <div className="panel-block-head">
-                                <span className="panel-label">Запустить производство</span>
-                                {maxManufactures > 0 &&
-                                    <span className={'manufacture-slots' + (atManufactureCap ? ' manufacture-slots-full' : '')}
-                                        title="Одновременно идущих производств">
-                                        слоты {runningManufactures} / {maxManufactures}
-                                    </span>
-                                }
-                            </div>
+                            <span className="panel-label">Запустить производство</span>
                             <div className="receipt-list">
-                                {selected.receipts.map(receipt =>
-                                    <ReceiptRow key={receipt.id}
-                                        receipt={receipt}
-                                        domikId={selected.domik.id}
-                                        domikType={selected.domikType}
-                                        resources={resources}
-                                        resourceTypes={resourceTypes}
-                                        workers={workers}
-                                        goals={goals}
-                                        villageLevel={villageLevel}
-                                        weatherEffect={weatherEffect}
-                                        now={now}
-                                        plodderFree={plodderFree}
-                                        atManufactureCap={atManufactureCap}
-                                        runningManufactures={runningManufactures}
-                                        maxManufactures={maxManufactures}
-                                        ui={{
-                                            expanded: ui.expandedId === receipt.id,
-                                            useOptional: ui.optionalIds.has(receipt.id),
-                                            autoRepeat: ui.autoRepeatIds.has(receipt.id),
-                                            isManual: ui.manualIds.has(receipt.id),
-                                            selectedWorkerIds: ui.workersByReceipt[receipt.id] ?? [],
-                                        }}
-                                        dispatch={dispatch}
-                                        onStart={onStartManufacture}
-                                        formatShortfall={formatShortfall} />,
-                                )}
+                                {readyReceipts.map(receipt => renderReceipt(receipt, selected))}
+                                {blockedReceipts.length > 0 &&
+                                    <p className="receipt-divider">пока не берутся</p>
+                                }
+                                {blockedReceipts.map(receipt => renderReceipt(receipt, selected))}
                             </div>
                         </div>
                     }
-                    {selected.domik.manufactures != null && selected.domik.manufactures.length > 0 &&
+                    {activeView === 'work' && selected.domik.manufactures != null && selected.domik.manufactures.length > 0 &&
                         <div className="panel-block">
-                            <span className="panel-label">Сейчас производится {runningManufactures} / {maxManufactures}</span>
+                            <span className="panel-label">Идёт сейчас</span>
                             {selected.domik.manufactures.map(manufacture => {
                                 const receipt = receipts.find(x => x.id === manufacture.receiptId);
                                 if (receipt == null) {
@@ -466,11 +615,14 @@ export const SelectedDomikPanel = ({ selected, resources, resourceTypes, receipt
                                     <ManufactureBox key={manufacture.id} manufacture={manufacture} receipt={receipt}
                                         now={now} remainingText={formatDuration(remainingSeconds(manufacture.finishDate, now))}
                                         goldValue={goldValue} goldType={goldType} onHurry={onHurryManufacture}
-                                        onToggleAutoRepeat={onToggleManufactureRepeat} />
+                                        onToggleAutoRepeat={onToggleManufactureRepeat}
+                                        resourceTypes={resourceTypes} measureUnlocked={elderHouseLevel >= MEASURE_MIN_LEVEL}
+                                        onSetMeasure={onSetManufactureMeasure} />
                                 );
                             })}
                         </div>
                     }
+                    </div>
                 </div>
             }
         </aside>

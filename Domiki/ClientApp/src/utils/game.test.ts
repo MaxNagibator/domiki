@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { DomikDto, DomikTypeDto, ManufactureDto, ReceiptDto, ResourceDto } from '../types/api';
-import { canAffordUpgrade, computePlodderCount, computeReceiptView, manufactureProgressPercent, progressPercent, resourceShortfall, resourceSourceMap, sortDomiks, tradeDeal, tradeRatio, zealApplies, zealMultiplier } from './game';
+import type { DomikDto, DomikTypeDto, ManufactureDto, ReceiptDto, ResourceDto, WorkerDto } from '../types/api';
+import { canAffordUpgrade, computePlodderCount, computeReceiptView, isWorkerFree, manufactureProgressPercent, progressPercent, resourceShortfall, resourceSourceMap, sortDomiks, tradeDeal, tradeRatio, workIntensity, zealApplies, zealMultiplier } from './game';
+import type { WorkIntensity } from './game';
 
 describe('resourceShortfall', () => {
     it('returns exact deficits and merges repeated costs', () => {
@@ -85,7 +86,7 @@ describe('computePlodderCount', () => {
     it('sums modificator values for domiks with a level and subtracts working manufactures', () => {
         const domiks: DomikDto[] = [
             { id: 1, typeId: 1, level: 1, finishDate: null, upgradeSeconds: null, manufactures: null },
-            { id: 2, typeId: 1, level: 2, finishDate: null, upgradeSeconds: null, manufactures: [{ id: 1, finishDate: '2026-01-01T00:00:00.000Z', plodderCount: 2, receiptId: 1, autoRepeat: false }] },
+            { id: 2, typeId: 1, level: 2, finishDate: null, upgradeSeconds: null, manufactures: [{ id: 1, finishDate: '2026-01-01T00:00:00.000Z', durationSeconds: 10, plodderCount: 2, receiptId: 1, autoRepeat: false }] },
         ];
 
         expect(computePlodderCount(domiks, domikTypes)).toEqual({ max: 8, free: 6 });
@@ -209,18 +210,6 @@ describe('zealApplies', () => {
 });
 
 describe('manufactureProgressPercent', () => {
-    const receipt: ReceiptDto = {
-        id: 1,
-        name: 'Доски',
-        logicName: 'planks',
-        inputResources: [],
-        optionalInputResources: [],
-        outputResources: [],
-        durationSeconds: 100,
-        outputBonusPercent: 0,
-        plodderCount: 1,
-    };
-
     it.each<[number, number]>([
         [0, 100],
         [50, 50],
@@ -229,14 +218,31 @@ describe('manufactureProgressPercent', () => {
         [-10, 100],
     ])('finishDate %i seconds from now -> %i%%', (secondsFromNow, expected) => {
         const now = 0;
-        const manufacture: ManufactureDto = { id: 1, finishDate: new Date(secondsFromNow * 1000).toISOString(), plodderCount: 1, receiptId: 1, autoRepeat: false };
-        expect(manufactureProgressPercent(manufacture, receipt, now)).toBe(expected);
+        const manufacture: ManufactureDto = { id: 1, finishDate: new Date(secondsFromNow * 1000).toISOString(), durationSeconds: 100, plodderCount: 1, receiptId: 1, autoRepeat: false };
+        expect(manufactureProgressPercent(manufacture, now)).toBe(expected);
     });
 });
 
 describe('progressPercent', () => {
     it('returns 0 when total duration is not positive', () => {
         expect(progressPercent('2026-01-01T00:00:00.000Z', 0, 0)).toBe(0);
+    });
+});
+
+describe('isWorkerFree', () => {
+    const worker = (over: Partial<WorkerDto>): WorkerDto => ({
+        id: 1, name: 'Прохор', gender: 0, traitId: 0, traitName: '', traitLogicName: '', traitDurationPercent: 0,
+        noFatigue: false, noSick: false, manufactureId: null, expeditionId: null, errandId: null, incidentId: null,
+        workedSeconds: 0, restUntil: null, sickUntil: null, sickTypeId: null, isAway: false, skills: [], ...over,
+    });
+
+    it.each<[string, Partial<WorkerDto>, boolean]>([
+        ['ничем не занят', {}, true],
+        ['в отходе – койки не досталось', { isAway: true }, false],
+        ['на смене', { manufactureId: 1 }, false],
+        ['отдыхает', { restUntil: new Date(3600 * 1000).toISOString() }, false],
+    ])('%s -> %s', (_case, over, expected) => {
+        expect(isWorkerFree(worker(over), 0)).toBe(expected);
     });
 });
 
@@ -277,7 +283,7 @@ describe('sortDomiks', () => {
     const upgradeReady: DomikDto = { id: 2, typeId: 1, level: 1, finishDate: null, upgradeSeconds: null, manufactures: null };
     const producing: DomikDto = {
         id: 3, typeId: 1, level: 1, finishDate: null, upgradeSeconds: null,
-        manufactures: [{ id: 1, finishDate: '2026-01-01T00:00:00.000Z', plodderCount: 1, receiptId: 1, autoRepeat: false }],
+        manufactures: [{ id: 1, finishDate: '2026-01-01T00:00:00.000Z', durationSeconds: 10, plodderCount: 1, receiptId: 1, autoRepeat: false }],
     };
     const upgrading: DomikDto = { id: 4, typeId: 1, level: 1, finishDate: '2026-01-01T00:00:00.000Z', upgradeSeconds: 60, manufactures: null };
     const poorResources: ResourceDto[] = [{ typeId: 1, value: 0 }];
@@ -318,5 +324,35 @@ describe('sortDomiks', () => {
             { id: 3, typeId: 1, level: 2, finishDate: null, upgradeSeconds: null, manufactures: null },
         ];
         expect(sortDomiks(domiks, sortTypes, poorResources, 'level').map(x => x.id)).toEqual([3, 2, 1]);
+    });
+});
+
+describe('workIntensity', () => {
+    const shift = (id: number): ManufactureDto =>
+        ({ id, finishDate: '2026-01-01T00:00:00.000Z', durationSeconds: 100, plodderCount: 1, receiptId: 1, autoRepeat: false });
+    const domikType = (maxManufactureCount: number): DomikTypeDto => ({
+        id: 1, name: 'Кузница', logicName: 'forge', maxCount: 1, availableCount: 0, maxLevel: 5, unlockLevel: 0,
+        blueprintId: null, nextCountGateLevel: null,
+        levels: [{ value: 1, resources: [], modificators: [], receiptIds: [], maxManufactureCount }],
+    });
+    const domik = (shifts: number): DomikDto => ({
+        id: 1, typeId: 1, level: 1, finishDate: null, upgradeSeconds: null,
+        manufactures: shifts === 0 ? null : Array.from({ length: shifts }, (_, index) => shift(index + 1)),
+    });
+
+    it.each<[string, number, number, WorkIntensity]>([
+        ['idle building', 0, 3, 'normal'],
+        ['one shift of three slots', 1, 3, 'slow'],
+        ['two shifts of three slots', 2, 3, 'normal'],
+        ['all slots taken', 3, 3, 'fast'],
+        ['one of two slots', 1, 2, 'slow'],
+        ['single-slot building at work', 1, 1, 'normal'],
+        ['more shifts than slots', 2, 1, 'normal'],
+    ])('%s', (_label, shifts, slots, expected) => {
+        expect(workIntensity(domik(shifts), domikType(slots))).toBe(expected);
+    });
+
+    it('normal when the level is missing from the reference data', () => {
+        expect(workIntensity({ ...domik(2), level: 4 }, domikType(2))).toBe('normal');
     });
 });

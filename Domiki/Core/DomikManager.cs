@@ -2,6 +2,7 @@
 using Domiki.Web.Core.Scheduling;
 using Domiki.Web.Data;
 using Domiki.Web.Data.Entities;
+using Domiki.Web.Economy;
 using Domiki.Web.Infrastructure;
 using Domiki.Web.Reference;
 using Domiki.Web.Village;
@@ -23,7 +24,30 @@ public class DomikManager
     public const int FatigueThresholdSeconds = 8 * 3600;
     public const int RestSeconds = 2 * 3600;
     public const int RestComfortMaxPercent = 50;
-    public const int SickChancePercent = 15;
+    /// <summary>
+    /// Процент шанса хвори на каждый процентный пункт погодного бонуса сверх <c>100</c>.
+    /// </summary>
+    public const double SickChancePerBonusPoint = 0.3;
+
+    /// <summary>
+    /// Наименьший шанс хвори для трудяги, прикрытого плащом.
+    /// </summary>
+    public const int MinSickChancePercent = 2;
+
+    /// <summary>
+    /// Число смен, после которого плащ изнашивается.
+    /// </summary>
+    public const int CloakLifetimeShifts = 50;
+
+    /// <summary>
+    /// Процент от исходного риска хвори, остающийся под защитой плаща.
+    /// </summary>
+    public const int CloakProtectionPercent = 50;
+
+    /// <summary>
+    /// Идентификатор типа ресурса «Плащ».
+    /// </summary>
+    public const int CloakResourceTypeId = 20;
     public const int SickDurationSeconds = 8 * 3600;
     public const int MaxSickPerPlayer = 2;
     public const int SickImmunitySeconds = 24 * 3600;
@@ -67,6 +91,7 @@ public class DomikManager
     private readonly ResourceManager _resourceManager;
     private readonly PlayerResourceManager _playerResourceManager;
     private readonly WorkerManager _workerManager;
+    private readonly TavernManager _tavernManager;
     private readonly WeatherManager _weatherManager;
     private readonly VillageLevelCalculator _villageLevelCalculator;
     private readonly BlueprintManager _blueprintManager;
@@ -75,8 +100,10 @@ public class DomikManager
     private readonly GoalManager _goalManager;
     private readonly ILogger<DomikManager> _logger;
     private readonly IncidentManager _incidentManager;
+    private readonly ElderHouseManager _elderHouseManager;
+    private readonly PerkManager _perkManager;
 
-    public DomikManager(UnitOfWork uow, ApplicationDbContext context, ICalculator calculator, ResourceManager resourceManager, PlayerResourceManager playerResourceManager, WorkerManager workerManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, TolokaManager tolokaManager, PlayerEventManager playerEventManager, GoalManager goalManager, ILogger<DomikManager> logger, IncidentManager incidentManager)
+    public DomikManager(UnitOfWork uow, ApplicationDbContext context, ICalculator calculator, ResourceManager resourceManager, PlayerResourceManager playerResourceManager, WorkerManager workerManager, TavernManager tavernManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, TolokaManager tolokaManager, PlayerEventManager playerEventManager, GoalManager goalManager, ILogger<DomikManager> logger, IncidentManager incidentManager, ElderHouseManager elderHouseManager, PerkManager perkManager)
     {
         _context = context;
         _calculator = calculator;
@@ -84,6 +111,7 @@ public class DomikManager
         _resourceManager = resourceManager;
         _playerResourceManager = playerResourceManager;
         _workerManager = workerManager;
+        _tavernManager = tavernManager;
         _weatherManager = weatherManager;
         _villageLevelCalculator = villageLevelCalculator;
         _blueprintManager = blueprintManager;
@@ -92,6 +120,8 @@ public class DomikManager
         _goalManager = goalManager;
         _logger = logger;
         _incidentManager = incidentManager;
+        _elderHouseManager = elderHouseManager;
+        _perkManager = perkManager;
     }
 
     public int GetPlayerId(string aspNetUserId)
@@ -103,6 +133,7 @@ public class DomikManager
             {
                 AspNetUserId = aspNetUserId,
                 Name = "Держатель домиков",
+                VillageStartedDate = DateTimeHelper.GetNowDate(),
             };
 
             _context.Players.Add(dbPlayer);
@@ -131,16 +162,9 @@ public class DomikManager
             VillageName = dbPlayer.VillageName,
             CrestIcon = dbPlayer.CrestIcon,
             CrestColor = dbPlayer.CrestColor,
-            FeedWorkers = dbPlayer.FeedWorkers,
+            ProfileNeighborId = dbPlayer.ProfileNeighborId,
+            ProfileChangeAvailableDate = dbPlayer.ProfileChangedDate?.AddDays(VillageProfileManager.ProfileChangeCooldownDays),
         };
-    }
-
-    public void SetFeedWorkers(int playerId, bool enabled)
-    {
-        _playerResourceManager.LockDbPlayerRow(playerId);
-
-        var dbPlayer = _context.Players.Single(x => x.Id == playerId);
-        dbPlayer.FeedWorkers = enabled;
     }
 
     public void SetVillageIdentity(int playerId, string? name, int crestIcon, int crestColor)
@@ -234,9 +258,12 @@ public class DomikManager
                         {
                             Id = x.Id,
                             FinishDate = x.FinishDate,
+                            DurationSeconds = x.DurationSeconds,
                             PlodderCount = x.PlodderCount,
                             ReceiptId = x.ReceiptId,
                             AutoRepeat = x.AutoRepeat,
+                            MeasureResourceTypeId = x.MeasureResourceTypeId,
+                            MeasureValue = x.MeasureValue,
                         })
                         .ToArray() ?? [],
                 })
@@ -441,7 +468,7 @@ public class DomikManager
         };
     }
 
-    public void StartManufacture(int playerId, int domikId, int receiptId, bool useOptional = false, int[]? workerIds = null, bool autoRepeat = false)
+    public void StartManufacture(int playerId, int domikId, int receiptId, bool useOptional = false, int[]? workerIds = null, bool autoRepeat = false, int? measureResourceTypeId = null, int? measureValue = null)
     {
         var date = DateTimeHelper.GetNowDate();
 
@@ -451,7 +478,7 @@ public class DomikManager
         var currentManufactureCount = dbManufactures.Where(x => x.DomikId == domikId).Count();
 
         var workers = _workerManager.EnsureWorkers(playerId);
-        var freeWorkers = workers.Where(x => WorkerManager.IsFree(x, date)).OrderBy(x => x.Id).ToArray();
+        var freeWorkers = _workerManager.GetAvailableWorkers(playerId, workers, date);
 
         var domiks = _context.Domiks.Where(x => x.PlayerId == playerId).ToArray();
         var domikTypes = _resourceManager.GetDomikTypes();
@@ -464,12 +491,12 @@ public class DomikManager
 
         var domikType = domikTypes.First(x => x.Id == dbDomik.TypeId);
         var domikLevel = domikType.Levels.First(x => x.Value == dbDomik.Level);
-        var levelReceipt = domikLevel.Receipts.First(x => x.Id == receiptId);
+        var levelReceipt = domikLevel.Receipts.FirstOrDefault(x => x.Id == receiptId) ?? throw new BusinessException("Рецепт больше не доступен на этом уровне");
         var receipt = _resourceManager.GetReceipts().First(x => x.Id == levelReceipt.Id);
         var needPlodderCount = receipt.PlodderCount;
         if (freeWorkers.Length < needPlodderCount)
         {
-            throw new BusinessException("Недостаточно трудяг");
+            throw new BusinessException(WorkerManager.GetNotEnoughWorkersMessage(workers, freeWorkers, date));
         }
 
         var freeIds = freeWorkers.Select(x => x.Id).ToArray();
@@ -533,17 +560,25 @@ public class DomikManager
         duration = (int)Math.Ceiling(duration * (100 - avgSpeedup) / 100);
         var avgSkill = selectedWorkers.Average(x => WorkerSkillCalculator.GetBonusPercent(skillByWorkerId.GetValueOrDefault(x.Id)));
         duration = (int)Math.Ceiling(duration * (100 - avgSkill) / 100);
+
+        var dbPlayer = _context.Players.First(x => x.Id == playerId);
+        var profilePercent = dbPlayer.ProfileNeighborId is int profileNeighborId
+            ? _resourceManager.GetVillageProfileEffects().FirstOrDefault(x => x.NeighborId == profileNeighborId && x.DomikTypeId == domikType.Id)?.DurationPercent ?? 100
+            : 100;
+        duration = (int)Math.Ceiling(duration * profilePercent / 100.0);
+        duration = (int)Math.Ceiling(duration * _perkManager.GetDurationPercent(playerId) / 100.0);
+
         duration = Math.Max(duration, (int)Math.Ceiling(receipt.DurationSeconds * 0.6));
 
         var marketDomikTypeId = _resourceManager.GetDomikTypes().First(x => x.LogicName == "market").Id;
+        var zealChargeOwed = false;
         if (receipt.DurationSeconds <= ZealMaxRecipeSeconds && dbDomik.TypeId != marketDomikTypeId)
         {
-            var dbPlayer = _context.Players.First(x => x.Id == playerId);
             if (dbPlayer.ZealCharges > 0)
             {
                 var mult = dbPlayer.ZealCharges > ZealX4Threshold ? 4 : 2;
                 duration = Math.Max(1, duration / mult);
-                dbPlayer.ZealCharges--;
+                zealChargeOwed = true;
             }
         }
 
@@ -555,11 +590,29 @@ public class DomikManager
             outputPercent += receipt.OutputBonusPercent;
         }
 
-        var sickChance = weatherPercent > 100 && _villageLevelCalculator.GetLevel(playerId).Level >= SickMinVillageLevel
-            ? SickChancePercent
-            : 0;
+        var sickType = weatherPercent > 100 && _villageLevelCalculator.GetLevel(playerId).Level >= SickMinVillageLevel
+            ? _weatherManager.GetCurrentPeriod(date) is { } weatherPeriod
+                ? _resourceManager.GetSickTypes().FirstOrDefault(x => x.WeatherTypeId == weatherPeriod.WeatherType.Id)
+                : null
+            : null;
+        var sickChance = sickType == null
+            ? 0
+            : (int)Math.Round((weatherPercent - 100) * SickChancePerBonusPoint, MidpointRounding.AwayFromZero);
+        var cloakCount = 0;
+        if (sickType?.CloakProtects == true)
+        {
+            var cloakStock = _context.Resources.Where(x => x.PlayerId == playerId && x.TypeId == CloakResourceTypeId).Select(x => (int?)x.Value).FirstOrDefault() ?? 0;
+            var cloaksOut = _context.Manufactures.Where(x => x.DomikPlayerId == playerId).Sum(x => (int?)x.CloakCount) ?? 0;
+            var eligibleWorkerCount = selectedWorkers.Count(x => !traits[x.TraitId].NoSick && !traits[x.TraitId].NoFatigue);
+            cloakCount = Math.Min(eligibleWorkerCount, Math.Max(0, cloakStock - cloaksOut));
+        }
 
         _playerResourceManager.WriteOffResources(playerId, writeOffResources);
+
+        if (zealChargeOwed)
+        {
+            dbPlayer.ZealCharges--;
+        }
 
         var manufacture = new Data.Entities.Manufacture
         {
@@ -571,8 +624,12 @@ public class DomikManager
             PlodderCount = needPlodderCount,
             OutputPercent = outputPercent,
             AutoRepeat = autoRepeat,
+            MeasureResourceTypeId = measureResourceTypeId,
+            MeasureValue = measureValue,
             UseOptional = useOptionalApplied,
             SickChance = sickChance,
+            SickTypeId = sickType?.Id,
+            CloakCount = cloakCount,
         };
 
         _context.Manufactures.Add(manufacture);
@@ -613,6 +670,8 @@ public class DomikManager
             var receiptId = dbManufacture.ReceiptId;
             var useOptional = dbManufacture.UseOptional;
             var autoRepeat = dbManufacture.AutoRepeat;
+            var measureResourceTypeId = dbManufacture.MeasureResourceTypeId;
+            var measureValue = dbManufacture.MeasureValue;
             var domikId = dbManufacture.DomikId;
             var playerId = calcInfo.PlayerId;
             var dbDomik = _context.Domiks.SingleOrDefault(x => x.PlayerId == calcInfo.PlayerId && x.Id == dbManufacture.DomikId);
@@ -660,28 +719,45 @@ public class DomikManager
 
             var restSeconds = RestSeconds * (100 - Math.Min(RestComfortMaxPercent, comfort)) / 100;
             var sickSeconds = SickDurationSeconds * (100 - Math.Min(RestComfortMaxPercent, comfort)) / 100;
+            var tavernLevel = _tavernManager.GetLevel(playerId);
+            if (tavernLevel >= TavernManager.WarmCornerMinLevel)
+            {
+                sickSeconds = sickSeconds * (100 - TavernManager.WarmCornerRecoveryPercent) / 100;
+            }
+
             var traits = _resourceManager.GetTraits().ToDictionary(x => x.Id, x => x);
             var sickChance = dbManufacture.SickChance;
-            var currentlySick = sickChance > 0 ? _context.Workers.Count(x => x.PlayerId == playerId && x.SickUntil > date) : 0;
+            var currentlySick = _context.Workers.Count(x => x.PlayerId == playerId && x.SickUntil > date);
             var isTradeDomik = _resourceManager.GetDomikTypes().First(x => x.LogicName == "market").Id == dbDomik.TypeId;
-            var breadRes = _context.Resources.Local.FirstOrDefault(x => x.PlayerId == playerId && x.TypeId == 15)
-                           ?? _context.Resources.FirstOrDefault(x => x.PlayerId == playerId && x.TypeId == 15);
-
             var freedWorkerIds = new List<int>();
             var workerNames = new List<string>();
-            foreach (var worker in _context.Workers.Where(x => x.ManufactureId == dbManufacture.Id).ToArray())
+            var assignedWorkers = _context.Workers.Where(x => x.ManufactureId == dbManufacture.Id).OrderBy(x => x.Id).ToArray();
+            var eligibleWorkerIndex = 0;
+            for (var workerIndex = 0; workerIndex < assignedWorkers.Length; workerIndex++)
             {
+                var worker = assignedWorkers[workerIndex];
+                var trait = traits[worker.TraitId];
                 workerNames.Add(worker.Name);
                 IncrementWorkerSkill(worker.Id, dbDomik.TypeId);
-                if (!traits[worker.TraitId].NoFatigue && !isTradeDomik)
+                if (!trait.NoFatigue && !isTradeDomik)
                 {
                     worker.WorkedSeconds += dbManufacture.DurationSeconds;
                     if (worker.WorkedSeconds >= FatigueThresholdSeconds)
                     {
-                        var fed = dbPlayer.FeedWorkers && breadRes?.Value >= 1;
+                        var food = tavernLevel >= TavernManager.MealMinLevel
+                            ? _tavernManager.CollectFood(playerId, 1)
+                            : [];
+                        var fed = food.Length > 0;
                         if (fed)
                         {
-                            breadRes!.Value -= 1;
+                            _playerResourceManager.WriteOffResources(playerId, food);
+                            _tavernManager.RegisterMeal(playerId, food);
+                        }
+
+                        if (tavernLevel >= TavernManager.MealMinLevel)
+                        {
+                            var mealReason = fed ? null : (_tavernManager.HasForbiddenOrReservedFood(playerId) ? "forbidden" : "empty");
+                            _playerEventManager.RecordWorkerMeal(playerId, fed ? worker.Name : null, fed ? (int)NameGrammar.GenderOf(worker.Name) : null, mealReason, food.ToDictionary(x => x.Type.Id, x => x.Value));
                         }
 
                         worker.RestUntil = date.AddSeconds(fed ? restSeconds / 2 : restSeconds);
@@ -689,14 +765,17 @@ public class DomikManager
                     }
                 }
 
-                if (sickChance > 0
+                var canGetSick = !trait.NoSick && !trait.NoFatigue;
+                var workerSickChance = canGetSick
+                    ? GetWorkerSickChance(sickChance, dbManufacture.CloakCount, eligibleWorkerIndex++)
+                    : 0;
+                if (workerSickChance > 0
                     && currentlySick < MaxSickPerPlayer
-                    && !traits[worker.TraitId].NoSick
-                    && !traits[worker.TraitId].NoFatigue
                     && (worker.SickUntil == null || date >= worker.SickUntil.Value.AddSeconds(SickImmunitySeconds))
-                    && Random.Shared.Next(100) < sickChance)
+                    && Random.Shared.Next(100) < workerSickChance)
                 {
                     worker.SickUntil = date.AddSeconds(sickSeconds);
+                    worker.SickTypeId = dbManufacture.SickTypeId;
                     if (worker.RestUntil == null || worker.RestUntil < worker.SickUntil)
                     {
                         worker.RestUntil = worker.SickUntil;
@@ -709,7 +788,23 @@ public class DomikManager
                 freedWorkerIds.Add(worker.Id);
             }
 
+            dbPlayer.CloakWearPoints += dbManufacture.CloakCount;
+            var cloakStock = _context.Resources.Local.FirstOrDefault(x => x.PlayerId == playerId && x.TypeId == CloakResourceTypeId)
+                             ?? _context.Resources.FirstOrDefault(x => x.PlayerId == playerId && x.TypeId == CloakResourceTypeId);
+            while (dbPlayer.CloakWearPoints >= CloakLifetimeShifts && cloakStock?.Value > 0)
+            {
+                _playerResourceManager.WriteOffResources(playerId, [new Resource { Type = new() { Id = CloakResourceTypeId }, Value = 1 }]);
+                dbPlayer.CloakWearPoints -= CloakLifetimeShifts;
+                _playerEventManager.Record(playerId, PlayerEventType.CloakWornOut, new { resourceTypeId = CloakResourceTypeId, value = 1 });
+            }
+
+            if (cloakStock == null || cloakStock.Value <= 0)
+            {
+                dbPlayer.CloakWearPoints = 0;
+            }
+
             _context.Manufactures.Remove(dbManufacture);
+            _elderHouseManager.RecordShift(playerId, dbManufacture.FinishDate, dbManufacture.DurationSeconds, 1);
             _playerEventManager.RecordManufactureFinished(calcInfo.PlayerId, dbDomik.TypeId, produced);
 
             var manufactureDomikName = _resourceManager.GetDomikTypes().First(x => x.Id == dbDomik.TypeId).Name;
@@ -755,12 +850,33 @@ public class DomikManager
             if (autoRepeat)
             {
                 _context.SaveChanges();
+                if (measureResourceTypeId is int measureType && measureValue is int measureTarget
+                    && _elderHouseManager.IsMeasureMet(playerId, measureType, measureTarget))
+                {
+                    _playerEventManager.Record(playerId, PlayerEventType.ManufactureMeasureMet, new { domikId, domikTypeId = dbDomik.TypeId, receiptId, resourceTypeId = measureType, value = measureTarget });
+                    return true;
+                }
+
+                var manufactureInputs = useOptional && recept.OptionalInputResources is { Length: > 0 }
+                    ? recept.InputResources.Concat(recept.OptionalInputResources).ToArray()
+                    : recept.InputResources;
+                if (_elderHouseManager.GetHeldResourceTypeId(playerId, manufactureInputs) is int heldResourceTypeId)
+                {
+                    _playerEventManager.Record(playerId, PlayerEventType.ManufactureReserveHeld, new { domikId, domikTypeId = dbDomik.TypeId, receiptId, resourceTypeId = heldResourceTypeId });
+                    return true;
+                }
+
                 try
                 {
-                    StartManufacture(playerId, domikId, receiptId, useOptional, freedWorkerIds.ToArray(), true);
+                    StartManufacture(playerId, domikId, receiptId, useOptional, freedWorkerIds.ToArray(), true, measureResourceTypeId, measureValue);
                 }
-                catch (Exception)
+                catch (BusinessException ex)
                 {
+                    _playerEventManager.Record(playerId, PlayerEventType.ManufactureRepeatFailed, new { domikId, domikTypeId = dbDomik.TypeId, receiptId, reason = ex.Message });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "FinishManufacture: наряд {ManufactureId} игрока {PlayerId} не смог возобновиться", dbManufacture.Id, playerId);
                 }
             }
 
@@ -817,6 +933,64 @@ public class DomikManager
         }
 
         dbManufacture.AutoRepeat = autoRepeat;
+        if (!autoRepeat)
+        {
+            dbManufacture.MeasureResourceTypeId = null;
+            dbManufacture.MeasureValue = null;
+        }
+    }
+
+    /// <summary>
+    /// Назначает наряду меру или снимает её.
+    /// </summary>
+    /// <remarks>
+    /// Мера – ответ на вопрос «до каких пор повторять»: наряд снимется сам, когда запаса ресурса станет не меньше
+    /// <paramref name="value"/>. Открывается уровнем <see cref="ElderHouseManager.MeasureMinLevel"/> Избы старосты.
+    /// </remarks>
+    /// <param name="playerId">Идентификатор игрока.</param>
+    /// <param name="manufactureId">Идентификатор смены, на которой стоит наряд.</param>
+    /// <param name="resourceTypeId">Тип ресурса меры; <see langword="null"/> снимает меру.</param>
+    /// <param name="value">Сколько единиц набрать; <see langword="null"/> снимает меру.</param>
+    /// <exception cref="BusinessException">Смены нет, наряд не поставлен, Изба не доросла до меры либо мера бессмысленна.</exception>
+    public void SetManufactureMeasure(int playerId, int manufactureId, int? resourceTypeId, int? value)
+    {
+        _playerResourceManager.LockDbPlayerRow(playerId);
+
+        var dbManufacture = _context.Manufactures.SingleOrDefault(x => x.Id == manufactureId && x.DomikPlayerId == playerId);
+        if (dbManufacture == null)
+        {
+            throw new BusinessException("Производство не найдено");
+        }
+
+        if (resourceTypeId == null || value == null)
+        {
+            dbManufacture.MeasureResourceTypeId = null;
+            dbManufacture.MeasureValue = null;
+            return;
+        }
+
+        if (_elderHouseManager.GetLevel(playerId) < ElderHouseManager.MeasureMinLevel)
+        {
+            throw new BusinessException("Меру назначать нечем: в Избе старосты нет мерной рейки");
+        }
+
+        if (!dbManufacture.AutoRepeat)
+        {
+            throw new BusinessException("Мера ставится наряду: сперва поставьте наряд");
+        }
+
+        if (_resourceManager.GetResourceTypes().All(x => x.Id != resourceTypeId.Value))
+        {
+            throw new BusinessException("Такого припаса не бывает");
+        }
+
+        if (value.Value <= 0)
+        {
+            throw new BusinessException("Мера должна быть больше нуля");
+        }
+
+        dbManufacture.MeasureResourceTypeId = resourceTypeId.Value;
+        dbManufacture.MeasureValue = value.Value;
     }
 
     private void IncrementWorkerSkill(int workerId, int domikTypeId)
@@ -865,6 +1039,25 @@ public class DomikManager
                 Value = cost,
             },
         });
+    }
+
+    /// <summary>
+    /// Возвращает шанс хвори для трудяги смены с учётом выданного ему плаща.
+    /// </summary>
+    /// <param name="sickChance">Зафиксированный шанс хвори для смены в процентах.</param>
+    /// <param name="cloakCount">Число плащей, выданных на смену.</param>
+    /// <param name="workerIndex">Порядковый номер восприимчивого трудяги в смене по идентификатору.</param>
+    /// <returns>Шанс хвори трудяги в процентах.</returns>
+    internal static int GetWorkerSickChance(int sickChance, int cloakCount, int workerIndex)
+    {
+        if (sickChance <= 0)
+        {
+            return 0;
+        }
+
+        return workerIndex < cloakCount
+            ? Math.Max(MinSickChancePercent, sickChance * CloakProtectionPercent / 100)
+            : sickChance;
     }
 
     private string NormalizeVillageName(string? name)

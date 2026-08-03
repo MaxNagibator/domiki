@@ -1,16 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { FC, SVGProps } from 'react';
 import { Link } from 'react-router-dom';
 import ArrowLeftIcon from 'pixelarticons/svg/arrow-left.svg?react';
-import HomeIcon from 'pixelarticons/svg/home.svg?react';
-import CoinsIcon from 'pixelarticons/svg/coins.svg?react';
-import UsersIcon from 'pixelarticons/svg/users.svg?react';
-import MapPinIcon from 'pixelarticons/svg/map-pin.svg?react';
-import HeartIcon from 'pixelarticons/svg/heart.svg?react';
-import CalendarIcon from 'pixelarticons/svg/calendar.svg?react';
 import ClockIcon from 'pixelarticons/svg/clock.svg?react';
-import BookOpenIcon from 'pixelarticons/svg/book-open.svg?react';
-import TrophyIcon from 'pixelarticons/svg/trophy.svg?react';
-import HandIcon from 'pixelarticons/svg/hand.svg?react';
 import { ApiError, getWorld, helpVillage, leaveGuestbookEntry, visitVillage } from '../services/api';
 import { useToast } from '../services/toastContext';
 import { GUESTBOOK_PHRASES } from '../constants/guestbookPhrases';
@@ -22,19 +14,34 @@ import { WorldMap } from './WorldMap';
 import { Crest } from './Crest';
 import { GuestbookEntryRow } from './GuestbookEntryRow';
 import { villageKey } from '../utils/worldMap';
+import { profileGenitiveName, profileLore } from '../utils/profileLore';
+import { AbstractSprite, MechanicSprite, NeighborSprite } from './sprites';
 import type { VillageVisitDto, WorldDto, WorldVillageDto } from '../types/api';
+import '../styles/world.css';
+import '../styles/wiki.css';
 
 type SortKey = 'level' | 'seasonOrders' | 'seasonToloka' | 'seasonExpeditions' | 'comfort';
 
-const SORT_META: Record<SortKey, { label: string; Icon: typeof HomeIcon }> = {
-    level: { label: 'Обжитость', Icon: HomeIcon },
-    seasonOrders: { label: 'Поставщик', Icon: CoinsIcon },
-    seasonToloka: { label: 'Толока', Icon: UsersIcon },
-    seasonExpeditions: { label: 'Странник', Icon: MapPinIcon },
-    comfort: { label: 'Уют', Icon: HeartIcon },
+type MetaIcon = FC<SVGProps<SVGSVGElement>>;
+
+const mechanicIcon = (logicName: string): MetaIcon => props => <MechanicSprite logicName={logicName} size={32} {...props} />;
+
+const SORT_META: Record<SortKey, { label: string; Icon: MetaIcon }> = {
+    level: { label: 'Обжитость', Icon: mechanicIcon('obzhitost') },
+    seasonOrders: { label: 'Поставщик', Icon: mechanicIcon('orders') },
+    seasonToloka: { label: 'Толока', Icon: mechanicIcon('toloka') },
+    seasonExpeditions: { label: 'Странник', Icon: mechanicIcon('expeditions') },
+    comfort: { label: 'Уют', Icon: mechanicIcon('decor') },
 };
 
 const SORT_TABS = (Object.keys(SORT_META) as SortKey[]).map(key => ({ key, ...SORT_META[key] }));
+
+const ProfileTag = ({ logicName, className, iconClassName }: { logicName: string; className: string; iconClassName: string }) => (
+    <span className={className} title={profileLore[logicName]}>
+        <NeighborSprite logicName={logicName} size={24} className={iconClassName} aria-hidden="true" />
+        уклад {profileGenitiveName[logicName] ?? logicName}
+    </span>
+);
 
 const LevelBreakdown = ({ visit }: { visit: VillageVisitDto }) => (
     <div className="world-level-grid">
@@ -199,10 +206,10 @@ export const WorldPage = () => {
                 <div>
                     <h1 className="wiki-title">Мир</h1>
                     <div className="world-head-stats">
-                        <StatChip icon={<HomeIcon className="stat-chip-ico" aria-hidden="true" />} title="Деревень в мире">
+                        <StatChip icon={<MechanicSprite logicName="obzhitost" size={24} className="stat-chip-ico" aria-hidden="true" />} title="Деревень в мире">
                             {world.villages.length} деревень
                         </StatChip>
-                        <StatChip icon={<CalendarIcon className="stat-chip-ico" aria-hidden="true" />} title="Текущий сезон">
+                        <StatChip icon={<MechanicSprite logicName="season" size={24} className="stat-chip-ico" aria-hidden="true" />} title="Текущий сезон">
                             Сезон {world.season.number}
                         </StatChip>
                         <StatChip icon={<ClockIcon className="stat-chip-ico" aria-hidden="true" />} title="До конца сезона">
@@ -221,7 +228,7 @@ export const WorldPage = () => {
                     <button
                         type="button"
                         key={tab.key}
-                        className={'world-tab' + (tab.key === sortKey ? ' world-tab-active' : '')}
+                        className={'world-tab icon-chip-btn' + (tab.key === sortKey ? ' world-tab-active' : '')}
                         onClick={() => { setSortKey(tab.key); }}
                     >
                         <tab.Icon className="world-tab-ico" aria-hidden="true" />
@@ -262,6 +269,13 @@ export const WorldPage = () => {
                                     {village.villageName}
                                     {village.isMe && <span className="world-tag">моя</span>}
                                     {village.isNpc && <span className="world-tag">NPC</span>}
+                                    {village.profileLogicName != null &&
+                                        <ProfileTag logicName={village.profileLogicName} className="world-tag world-tag-profile" iconClassName="world-tag-ico" />}
+                                    {village.relocationCount > 0 &&
+                                        <span className="world-tag world-tag-relocation" title={`Переездов в новую долину: ${village.relocationCount}`}>
+                                            <AbstractSprite logicName="prestige_new_valley" size={24} className="world-tag-ico" aria-hidden="true" />
+                                            {village.relocationCount}
+                                        </span>}
                                 </span>
                                 <span className="world-metric" title={activeMetric.label}>
                                     {sortKey !== 'level' &&
@@ -278,7 +292,7 @@ export const WorldPage = () => {
 
                     <div className="world-artifacts pixel-panel">
                         <h2 className="panel-title world-artifacts-title">
-                            <TrophyIcon className="world-tab-ico" aria-hidden="true" />
+                            <MechanicSprite logicName="toloka" size={24} className="world-tab-ico" aria-hidden="true" />
                             Всем миром
                         </h2>
                         {world.tolokaArtifacts.length === 0
@@ -331,9 +345,17 @@ export const WorldPage = () => {
                                 <div>
                                     <h2 className="panel-title">{visit.villageName}</h2>
                                     <div className="world-visit-level">Обжитость {visit.level.level}</div>
+                                    {visit.profileLogicName != null &&
+                                        <ProfileTag logicName={visit.profileLogicName} className="world-profile-chip" iconClassName="world-profile-chip-ico" />}
                                 </div>
                             </div>
                             <LevelBreakdown visit={visit} />
+                            {visit.relocationCount > 0 &&
+                                <p className="world-visit-memorial">
+                                    <AbstractSprite logicName="prestige_new_valley" size={24} className="world-visit-memorial-ico" aria-hidden="true" />
+                                    Прожито деревень: {visit.relocationCount}, суммарная обжитость: {visit.chronicleLevelSum}
+                                </p>
+                            }
                             <div className="world-buildings">
                                 {groupedBuildings.length === 0 && <p className="hint">Построек нет</p>}
                                 {groupedBuildings.map(g => (
@@ -350,7 +372,7 @@ export const WorldPage = () => {
                                     {visit.canHelp &&
                                         <button type="button" className="btn-game" disabled={helpBusy}
                                             onClick={() => { void submitHelp(); }}>
-                                            <HandIcon className="btn-ico" aria-hidden="true" />
+                                            <MechanicSprite logicName="village_help" size={24} className="btn-ico" aria-hidden="true" />
                                             Подсобить
                                         </button>
                                     }
@@ -371,7 +393,7 @@ export const WorldPage = () => {
 
                             <div className="world-guestbook">
                                 <h3 className="panel-title world-guestbook-title">
-                                    <BookOpenIcon className="world-guestbook-ico" aria-hidden="true" />
+                                    <MechanicSprite logicName="guestbook" size={24} className="world-guestbook-ico" aria-hidden="true" />
                                     Книга гостей
                                 </h3>
                                 {visit.guestbook.length === 0
@@ -399,7 +421,7 @@ export const WorldPage = () => {
                                                 </div>
                                                 <button type="button" className="btn-game" disabled={guestbookPhraseId == null || guestbookBusy}
                                                     onClick={() => { void submitGuestbookEntry(); }}>
-                                                    <BookOpenIcon className="btn-ico" aria-hidden="true" />
+                                                    <MechanicSprite logicName="guestbook" size={24} className="btn-ico" aria-hidden="true" />
                                                     Расписаться
                                                 </button>
                                             </>

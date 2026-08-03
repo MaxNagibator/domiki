@@ -1,27 +1,40 @@
 import { useState } from 'react';
 import ClockIcon from 'pixelarticons/svg/clock.svg?react';
-import HeartIcon from 'pixelarticons/svg/heart.svg?react';
-import HandIcon from 'pixelarticons/svg/hand.svg?react';
-import type { ErrandDto, NeighborReputationDto, OrderDto, ResourceDto, ResourceTypeDto, WorkerDto } from '../types/api';
+import HomeIcon from 'pixelarticons/svg/home.svg?react';
+import LockIcon from 'pixelarticons/svg/lock.svg?react';
+import type { ConvoyDto, DomikTypeDto, ErrandDto, NeighborReputationDto, OrderDto, ResourceDto, ResourceTypeDto, VillageDto, VillageLevelDto, VillageProfileDto, WorkerDto } from '../types/api';
 import { hasResourcesFor } from '../utils/game';
 import { formatDuration, remainingSeconds } from '../utils/time';
 import { getErrandTemplate } from '../utils/errandTexts';
+import { getVillageProfileState, VILLAGE_PROFILE_LEVEL_REQUIREMENT, VILLAGE_PROFILE_REPUTATION_REQUIREMENT } from '../utils/villageProfile';
+import { profileGenitiveName } from '../utils/profileLore';
 import { ResourcesBox } from './ResourcesBox';
 import { ActionButton } from './ActionButton';
+import { ConvoyTally } from './ConvoyTally';
 import { ErrandAcceptModal } from './ErrandAcceptModal';
-import { AbstractSprite, MechanicSprite, NeighborSprite, WorkerSprite } from './sprites';
+import { VillageProfileConfirmModal } from './VillageProfileConfirmModal';
+import { AbstractSprite, MechanicSprite, NeighborSprite, ResourceSprite, WorkerSprite } from './sprites';
 
 interface OrdersBoxProps {
     orders: OrderDto[];
     errand: ErrandDto | null;
     workers: WorkerDto[];
     reputation: NeighborReputationDto[];
+    convoys: ConvoyDto[];
     resourceTypes: ResourceTypeDto[];
     resources: ResourceDto[];
+    domikTypes: DomikTypeDto[];
+    villageProfiles: VillageProfileDto[];
+    village: VillageDto | null;
+    villageLevel: VillageLevelDto | null;
     now: number;
     onComplete: (orderId: number) => void;
+    onCancel: (orderId: number) => void;
     onAcceptErrand: (errandId: number, clueId: number, workerIds: number[]) => Promise<boolean>;
     onCancelErrand: (errandId: number) => Promise<boolean>;
+    onBuyFromConvoy: (neighborId: number, resourceTypeId: number, count: number) => Promise<boolean>;
+    onSetFriend: (neighborId: number | null) => Promise<boolean>;
+    onSetVillageProfile: (neighborId: number) => Promise<boolean>;
 }
 
 const neighborPlea: Record<string, string> = {
@@ -34,12 +47,9 @@ const neighborPlea: Record<string, string> = {
 
 const pleaFor = (logicName: string) => neighborPlea[logicName] ?? 'Соседи будут рады подмоге – и добром отплатят.';
 
-const reputationMilestones = [10, 25, 50];
+const FRIEND_HINT = 'Выбери, с кем деревня нынче водит дружбу: заказы этого соседа будут появляться на доске чаще. Дружить можно с одним, передумать – в любой день.';
 
-const nextReputationMilestone = (points: number) => reputationMilestones.find(value => value > points);
-
-const previousReputationMilestone = (points: number) =>
-    [...reputationMilestones].reverse().find(value => value <= points) ?? 0;
+const PROFILE_HINT = 'Выбери, чей уклад переймёт деревня: две постройки его ремесла станут работать быстрее на 15 %. Уклад один на деревню, сменить – не раньше чем через 7 суток.';
 
 const URGENT_SECONDS = 3600;
 
@@ -99,7 +109,7 @@ const ErrandCard = ({ errand, workers, now, onAccept, onCancel }: ErrandCardProp
                     <p className="order-plea errand-offer-text">{template.offer}</p>
                     <div className="errand-actions">
                         <ActionButton className="btn-game" onClick={onAccept}>
-                            <HandIcon className="btn-ico" aria-hidden="true" />
+                            <MechanicSprite logicName="errands" size={24} className="btn-ico" aria-hidden="true" />
                             Помочь
                         </ActionButton>
                         <ActionButton className="btn-game btn-ghost" onClick={onCancel}>Отказаться</ActionButton>
@@ -110,8 +120,11 @@ const ErrandCard = ({ errand, workers, now, onAccept, onCancel }: ErrandCardProp
     );
 };
 
-export const OrdersBox = ({ orders, errand, workers, reputation, resourceTypes, resources, now, onComplete, onAcceptErrand, onCancelErrand }: OrdersBoxProps) => {
+export const OrdersBox = ({ orders, errand, workers, reputation, convoys, resourceTypes, resources, domikTypes, villageProfiles, village, villageLevel, now, onComplete, onCancel, onAcceptErrand, onCancelErrand, onBuyFromConvoy, onSetFriend, onSetVillageProfile }: OrdersBoxProps) => {
     const [errandModalId, setErrandModalId] = useState<number | null>(null);
+    const [profileModalNeighborId, setProfileModalNeighborId] = useState<number | null>(null);
+    const profileModalNeighbor = profileModalNeighborId == null ? null : reputation.find(item => item.neighborId === profileModalNeighborId) ?? null;
+    const profileModalBuildings = profileModalNeighbor == null ? [] : getVillageProfileState(villageProfiles, domikTypes, profileModalNeighbor, villageLevel?.level ?? 0, village?.profileNeighborId ?? null, village?.profileChangeAvailableDate ?? null, now).buildings;
     return (
         <section className="orders-panel pixel-panel">
             <div className="orders-hero">
@@ -129,25 +142,143 @@ export const OrdersBox = ({ orders, errand, workers, reputation, resourceTypes, 
             </div>
             {reputation.length > 0 &&
                 <div className="standing-board">
-                    <span className="standing-board-label"><HeartIcon aria-hidden="true" />доброе имя<br />по выселкам</span>
+                    <div className="standing-board-head">
+                        <h4 className="standing-board-title"><MechanicSprite logicName="friendship" size={24} aria-hidden="true" />Доброе имя по выселкам</h4>
+                        <p className="standing-board-hint">Крепко завязан узелок у соседа, с которым деревня водит дружбу – его заказы приходят чаще. Дружить можно с одним, передумать – в любой день.</p>
+                    </div>
                     <div className="standing-list">
                         {reputation.map(item => {
-                            const next = nextReputationMilestone(item.points);
-                            const floor = previousReputationMilestone(item.points);
-                            const span = next != null ? next - floor : 1;
+                            const next = item.nextThreshold;
+                            const fillPercent = next != null ? Math.min(100, Math.round((item.points / next) * 100)) : 100;
+                            const title = !item.isOpen
+                                ? 'Дорога ещё не открыта'
+                                : next != null
+                                    ? `До вехи ${next}: ещё ${next - item.points}${item.nextRewardName != null ? ` – ${item.nextRewardName}` : ''}`
+                                    : 'Доброе имя в почёте';
+                            const genitiveName = profileGenitiveName[item.neighborLogicName] ?? item.neighborName;
+                            const profile = getVillageProfileState(villageProfiles, domikTypes, item, villageLevel?.level ?? 0, village?.profileNeighborId ?? null, village?.profileChangeAvailableDate ?? null, now);
+                            const profileCooldownLeft = village?.profileChangeAvailableDate == null ? 0 : remainingSeconds(village.profileChangeAvailableDate, now);
                             return (
-                                <div key={item.neighborId} className={'standing-badge' + (next == null ? ' standing-badge-honored' : '')}
-                                    title={next != null ? `До вехи ${next}: ещё ${next - item.points}` : 'Доброе имя в почёте'}>
+                                <div key={item.neighborId}
+                                    className={'standing-badge'
+                                        + (next == null ? ' standing-badge-honored' : '')
+                                        + (item.isFriend ? ' standing-badge-friend' : '')
+                                        + (!item.isOpen ? ' standing-badge-locked' : '')}
+                                    title={title}>
                                     <NeighborSprite logicName={item.neighborLogicName} size={24} className="neighbor-ico" aria-hidden="true" />
                                     <div className="standing-badge-body">
                                         <span className="standing-badge-name">{item.neighborName}</span>
                                         <div className="standing-track" aria-hidden="true">
-                                            <span className="standing-track-fill" style={{ width: `${Math.round(((item.points - floor) / span) * 100)}%` }} />
+                                            <span className="standing-track-fill" style={{ width: `${fillPercent}%` }} />
                                         </div>
-                                        <span className="standing-badge-goal">
-                                            {next != null ? <>{item.points} / {next} <span className="standing-badge-cue">до вехи</span></> : <>{item.points} · в почёте</>}
-                                        </span>
+                                        {item.isOpen &&
+                                            <span className="standing-badge-goal">
+                                                {next != null ? <>{item.points}/{next}</> : <>{item.points} · в почёте</>}
+                                            </span>}
+                                        {item.isOpen
+                                            ? next != null && item.nextRewardName != null &&
+                                                <span className="standing-badge-cue" title={item.nextRewardName}>{item.nextRewardName}</span>
+                                            : <span className="standing-badge-cue">дорога ещё не открыта</span>}
                                     </div>
+                                    <div className="standing-marks">
+                                        {item.isOpen
+                                            ? <ActionButton className={'standing-friend-mark' + (item.isFriend ? ' standing-friend-mark-on' : '')}
+                                                aria-pressed={item.isFriend}
+                                                aria-label={item.isFriend ? `Дружим с выселком ${item.neighborName} – перестать` : `Водить дружбу с выселком ${item.neighborName}`}
+                                                title={FRIEND_HINT}
+                                                onClick={async () => void await onSetFriend(item.isFriend ? null : item.neighborId)}>
+                                                <MechanicSprite logicName="friendship" size={24} aria-hidden="true" />
+                                            </ActionButton>
+                                            : <span className="standing-friend-mark standing-friend-mark-locked" aria-hidden="true"><LockIcon /></span>}
+                                        {profile.state === 'need-level' || profile.state === 'need-reputation' || profile.state === 'closed'
+                                            ? <span className="standing-friend-mark standing-friend-mark-locked"
+                                                title={profile.state === 'need-reputation'
+                                                    ? `Мало доверия для уклада – репутация ${item.points}/${VILLAGE_PROFILE_REPUTATION_REQUIREMENT}`
+                                                    : profile.state === 'need-level'
+                                                        ? `Мала ещё обжитость для уклада – ${villageLevel?.level ?? 0}/${VILLAGE_PROFILE_LEVEL_REQUIREMENT}`
+                                                        : !item.isOpen ? 'Дорога ещё не открыта' : 'У этого соседа нет своего уклада'}
+                                                aria-label={profile.state === 'need-reputation'
+                                                    ? `Уклад ${genitiveName} закрыт: репутация ${item.points} из ${VILLAGE_PROFILE_REPUTATION_REQUIREMENT}`
+                                                    : profile.state === 'need-level'
+                                                        ? `Уклад ${genitiveName} закрыт: обжитость ${villageLevel?.level ?? 0} из ${VILLAGE_PROFILE_LEVEL_REQUIREMENT}`
+                                                        : undefined}>
+                                                <HomeIcon aria-hidden="true" />
+                                            </span>
+                                            : profile.state === 'adopted'
+                                                ? <span className="standing-friend-mark standing-friend-mark-on"
+                                                    aria-label={`Деревня живёт по укладу ${genitiveName}`}
+                                                    title="живём по этому укладу">
+                                                    <HomeIcon aria-hidden="true" />
+                                                </span>
+                                                : profile.state === 'cooldown'
+                                                    ? <span className="standing-friend-mark standing-friend-mark-locked"
+                                                        aria-label={`Сменить уклад можно через ${formatDuration(profileCooldownLeft)}`}
+                                                        title={`Уклад меняли недавно – новый через ${formatDuration(profileCooldownLeft)}`}>
+                                                        <HomeIcon aria-hidden="true" />
+                                                    </span>
+                                                    : <ActionButton className="standing-friend-mark"
+                                                        aria-pressed={false}
+                                                        aria-label={`Перенять уклад ${genitiveName}`}
+                                                        title={PROFILE_HINT}
+                                                        onClick={() => setProfileModalNeighborId(item.neighborId)}>
+                                                        <HomeIcon aria-hidden="true" />
+                                                    </ActionButton>}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>}
+            {convoys.length > 0 &&
+                <div className="convoy-board">
+                    <div className="convoy-board-head">
+                        <h4 className="convoy-board-title"><MechanicSprite logicName="convoy" size={24} aria-hidden="true" />Обозы</h4>
+                        <p className="convoy-board-hint">Раз в день сосед пригоняет обоз со своим товаром. Уступит немного и не задёшево – зато сразу и без хлопот.</p>
+                    </div>
+                    <div className="convoy-list">
+                        {convoys.map(convoy => {
+                            const left = convoy.windowResetDate == null ? 0 : remainingSeconds(convoy.windowResetDate, now);
+                            return (
+                                <div key={convoy.neighborId} className={'convoy-row' + (convoy.isLocked ? ' convoy-row-locked' : '')}>
+                                    <span className="convoy-row-neighbor">
+                                        <NeighborSprite logicName={convoy.neighborLogicName} size={24} className="neighbor-ico" aria-hidden="true" />
+                                        {convoy.neighborName}
+                                    </span>
+                                    {convoy.isLocked
+                                        ? <span className="convoy-row-locked-hint">
+                                            <LockIcon aria-hidden="true" />
+                                            Мало доверия для обоза – выручайте соседа заказами
+                                        </span>
+                                        : <>
+                                            <div className="convoy-items">
+                                                {convoy.items.map(item => {
+                                                    const resourceType = resourceTypes.find(x => x.id === item.resourceTypeId);
+                                                    if (resourceType == null) {
+                                                        return null;
+                                                    }
+
+                                                    const soldOut = convoy.remaining <= 0;
+                                                    return (
+                                                        <ActionButton key={item.resourceTypeId} className="convoy-item-chip" disabled={soldOut}
+                                                            title={soldOut ? 'Обоз на сегодня распродан' : `Купить ${resourceType.name} за ${item.price}`}
+                                                            onClick={async () => void await onBuyFromConvoy(convoy.neighborId, item.resourceTypeId, 1)}>
+                                                            <ResourceSprite logicName={resourceType.logicName} aria-hidden="true" />
+                                                            <span className="convoy-item-price">
+                                                                <ResourceSprite logicName="coin" aria-hidden="true" />{item.price}
+                                                            </span>
+                                                        </ActionButton>
+                                                    );
+                                                })}
+                                            </div>
+                                            <span className="convoy-row-status">
+                                                <ConvoyTally remaining={convoy.remaining} limit={convoy.limit} />
+                                                {convoy.remaining <= 0 && (
+                                                    <span className="convoy-row-reset">
+                                                        <ClockIcon aria-hidden="true" />{formatDuration(left)}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </>}
                                 </div>
                             );
                         })}
@@ -197,11 +328,18 @@ export const OrdersBox = ({ orders, errand, workers, reputation, resourceTypes, 
                                         </span>
                                     </div>
                                 </div>
-                                <ActionButton className="btn-game" disabled={!canComplete}
-                                    title={canComplete ? undefined : 'Не хватает ресурсов'}
-                                    onClick={() => onComplete(order.id)}>
-                                    Сдать заказ
-                                </ActionButton>
+                                <div className="order-actions">
+                                    <ActionButton className="btn-game" disabled={!canComplete}
+                                        title={canComplete ? undefined : 'Не хватает ресурсов'}
+                                        onClick={() => onComplete(order.id)}>
+                                        Сдать заказ
+                                    </ActionButton>
+                                    <ActionButton className="btn-game btn-ghost"
+                                        title="Заказ уйдёт в другую деревню – без обиды, но и без награды. Новый спрос появится не сразу."
+                                        onClick={() => onCancel(order.id)}>
+                                        Уступить
+                                    </ActionButton>
+                                </div>
                             </div>
                         );
                     })}
@@ -210,6 +348,12 @@ export const OrdersBox = ({ orders, errand, workers, reputation, resourceTypes, 
                 <ErrandAcceptModal errand={errand} workers={workers} now={now}
                     onConfirm={onAcceptErrand}
                     onClose={() => setErrandModalId(null)} />}
+            {profileModalNeighborId != null && profileModalNeighbor != null &&
+                <VillageProfileConfirmModal
+                    genitiveName={profileGenitiveName[profileModalNeighbor.neighborLogicName] ?? profileModalNeighbor.neighborName}
+                    buildings={profileModalBuildings}
+                    onConfirm={() => onSetVillageProfile(profileModalNeighborId)}
+                    onClose={() => setProfileModalNeighborId(null)} />}
         </section>
     );
 };

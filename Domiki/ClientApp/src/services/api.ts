@@ -8,7 +8,9 @@ import {
     gameStateSchema,
     guestbookSchema,
     helpResultSchema,
+    memorialPostSchema,
     problemDetailsSchema,
+    relocationPlanSchema,
     villageSchema,
     worldSchema,
     villageVisitSchema,
@@ -16,6 +18,8 @@ import {
     type GameStateDto,
     type GuestbookDto,
     type HelpResultDto,
+    type MemorialPostDto,
+    type RelocationPlanDto,
     type TolokaStateDto,
     type MarketStateDto,
     type VillageDto,
@@ -95,6 +99,9 @@ export async function apiPost(url: string, signal?: AbortSignal): Promise<void> 
 export const completeOrder = (orderId: number, signal?: AbortSignal): Promise<void> =>
     apiPost(`Domiki/CompleteOrder/${orderId}`, signal);
 
+export const cancelOrder = (orderId: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/CancelOrder/${orderId}`, signal);
+
 export const acceptErrand = (errandId: number, clueId: number, workerIds: number[], signal?: AbortSignal): Promise<void> => {
     const workerIdsQuery = workerIds.map(id => `&workerIds=${id}`).join('');
     return apiPost(`Domiki/AcceptErrand/${errandId}?clueId=${clueId}${workerIdsQuery}`, signal);
@@ -112,6 +119,14 @@ export const hurryManufacture = (manufactureId: number, signal?: AbortSignal): P
 export const setManufactureAutoRepeat = (manufactureId: number, autoRepeat: boolean, signal?: AbortSignal): Promise<void> =>
     apiPost(`Domiki/SetManufactureAutoRepeat/${manufactureId}?autoRepeat=${String(autoRepeat)}`, signal);
 
+export const setManufactureMeasure = (manufactureId: number, resourceTypeId: number | null, value: number | null, signal?: AbortSignal): Promise<void> =>
+    apiPost(resourceTypeId == null || value == null
+        ? `Domiki/SetManufactureMeasure/${manufactureId}`
+        : `Domiki/SetManufactureMeasure/${manufactureId}?resourceTypeId=${resourceTypeId}&value=${value}`, signal);
+
+export const setResourceReserve = (resourceTypeId: number, reserve: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/SetResourceReserve/${resourceTypeId}?reserve=${reserve}`, signal);
+
 export const hurryDomik = (domikId: number, signal?: AbortSignal): Promise<void> =>
     apiPost(`Domiki/HurryDomik/${domikId}`, signal);
 
@@ -120,9 +135,6 @@ export const getVillage = (signal?: AbortSignal): Promise<VillageDto> =>
 
 export const setVillage = (name: string, crestIcon: number, crestColor: number, signal?: AbortSignal): Promise<void> =>
     request('POST', 'Domiki/SetVillage', null, signal, { name, crestIcon, crestColor });
-
-export const setFeedWorkers = (enabled: boolean, signal?: AbortSignal): Promise<void> =>
-    request('POST', 'Domiki/SetFeedWorkers', null, signal, { enabled });
 
 export const getWorld = (signal?: AbortSignal): Promise<WorldDto> =>
     apiGet('Domiki/GetWorld', worldSchema, signal);
@@ -153,6 +165,9 @@ export const getDecor = (signal?: AbortSignal): Promise<DecorStateDto> =>
 export const buyDecor = (decorTypeId: number, signal?: AbortSignal): Promise<void> =>
     apiPost(`Domiki/BuyDecor/${decorTypeId}`, signal);
 
+export const setFoodRule = (resourceTypeId: number, reserve: number, forbidden: boolean, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/SetFoodRule/${resourceTypeId}?reserve=${reserve}&forbidden=${String(forbidden)}`, signal);
+
 export const getToloka = (signal?: AbortSignal): Promise<TolokaStateDto | null> =>
     apiGet('Domiki/GetToloka', tolokaStateSchema.nullable(), signal);
 
@@ -173,6 +188,27 @@ export const acceptLot = (lotId: number, signal?: AbortSignal): Promise<void> =>
 
 export const cancelLot = (lotId: number, signal?: AbortSignal): Promise<void> =>
     apiPost(`Domiki/CancelLot/${lotId}`, signal);
+
+export const buyFromConvoy = (neighborId: number, resourceTypeId: number, count: number, signal?: AbortSignal): Promise<void> =>
+    request('POST', 'Domiki/BuyFromConvoy', null, signal, { neighborId, resourceTypeId, count });
+
+export const setFriendNeighbor = (neighborId: number | null, signal?: AbortSignal): Promise<void> =>
+    request('POST', 'Domiki/SetFriendNeighbor', null, signal, { neighborId });
+
+export const setVillageProfile = (neighborId: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/SetVillageProfile?neighborId=${neighborId}`, signal);
+
+export const getMemorialPost = (signal?: AbortSignal): Promise<MemorialPostDto> =>
+    apiGet('Domiki/GetMemorialPost', memorialPostSchema, signal);
+
+export const getRelocationPlan = (signal?: AbortSignal): Promise<RelocationPlanDto> =>
+    apiGet('Domiki/GetRelocation', relocationPlanSchema, signal);
+
+export const relocate = (valleyId: number, villageName: string | null, signal?: AbortSignal): Promise<void> =>
+    request('POST', 'Domiki/Relocate', null, signal, { valleyId, villageName });
+
+export const buyPerk = (perkType: number, signal?: AbortSignal): Promise<void> =>
+    apiPost(`Domiki/BuyPerk?perkType=${perkType}`, signal);
 
 export const getPushPublicKey = (signal?: AbortSignal): Promise<string> =>
     apiGet('Push/PublicKey', z.string(), signal);

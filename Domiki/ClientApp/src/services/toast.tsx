@@ -38,9 +38,11 @@ export const Toaster = () => {
     const dismiss = useContext(ToastDismissContext);
 
     return (
-        <div className="toast-container" aria-live="assertive" aria-atomic="false">
+        <div className="toast-container" aria-live="polite" aria-atomic="false">
             {toasts.map(toast => (
-                <button type="button" key={toast.id} className={`toast toast-${toast.type}`} onClick={() => dismiss(toast.id)}>
+                <button type="button" key={toast.id} className={`toast toast-${toast.type}`}
+                    role={toast.type === 'error' ? 'alert' : undefined}
+                    onClick={() => dismiss(toast.id)}>
                     {toast.message}
                 </button>
             ))}

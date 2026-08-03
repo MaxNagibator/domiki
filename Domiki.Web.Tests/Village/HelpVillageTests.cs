@@ -508,14 +508,4 @@ file static class HelpVillageTestsActs
     {
         return App.Act<HelpManager, VisitHelp>(m => m.GetVisitHelp(host.Id, guest.Id, date));
     }
-
-    public static TestPlayer RaiseVillageLevel(this TestPlayer p, int target)
-    {
-        while (p.GetVillageLevel().Level < target)
-        {
-            p.WithDomik(DomikIds.Market);
-        }
-
-        return p;
-    }
 }

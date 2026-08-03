@@ -24,6 +24,8 @@ public static class DbLockExtensions
         var table = entityType.GetTableName()
             ?? throw new InvalidOperationException($"У сущности {typeof(TEntity).Name} нет таблицы.");
         var keyColumn = entityType.FindPrimaryKey()!.Properties[0].GetColumnName();
+#pragma warning disable EF1002
         context.Database.ExecuteSqlRaw($"SELECT 1 FROM \"{table}\" WHERE \"{keyColumn}\" = {{0}} FOR UPDATE", keyValue);
+#pragma warning restore EF1002
     }
 }

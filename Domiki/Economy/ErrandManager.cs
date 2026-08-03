@@ -93,6 +93,7 @@ public class ErrandManager
     private readonly PlayerResourceManager _playerResourceManager;
     private readonly VillageLevelCalculator _villageLevelCalculator;
     private readonly PlayerEventManager _playerEventManager;
+    private readonly WorkerManager _workerManager;
 
     public ErrandManager(
         ApplicationDbContext context,
@@ -101,7 +102,8 @@ public class ErrandManager
         ResourceManager resourceManager,
         PlayerResourceManager playerResourceManager,
         VillageLevelCalculator villageLevelCalculator,
-        PlayerEventManager playerEventManager)
+        PlayerEventManager playerEventManager,
+        WorkerManager workerManager)
     {
         _context = context;
         _uow = uow;
@@ -110,6 +112,7 @@ public class ErrandManager
         _playerResourceManager = playerResourceManager;
         _villageLevelCalculator = villageLevelCalculator;
         _playerEventManager = playerEventManager;
+        _workerManager = workerManager;
     }
 
     /// <summary>
@@ -251,6 +254,12 @@ public class ErrandManager
         if (workers.Any(x => !WorkerManager.IsFree(x, now)))
         {
             throw new BusinessException("Трудяга занят");
+        }
+
+        var availableIds = _workerManager.GetAvailableWorkers(playerId, workers, now).Select(x => x.Id).ToHashSet();
+        if (workers.Any(x => !availableIds.Contains(x.Id)))
+        {
+            throw new BusinessException(WorkerManager.AwayWorkersMessage);
         }
 
         dbErrand.AcceptDate = now;

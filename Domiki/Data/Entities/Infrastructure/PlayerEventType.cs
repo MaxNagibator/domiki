@@ -114,4 +114,51 @@ public enum PlayerEventType
     /// См. <see cref="Workers.WorkerMilestoneManager"/>.
     /// </remarks>
     WorkerMilestone = 16,
+
+    /// <summary>
+    /// Плащ износился после выработки срока службы и был списан.
+    /// </summary>
+    CloakWornOut = 17,
+
+    /// <summary>
+    /// Трудяга поел (или не смог поесть) в Корчме после смены.
+    /// </summary>
+    /// <remarks>
+    /// Повторные события с одинаковой причиной сливаются в одну запись с накоплением счётчика и ресурсов, а
+    /// обезличиваются – имя и род трудяги очищаются (см. <see cref="Infrastructure.PlayerEventManager.RecordWorkerMeal"/>).
+    /// </remarks>
+    WorkerMeal = 18,
+
+    /// <summary>
+    /// Наряд (стоящая смена с автоповтором) не смог возобновиться.
+    /// </summary>
+    /// <remarks>
+    /// См. <see cref="Core.DomikManager.FinishManufacture"/>.
+    /// </remarks>
+    ManufactureRepeatFailed = 19,
+
+    /// <summary>
+    /// Наряд отстоял назначенную меру и снялся сам.
+    /// </summary>
+    /// <remarks>
+    /// Плановый конец наряда, отдельный от <see cref="ManufactureRepeatFailed"/>: иначе он читался бы как «наряды опять
+    /// пропадают сами». См. <see cref="Core.DomikManager.FinishManufacture"/>.
+    /// </remarks>
+    ManufactureMeasureMet = 20,
+
+    /// <summary>
+    /// Наряд встал, потому что входной припас заповедан от нарядов.
+    /// </summary>
+    /// <remarks>
+    /// См. <see cref="Economy.ElderHouseManager.GetHeldResourceTypeId"/>.
+    /// </remarks>
+    ManufactureReserveHeld = 21,
+
+    /// <summary>
+    /// Артель переехала в новую долину, а прожитая деревня осталась на памятном столбе.
+    /// </summary>
+    /// <remarks>
+    /// См. <see cref="Village.RelocationManager.Relocate"/>.
+    /// </remarks>
+    Relocated = 22,
 }

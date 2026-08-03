@@ -4,6 +4,8 @@ namespace Domiki.Web.Tests;
 
 public sealed class CountGateTests
 {
+    private const int MaxDomikLevel = 5;
+
     /// <summary>
     /// Постройка без ворот обжитости ограничена только своим максимальным количеством и пропадает из списка доступных после
     /// покупки лимита.
@@ -124,8 +126,58 @@ public sealed class CountGateTests
         Assert.DoesNotThrow(() => player.Buy(domikTypeId));
     }
 
+    /// <summary>
+    /// Шестая, седьмая и восьмая Артельные избы открываются мидгеймными порогами обжитости – лестница коек ведёт игрока
+    /// от первого дня до самого переезда.
+    /// </summary>
+    /// <param name="ownedCount">Сколько изб уже стоит у игрока.</param>
+    /// <param name="gateLevel">Обжитость, открывающая следующую избу.</param>
+    [TestCase(5, 60)]
+    [TestCase(6, 110)]
+    [TestCase(7, 175)]
+    public void BarracksMidgameLadderGateTest(int ownedCount, int gateLevel)
+    {
+        var player = TestPlayer.Create()
+            .WithDomiks(DomikIds.Barrack, ownedCount - 1);
+
+        SetVillageLevel(player, gateLevel - 1);
+        var ex = Throws.Business(() => player.Buy(DomikIds.Barrack));
+        Assert.That(ex.Message, Is.EqualTo($"Постройка «Артельная изба» откроется при обжитости {gateLevel}"));
+
+        SetVillageLevel(player, gateLevel);
+        Assert.DoesNotThrow(() => player.Buy(DomikIds.Barrack));
+    }
+
+    /// <summary>
+    /// Порог очередной избы виден в дорожной карте обжитости заранее, а построенные ступени из неё уходят.
+    /// </summary>
+    [Test]
+    public void BarracksLadderIsVisibleInUnlocksTest()
+    {
+        const int sixthGateLevel = 60;
+
+        var player = TestPlayer.Create();
+
+        var sixth = player.GetVillageLevel().Unlocks.SingleOrDefault(x => x.Label == "Артельная изба ×6");
+        Assert.That(sixth?.Level, Is.EqualTo(sixthGateLevel));
+
+        player.WithDomiks(DomikIds.Barrack, 5);
+
+        var afterBuild = player.GetVillageLevel().Unlocks;
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(afterBuild.Any(x => x.Label == "Артельная изба ×6"), Is.False);
+            Assert.That(afterBuild.Any(x => x.Label == "Артельная изба ×7"), Is.True);
+        }
+    }
+
     private static void SetVillageLevel(TestPlayer player, int target)
     {
+        while (player.GetVillageLevel().Level < target - MaxDomikLevel)
+        {
+            player.WithDomik(DomikIds.Market, MaxDomikLevel);
+        }
+
         while (player.GetVillageLevel().Level < target)
         {
             player.WithDomik(DomikIds.Market);

@@ -1,7 +1,7 @@
 ﻿namespace Domiki.Web.Village.Models;
 
 /// <summary>
-/// Идентичность деревни игрока – название, герб и настройка кормления трудяг.
+/// Идентичность деревни – название и герб.
 /// </summary>
 /// <remarks>
 /// Отдаётся на клиент как <see cref="Dto.VillageDto"/>.
@@ -24,10 +24,20 @@ public class VillageState
     public int CrestColor { get; set; }
 
     /// <summary>
-    /// Включено ли кормление трудяг хлебом.
+    /// Сосед, чей уклад деревни принят игроком.
     /// </summary>
     /// <remarks>
-    /// <see langword="true"/> – кормление включено: вдвое сокращает время отдыха уставшего трудяги ценой <c>1</c> хлеба за случай.
+    /// Ссылка на справочник соседей (см. <see cref="Reference.ResourceManager.GetNeighbors"/>). <see langword="null"/> – уклад не принят.
     /// </remarks>
-    public bool FeedWorkers { get; set; }
+    public int? ProfileNeighborId { get; set; }
+
+    /// <summary>
+    /// Момент, с которого уклад деревни можно сменить снова.
+    /// </summary>
+    /// <value>Момент в UTC.</value>
+    /// <remarks>
+    /// <see cref="Data.Entities.Player.ProfileChangedDate"/> плюс <see cref="VillageProfileManager.ProfileChangeCooldownDays"/> суток.
+    /// <see langword="null"/> – уклад ещё ни разу не принимался.
+    /// </remarks>
+    public DateTime? ProfileChangeAvailableDate { get; set; }
 }

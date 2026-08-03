@@ -5,6 +5,7 @@ using Domiki.Web.Reference;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 
 var configuration = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
@@ -17,14 +18,23 @@ var connectionString = configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Не задана ConnectionStrings:DefaultConnection");
 var options = new DbContextOptionsBuilder<ApplicationDbContext>()
     .UseNpgsql(connectionString)
+    .UseSnakeCaseNamingConvention()
     .Options;
 
-var resources = new ResourceManager(new PooledDbContextFactory<ApplicationDbContext>(options));
+var resources = new ResourceManager(new PooledDbContextFactory<ApplicationDbContext>(options), NullLogger<ResourceManager>.Instance);
 var data = SimulationData.Load(resources);
 var simulator = new BalanceSimulator(data);
 if (args.Contains("--ftue", StringComparer.OrdinalIgnoreCase))
 {
     Console.WriteLine(new FtueReport(simulator.RunFtue()).Render());
+}
+else if (args.Contains("--profiles", StringComparer.OrdinalIgnoreCase))
+{
+    var configs = new (string Label, int? NeighborId)[] { ("Без уклада", null) }
+        .Concat(data.Neighbors.Select(n => (Label: n.Name, NeighborId: (int?)n.Id)))
+        .Select(config => (config.Label, config.NeighborId, Report: simulator.Run(config.NeighborId)))
+        .ToArray();
+    Console.WriteLine(new ProfileComparisonReport(data, configs).Render());
 }
 else
 {

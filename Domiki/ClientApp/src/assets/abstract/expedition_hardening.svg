@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges" data-size="64" role="img" aria-labelledby="expedition-hardening-title expedition-hardening-desc" focusable="false" preserveAspectRatio="xMidYMid meet" color-interpolation="sRGB" data-active="true" data-state="idle" data-motion="on" data-animation-profile="badge" style="--asset-phase:-2.4s">
   <title id="expedition-hardening-title">Закалка похода</title>
-  <desc id="expedition-hardening-desc">Явный защитный щит с горным подъёмом и крупной стрелкой роста выносливости.</desc>
+  <desc id="expedition-hardening-desc">Синий походный сапог, укреплённый морозом, рядом со снежной искрой.</desc>
   <style>
     .micro{} .tiny{}
     svg[data-size="32"] .tiny,svg[data-size="24"] .tiny{display:none}
@@ -35,8 +35,25 @@
     svg[data-motion="off"] *{animation:none!important}
     @media (prefers-reduced-motion:reduce){.asset-stage,.asset-fx *,.asset-accent{animation:none!important;transform:none!important}}
   </style>
-  <g class="asset-stage profile-grounded"><rect x="16" y="5" width="32" height="4" fill="#262626"/><rect x="10" y="9" width="44" height="9" fill="#262626"/><rect x="8" y="18" width="48" height="18" fill="#262626"/><rect x="11" y="36" width="42" height="9" fill="#262626"/><rect x="16" y="45" width="32" height="7" fill="#262626"/><rect x="23" y="52" width="18" height="5" fill="#262626"/><rect x="29" y="57" width="6" height="3" fill="#262626"/><rect x="16" y="9" width="32" height="5" fill="#315b8a"/><rect x="12" y="14" width="40" height="20" fill="#4a7ab5"/><rect x="15" y="34" width="34" height="8" fill="#4a7ab5"/><rect x="20" y="42" width="24" height="6" fill="#315b8a"/><rect x="27" y="48" width="10" height="6" fill="#315b8a"/><rect x="31" y="54" width="2" height="3" fill="#315b8a"/><rect x="15" y="31" width="9" height="5" fill="#efe6d4"/><rect x="21" y="26" width="9" height="5" fill="#efe6d4"/><rect x="27" y="21" width="9" height="5" fill="#efe6d4"/><rect x="33" y="16" width="7" height="5" fill="#efe6d4"/><rect x="40" y="13" width="4" height="4" fill="#fff5d6" class="asset-accent"/><rect x="36" y="17" width="12" height="4" fill="#e8b83a"/><rect x="38" y="21" width="8" height="4" fill="#e8b83a"/><rect x="40" y="25" width="4" height="9" fill="#e8b83a"/></g>
-  <g class="asset-fx" aria-hidden="true"><rect x="40" y="9" width="4" height="4" fill="#fff5d6" class="fx-glint"/><rect x="36" y="13" width="12" height="4" fill="#e8b83a" class="fx-glint"/></g>
+  <g class="asset-stage profile-grounded">
+  <!-- Travel boot reinforced by frost: a concrete expedition-hardening metaphor, not another shield. -->
+  <rect x="18" y="8" width="20" height="30" fill="#262626"/>
+  <rect x="14" y="34" width="38" height="18" fill="#262626"/>
+  <rect x="10" y="46" width="48" height="10" fill="#262626"/>
+  <rect x="22" y="12" width="12" height="24" fill="#315b8a"/>
+  <rect x="18" y="36" width="30" height="12" fill="#4a7ab5"/>
+  <rect x="14" y="48" width="40" height="6" fill="#565656"/>
+  <rect x="24" y="16" width="10" height="6" fill="#efe6d4"/>
+  <rect x="22" y="26" width="12" height="4" fill="#efe6d4"/>
+  <rect x="38" y="38" width="10" height="6" fill="#efe6d4"/>
+  <rect x="18" y="42" width="8" height="4" fill="#7ab3a9"/>
+  <!-- ice spark -->
+  <rect x="46" y="12" width="4" height="16" fill="#efe6d4"/>
+  <rect x="40" y="18" width="16" height="4" fill="#efe6d4"/>
+  <rect x="43" y="15" width="10" height="10" fill="#4a7ab5"/>
+  <rect x="46" y="18" width="4" height="4" fill="#e8b83a" class="asset-accent asset-phase-1"/>
+  <rect x="28" y="50" width="10" height="4" fill="#262626" class="tiny"/>
+</g><g class="asset-fx" aria-hidden="true"><rect x="40" y="9" width="4" height="4" fill="#fff5d6" class="fx-glint"/><rect x="36" y="13" width="12" height="4" fill="#e8b83a" class="fx-glint"/></g>
   <g class="asset-fx fx-selection" aria-hidden="true">
     <rect x="4" y="4" width="12" height="4" fill="#e8b83a"/><rect x="4" y="4" width="4" height="12" fill="#e8b83a"/><rect x="48" y="4" width="12" height="4" fill="#e8b83a"/><rect x="56" y="4" width="4" height="12" fill="#e8b83a"/>
     <rect x="4" y="56" width="12" height="4" fill="#e8b83a"/><rect x="4" y="48" width="4" height="12" fill="#e8b83a"/><rect x="48" y="56" width="12" height="4" fill="#e8b83a"/><rect x="56" y="48" width="4" height="12" fill="#e8b83a"/>

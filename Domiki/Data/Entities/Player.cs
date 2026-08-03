@@ -97,12 +97,55 @@ public class Player
     public DateTime? LastSeen { get; set; }
 
     /// <summary>
+    /// Инстанция толоки, чей прогресс запомнен для витрины «Пока вас не было».
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – прогресс ещё не снимался; смена инстанции гасит дельту (см. <see cref="Activities.TolokaManager.TakeProgress"/>).
+    /// </remarks>
+    public int? RecapTolokaId { get; set; }
+
+    /// <summary>
+    /// Прогресс корзины толоки <see cref="RecapTolokaId"/> на момент прошлого захода.
+    /// </summary>
+    /// <value>Промилле, <c>0</c>–<c>1000</c>.</value>
+    public int RecapTolokaPermille { get; set; }
+
+    /// <summary>
     /// Момент, с которого доска заказов игрока снова может пополняться.
     /// </summary>
     /// <remarks>
     /// <see langword="null"/> – пополнение не отложено (см. <see cref="Economy.OrderManager.EnsureOrderBoard"/>).
     /// </remarks>
     public DateTime? NextOrderRefillAt { get; set; }
+
+    /// <summary>
+    /// Сосед, с которым деревня нынче водит дружбу.
+    /// </summary>
+    /// <remarks>
+    /// Ссылка на справочник соседей (см. <see cref="Reference.ResourceManager.GetNeighbors"/>): заказы дружественного соседа
+    /// чаще появляются на доске (см. <see cref="Economy.OrderManager.FriendWeight"/>). <see langword="null"/> – игрок ни с кем не дружит.
+    /// </remarks>
+    public int? FriendNeighborId { get; set; }
+
+    /// <summary>
+    /// Сосед, чей уклад деревни принят игроком.
+    /// </summary>
+    /// <remarks>
+    /// Ссылка на справочник соседей (см. <see cref="Reference.ResourceManager.GetNeighbors"/>): ускоряет производство в
+    /// постройках его специализации (см. <see cref="Village.VillageProfileManager.SetVillageProfile"/>).
+    /// <see langword="null"/> – уклад не принят.
+    /// </remarks>
+    public int? ProfileNeighborId { get; set; }
+
+    /// <summary>
+    /// Момент последней смены уклада деревни.
+    /// </summary>
+    /// <value>Момент в UTC.</value>
+    /// <remarks>
+    /// Ограничивает частоту смены кулдауном <see cref="Village.VillageProfileManager.ProfileChangeCooldownDays"/>.
+    /// <see langword="null"/> – уклад ещё ни разу не принимался.
+    /// </remarks>
+    public DateTime? ProfileChangedDate { get; set; }
 
     /// <summary>
     /// Сколько золота уже добыто прямой добычей (рудником) за текущие календарные сутки UTC.
@@ -147,14 +190,6 @@ public class Player
     public DateTime? HelpsReceivedDate { get; set; }
 
     /// <summary>
-    /// Игрок включил автоматическое кормление уставших трудяг хлебом.
-    /// </summary>
-    /// <remarks>
-    /// Наполовину сокращает срок отдыха при наличии хлеба (см. <see cref="Core.DomikManager.FinishManufacture"/>).
-    /// </remarks>
-    public bool FeedWorkers { get; set; }
-
-    /// <summary>
     /// Остаток зарядов «нетронутых залежей» – ограниченное число ускоренных производств.
     /// </summary>
     /// <value><c>×4</c> на первых зарядах, затем <c>×2</c>.</value>
@@ -163,6 +198,57 @@ public class Player
     /// значение по умолчанию <c>24</c> выдано и существующим игрокам миграцией.
     /// </remarks>
     public int ZealCharges { get; set; } = 24;
+
+    /// <summary>
+    /// Общий накопленный износ плащей от завершённых смен.
+    /// </summary>
+    /// <remarks>
+    /// По достижении срока службы один плащ списывается в <see cref="Core.DomikManager.FinishManufacture"/>.
+    /// </remarks>
+    public int CloakWearPoints { get; set; }
+
+    /// <summary>
+    /// Долина, в которой стоит нынешняя деревня, – ссылка на <see cref="Village.RelocationValleys"/>.
+    /// </summary>
+    /// <value><c>0</c> – стартовая долина, с которой начинается игра.</value>
+    public int ValleyId { get; set; }
+
+    /// <summary>
+    /// Момент, с которого живёт нынешняя деревня.
+    /// </summary>
+    /// <value>Момент в UTC.</value>
+    /// <remarks>
+    /// Задаётся при создании игрока и переписывается при переезде; по нему считаются срок жизни деревни на памятном
+    /// столбе и оценка «сколько суток до переезда». <see langword="null"/> – деревня заведена до среза «Переезд».
+    /// </remarks>
+    public DateTime? VillageStartedDate { get; set; }
+
+    /// <summary>
+    /// Остаток нетраченых узелков памяти.
+    /// </summary>
+    /// <remarks>
+    /// Начисляются за прожитую деревню в <see cref="Village.RelocationManager.Relocate"/>, тратятся на ступени перков
+    /// в <see cref="Village.PerkManager.BuyPerk"/>.
+    /// </remarks>
+    public int MemoryKnots { get; set; }
+
+    /// <summary>
+    /// Число совершённых переездов в новую долину.
+    /// </summary>
+    /// <remarks>
+    /// Растит порог следующего переезда (см. <see cref="Village.VillageLevelCalculator.GetRelocationThreshold"/>).
+    /// </remarks>
+    public int RelocationCount { get; set; }
+
+    /// <summary>
+    /// Момент последнего переезда в новую долину.
+    /// </summary>
+    /// <value>Момент в UTC.</value>
+    /// <remarks>
+    /// Ограничивает частоту переездов кулдауном <see cref="Village.VillageLevelCalculator.RelocationCooldownDays"/>.
+    /// <see langword="null"/> – игрок ещё ни разу не переезжал.
+    /// </remarks>
+    public DateTime? LastRelocationDate { get; set; }
 
     /// <summary>
     /// Идентификатор внешнего аккаунта ASP.NET Identity (claim <c>NameIdentifier</c>), к которому привязан игрок.

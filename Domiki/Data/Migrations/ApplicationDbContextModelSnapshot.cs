@@ -192,6 +192,10 @@ namespace Domiki.Web.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("logic_name");
 
+                    b.Property<int?>("MaxCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_count");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -206,8 +210,15 @@ namespace Domiki.Web.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("reputation_threshold");
 
+                    b.Property<int?>("RequiresDecorTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("requires_decor_type_id");
+
                     b.HasKey("Id")
                         .HasName("pk_decor_types");
+
+                    b.HasIndex("RequiresDecorTypeId")
+                        .HasDatabaseName("ix_decor_types_requires_decor_type_id");
 
                     b.ToTable("decor_types", (string)null);
                 });
@@ -734,6 +745,10 @@ namespace Domiki.Web.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("auto_repeat");
 
+                    b.Property<int>("CloakCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("cloak_count");
+
                     b.Property<int>("DomikId")
                         .HasColumnType("integer")
                         .HasColumnName("domik_id");
@@ -749,6 +764,14 @@ namespace Domiki.Web.Data.Migrations
                     b.Property<DateTime>("FinishDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("finish_date");
+
+                    b.Property<int?>("MeasureResourceTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("measure_resource_type_id");
+
+                    b.Property<int?>("MeasureValue")
+                        .HasColumnType("integer")
+                        .HasColumnName("measure_value");
 
                     b.Property<int>("OutputPercent")
                         .HasColumnType("integer")
@@ -766,12 +789,19 @@ namespace Domiki.Web.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("sick_chance");
 
+                    b.Property<int?>("SickTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("sick_type_id");
+
                     b.Property<bool>("UseOptional")
                         .HasColumnType("boolean")
                         .HasColumnName("use_optional");
 
                     b.HasKey("Id")
                         .HasName("pk_manufactures");
+
+                    b.HasIndex("SickTypeId")
+                        .HasDatabaseName("ix_manufactures_sick_type_id");
 
                     b.HasIndex("DomikPlayerId", "DomikId")
                         .HasDatabaseName("ix_manufactures_domik_player_id_domik_id");
@@ -882,6 +912,35 @@ namespace Domiki.Web.Data.Migrations
                             PrimaryResourceTypeId = 3,
                             UnlockLevel = 0
                         });
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.NeighborConvoy", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("NeighborId")
+                        .HasColumnType("integer")
+                        .HasColumnName("neighbor_id")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("BoughtCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("bought_count");
+
+                    b.Property<DateTime>("WindowStartDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("window_start_date");
+
+                    b.HasKey("PlayerId", "NeighborId")
+                        .HasName("pk_neighbor_convoys");
+
+                    b.HasIndex("NeighborId")
+                        .HasDatabaseName("ix_neighbor_convoys_neighbor_id");
+
+                    b.ToTable("neighbor_convoys", (string)null);
                 });
 
             modelBuilder.Entity("Domiki.Web.Data.Entities.NeighborReputation", b =>
@@ -998,6 +1057,10 @@ namespace Domiki.Web.Data.Migrations
                         .HasColumnType("character varying(450)")
                         .HasColumnName("asp_net_user_id");
 
+                    b.Property<int>("CloakWearPoints")
+                        .HasColumnType("integer")
+                        .HasColumnName("cloak_wear_points");
+
                     b.Property<int>("CrestColor")
                         .HasColumnType("integer")
                         .HasColumnName("crest_color");
@@ -1010,9 +1073,9 @@ namespace Domiki.Web.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("expeditions_since_pity");
 
-                    b.Property<bool>("FeedWorkers")
-                        .HasColumnType("boolean")
-                        .HasColumnName("feed_workers");
+                    b.Property<int?>("FriendNeighborId")
+                        .HasColumnType("integer")
+                        .HasColumnName("friend_neighbor_id");
 
                     b.Property<DateTime?>("GoldMinedDate")
                         .HasColumnType("timestamp with time zone")
@@ -1042,6 +1105,10 @@ namespace Domiki.Web.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_incident_date");
 
+                    b.Property<DateTime?>("LastRelocationDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_relocation_date");
+
                     b.Property<DateTime?>("LastSeen")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_seen");
@@ -1049,6 +1116,10 @@ namespace Domiki.Web.Data.Migrations
                     b.Property<DateTime?>("LastWorkerMilestoneDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_worker_milestone_date");
+
+                    b.Property<int>("MemoryKnots")
+                        .HasColumnType("integer")
+                        .HasColumnName("memory_knots");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1060,6 +1131,30 @@ namespace Domiki.Web.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("next_order_refill_at");
 
+                    b.Property<DateTime?>("ProfileChangedDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("profile_changed_date");
+
+                    b.Property<int?>("ProfileNeighborId")
+                        .HasColumnType("integer")
+                        .HasColumnName("profile_neighbor_id");
+
+                    b.Property<int?>("RecapTolokaId")
+                        .HasColumnType("integer")
+                        .HasColumnName("recap_toloka_id");
+
+                    b.Property<int>("RecapTolokaPermille")
+                        .HasColumnType("integer")
+                        .HasColumnName("recap_toloka_permille");
+
+                    b.Property<int>("RelocationCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("relocation_count");
+
+                    b.Property<int>("ValleyId")
+                        .HasColumnType("integer")
+                        .HasColumnName("valley_id");
+
                     b.Property<Guid>("Version")
                         .IsConcurrencyToken()
                         .HasColumnType("uuid")
@@ -1069,6 +1164,10 @@ namespace Domiki.Web.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("village_name");
+
+                    b.Property<DateTime?>("VillageStartedDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("village_started_date");
 
                     b.Property<int>("VisitsSinceBigGift")
                         .HasColumnType("integer")
@@ -1178,6 +1277,40 @@ namespace Domiki.Web.Data.Migrations
                     b.ToTable("player_events", (string)null);
                 });
 
+            modelBuilder.Entity("Domiki.Web.Data.Entities.PlayerFoodRule", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("ResourceTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("resource_type_id")
+                        .HasColumnOrder(2);
+
+                    b.Property<DateTime?>("EatenDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("eaten_date");
+
+                    b.Property<int>("EatenToday")
+                        .HasColumnType("integer")
+                        .HasColumnName("eaten_today");
+
+                    b.Property<bool>("Forbidden")
+                        .HasColumnType("boolean")
+                        .HasColumnName("forbidden");
+
+                    b.Property<int>("Reserve")
+                        .HasColumnType("integer")
+                        .HasColumnName("reserve");
+
+                    b.HasKey("PlayerId", "ResourceTypeId")
+                        .HasName("pk_player_food_rules");
+
+                    b.ToTable("player_food_rules", (string)null);
+                });
+
             modelBuilder.Entity("Domiki.Web.Data.Entities.PlayerGoal", b =>
                 {
                     b.Property<int>("PlayerId")
@@ -1196,6 +1329,48 @@ namespace Domiki.Web.Data.Migrations
                         .HasName("pk_player_goals");
 
                     b.ToTable("player_goals", (string)null);
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.PlayerLaborDay", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id")
+                        .HasColumnOrder(1);
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date")
+                        .HasColumnOrder(2);
+
+                    b.Property<long>("WorkedSeconds")
+                        .HasColumnType("bigint")
+                        .HasColumnName("worked_seconds");
+
+                    b.HasKey("PlayerId", "Date")
+                        .HasName("pk_player_labor_days");
+
+                    b.ToTable("player_labor_days", (string)null);
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.PlayerPerk", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id");
+
+                    b.Property<int>("PerkType")
+                        .HasColumnType("integer")
+                        .HasColumnName("perk_type");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer")
+                        .HasColumnName("level");
+
+                    b.HasKey("PlayerId", "PerkType")
+                        .HasName("pk_player_perks");
+
+                    b.ToTable("player_perks", (string)null);
                 });
 
             modelBuilder.Entity("Domiki.Web.Data.Entities.PlayerPushSubscription", b =>
@@ -1238,6 +1413,59 @@ namespace Domiki.Web.Data.Migrations
                         .HasDatabaseName("ix_player_push_subscriptions_endpoint");
 
                     b.ToTable("player_push_subscriptions", (string)null);
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.PlayerResourceFlow", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id")
+                        .HasColumnOrder(1);
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("ResourceTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("resource_type_id")
+                        .HasColumnOrder(3);
+
+                    b.Property<int>("Gained")
+                        .HasColumnType("integer")
+                        .HasColumnName("gained");
+
+                    b.Property<int>("Spent")
+                        .HasColumnType("integer")
+                        .HasColumnName("spent");
+
+                    b.HasKey("PlayerId", "Date", "ResourceTypeId")
+                        .HasName("pk_player_resource_flows");
+
+                    b.ToTable("player_resource_flows", (string)null);
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.PlayerResourceReserve", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("ResourceTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("resource_type_id")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("Reserve")
+                        .HasColumnType("integer")
+                        .HasColumnName("reserve");
+
+                    b.HasKey("PlayerId", "ResourceTypeId")
+                        .HasName("pk_player_resource_reserves");
+
+                    b.ToTable("player_resource_reserves", (string)null);
                 });
 
             modelBuilder.Entity("Domiki.Web.Data.Entities.Receipt", b =>
@@ -1342,6 +1570,10 @@ namespace Domiki.Web.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("IsFood")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_food");
+
                     b.Property<string>("LogicName")
                         .IsRequired()
                         .HasColumnType("text")
@@ -1389,6 +1621,43 @@ namespace Domiki.Web.Data.Migrations
                         .HasDatabaseName("ix_season_counters_season_id_metric");
 
                     b.ToTable("season_counters", (string)null);
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.SickType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("CloakProtects")
+                        .HasColumnType("boolean")
+                        .HasColumnName("cloak_protects");
+
+                    b.Property<string>("LogicName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("logic_name");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("WeatherTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("weather_type_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sick_types");
+
+                    b.HasIndex("WeatherTypeId")
+                        .HasDatabaseName("ix_sick_types_weather_type_id");
+
+                    b.ToTable("sick_types", (string)null);
                 });
 
             modelBuilder.Entity("Domiki.Web.Data.Entities.StarterGoal", b =>
@@ -1865,6 +2134,83 @@ namespace Domiki.Web.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Domiki.Web.Data.Entities.VillageChronicle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CrestColor")
+                        .HasColumnType("integer")
+                        .HasColumnName("crest_color");
+
+                    b.Property<int>("CrestIcon")
+                        .HasColumnType("integer")
+                        .HasColumnName("crest_icon");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_date");
+
+                    b.Property<int>("Knots")
+                        .HasColumnType("integer")
+                        .HasColumnName("knots");
+
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("player_id");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_date");
+
+                    b.Property<int>("ValleyId")
+                        .HasColumnType("integer")
+                        .HasColumnName("valley_id");
+
+                    b.Property<int>("VillageLevel")
+                        .HasColumnType("integer")
+                        .HasColumnName("village_level");
+
+                    b.Property<string>("VillageName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("village_name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_village_chronicles");
+
+                    b.HasIndex("PlayerId")
+                        .HasDatabaseName("ix_village_chronicles_player_id");
+
+                    b.ToTable("village_chronicles", (string)null);
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.VillageProfileEffect", b =>
+                {
+                    b.Property<int>("NeighborId")
+                        .HasColumnType("integer")
+                        .HasColumnName("neighbor_id")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("DomikTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("domik_type_id")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("DurationPercent")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_percent");
+
+                    b.HasKey("NeighborId", "DomikTypeId")
+                        .HasName("pk_village_profile_effects");
+
+                    b.ToTable("village_profile_effects", (string)null);
+                });
+
             modelBuilder.Entity("Domiki.Web.Data.Entities.WeatherPeriod", b =>
                 {
                     b.Property<int>("Id")
@@ -1994,6 +2340,10 @@ namespace Domiki.Web.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("rest_until");
 
+                    b.Property<int?>("SickTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("sick_type_id");
+
                     b.Property<DateTime?>("SickUntil")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("sick_until");
@@ -2023,6 +2373,9 @@ namespace Domiki.Web.Data.Migrations
 
                     b.HasIndex("PlayerId")
                         .HasDatabaseName("ix_workers_player_id");
+
+                    b.HasIndex("SickTypeId")
+                        .HasDatabaseName("ix_workers_sick_type_id");
 
                     b.HasIndex("TraitId")
                         .HasDatabaseName("ix_workers_trait_id");
@@ -2280,6 +2633,15 @@ namespace Domiki.Web.Data.Migrations
                     b.Navigation("ResourceType");
                 });
 
+            modelBuilder.Entity("Domiki.Web.Data.Entities.DecorType", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Entities.DecorType", null)
+                        .WithMany()
+                        .HasForeignKey("RequiresDecorTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_decor_types_decor_types_requires_decor_type_id");
+                });
+
             modelBuilder.Entity("Domiki.Web.Data.Entities.DomikTypeLevel", b =>
                 {
                     b.HasOne("Domiki.Web.Data.Entities.DomikType", "DomikType")
@@ -2456,6 +2818,12 @@ namespace Domiki.Web.Data.Migrations
 
             modelBuilder.Entity("Domiki.Web.Data.Entities.Manufacture", b =>
                 {
+                    b.HasOne("Domiki.Web.Data.Entities.SickType", "SickType")
+                        .WithMany()
+                        .HasForeignKey("SickTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_manufactures_sick_types_sick_type_id");
+
                     b.HasOne("Domiki.Web.Data.Entities.Domik", "Domik")
                         .WithMany("Manufactures")
                         .HasForeignKey("DomikPlayerId", "DomikId")
@@ -2464,6 +2832,29 @@ namespace Domiki.Web.Data.Migrations
                         .HasConstraintName("fk_manufactures_domiks_domik_player_id_domik_id");
 
                     b.Navigation("Domik");
+
+                    b.Navigation("SickType");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.NeighborConvoy", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Entities.Neighbor", "Neighbor")
+                        .WithMany()
+                        .HasForeignKey("NeighborId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_neighbor_convoys_neighbors_neighbor_id");
+
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_neighbor_convoys_players_player_id");
+
+                    b.Navigation("Neighbor");
+
+                    b.Navigation("Player");
                 });
 
             modelBuilder.Entity("Domiki.Web.Data.Entities.NeighborReputation", b =>
@@ -2571,6 +2962,18 @@ namespace Domiki.Web.Data.Migrations
                     b.Navigation("Player");
                 });
 
+            modelBuilder.Entity("Domiki.Web.Data.Entities.PlayerPerk", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_player_perks_players_player_id");
+
+                    b.Navigation("Player");
+                });
+
             modelBuilder.Entity("Domiki.Web.Data.Entities.ReceiptResource", b =>
                 {
                     b.HasOne("Domiki.Web.Data.Entities.Receipt", "Receipt")
@@ -2614,6 +3017,18 @@ namespace Domiki.Web.Data.Migrations
                         .HasConstraintName("fk_season_counters_players_player_id");
 
                     b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.SickType", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Entities.WeatherType", "WeatherType")
+                        .WithMany()
+                        .HasForeignKey("WeatherTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sick_types_weather_types_weather_type_id");
+
+                    b.Navigation("WeatherType");
                 });
 
             modelBuilder.Entity("Domiki.Web.Data.Entities.Toloka", b =>
@@ -2709,6 +3124,30 @@ namespace Domiki.Web.Data.Migrations
                     b.Navigation("Seller");
                 });
 
+            modelBuilder.Entity("Domiki.Web.Data.Entities.VillageChronicle", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Entities.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_village_chronicles_players_player_id");
+
+                    b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.Entities.VillageProfileEffect", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.Entities.Neighbor", "Neighbor")
+                        .WithMany()
+                        .HasForeignKey("NeighborId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_village_profile_effects_neighbors_neighbor_id");
+
+                    b.Navigation("Neighbor");
+                });
+
             modelBuilder.Entity("Domiki.Web.Data.Entities.WeatherPeriod", b =>
                 {
                     b.HasOne("Domiki.Web.Data.Entities.WeatherType", "WeatherType")
@@ -2762,6 +3201,12 @@ namespace Domiki.Web.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_workers_players_player_id");
 
+                    b.HasOne("Domiki.Web.Data.Entities.SickType", "SickType")
+                        .WithMany()
+                        .HasForeignKey("SickTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_workers_sick_types_sick_type_id");
+
                     b.HasOne("Domiki.Web.Data.Entities.Trait", "Trait")
                         .WithMany()
                         .HasForeignKey("TraitId")
@@ -2778,6 +3223,8 @@ namespace Domiki.Web.Data.Migrations
                     b.Navigation("Manufacture");
 
                     b.Navigation("Player");
+
+                    b.Navigation("SickType");
 
                     b.Navigation("Trait");
                 });

@@ -102,6 +102,16 @@ public sealed record WorldVillageDto
     public string? NpcLogicName { get; init; }
 
     /// <summary>
+    /// Публичный идентификатор принятого деревней уклада – технический код соседа-источника (см.
+    /// <see cref="Reference.Dto.ResourceTypeDto.LogicName"/> у ресурса соседа, тот же код у <see cref="NpcLogicName"/>).
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – деревня уклад не приняла. Наружу отдаётся только код уклада, а не внутренний id соседа;
+    /// по коду клиент показывает бейдж «уклад …» рядом с гербом (см. GAMEDESIGN.md §3 Слой 4).
+    /// </remarks>
+    public string? ProfileLogicName { get; init; }
+
+    /// <summary>
     /// Число выполненных заказов за текущий сезон – счётчик номинации «Лучший поставщик».
     /// </summary>
     public required int SeasonOrders { get; init; }
@@ -123,6 +133,15 @@ public sealed record WorldVillageDto
     /// Совпадает с <see cref="VillageLevelDto.Comfort"/>.
     /// </remarks>
     public required int Comfort { get; init; }
+
+    /// <summary>
+    /// Число переездов хозяина деревни в новую долину.
+    /// </summary>
+    /// <remarks>
+    /// Единственное, что памятный столб показывает публично в каталоге, – значок числа переездов (GAMEDESIGN.md §3.7).
+    /// У NPC-соседей всегда <c>0</c>.
+    /// </remarks>
+    public required int RelocationCount { get; init; }
 }
 
 /// <summary>
@@ -154,6 +173,15 @@ public sealed record VillageVisitDto
     /// Постройки посещаемой деревни с их уровнями.
     /// </summary>
     public required VisitBuildingDto[] Buildings { get; init; }
+
+    /// <summary>
+    /// Публичный идентификатор принятого хозяином уклада – технический код соседа-источника (тот же код, что у
+    /// NPC-соседа в списке мира).
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – хозяин уклад не принял. При визите наружу отдаётся только код уклада, а не внутренний id соседа.
+    /// </remarks>
+    public string? ProfileLogicName { get; init; }
 
     /// <summary>
     /// Лента последних записей в книге гостей посещаемой деревни.
@@ -222,6 +250,19 @@ public sealed record VillageVisitDto
     /// не хозяина (см. <see cref="CanHelp"/>).
     /// </remarks>
     public required int HelpUnlockLevel { get; init; }
+
+    /// <summary>
+    /// Сколько раз хозяин переезжал в новую долину.
+    /// </summary>
+    public required int RelocationCount { get; init; }
+
+    /// <summary>
+    /// Суммарная обжитость всех прожитых хозяином деревень на дни их отъездов.
+    /// </summary>
+    /// <remarks>
+    /// Вместе с <see cref="RelocationCount"/> составляет публичную строку памятного столба в карточке визита.
+    /// </remarks>
+    public required int ChronicleLevelSum { get; init; }
 }
 
 /// <summary>

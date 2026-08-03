@@ -60,4 +60,20 @@ public static class VillageActs
         App.Act<DecorManager>(m => m.GrantDecor(p.Id, decorTypeId, count));
         return p;
     }
+
+    public static TestPlayer SetVillageProfile(this TestPlayer p, int neighborId)
+    {
+        App.Act<VillageProfileManager>(m => m.SetVillageProfile(p.Id, neighborId));
+        return p;
+    }
+
+    public static TestPlayer RaiseVillageLevel(this TestPlayer p, int target)
+    {
+        while (p.GetVillageLevel().Level < target)
+        {
+            p.WithDomik(DomikIds.Market);
+        }
+
+        return p;
+    }
 }

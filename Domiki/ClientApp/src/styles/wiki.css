@@ -207,66 +207,6 @@ button.wiki-res-cell {
         line-height: 1.4;
     }
 
-.res-info-pop {
-    position: fixed;
-    z-index: 950;
-    padding: 14px 16px 16px;
-    box-shadow: 4px 6px 0 rgba(0, 0, 0, .25);
-    cursor: default;
-    pointer-events: none;
-}
-
-.res-info-head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
-    padding-bottom: 8px;
-    border-bottom: 2px dashed var(--plank-dark);
-}
-
-    .res-info-head svg {
-        width: 40px;
-        height: 40px;
-        flex-shrink: 0;
-        image-rendering: pixelated;
-    }
-
-.res-info-name {
-    font-size: 17px;
-    font-weight: 700;
-}
-
-.res-info-flavor {
-    margin: 0 0 10px;
-    font-size: 13px;
-    font-style: italic;
-    line-height: 1.4;
-    color: rgba(51, 41, 26, .75);
-}
-
-.res-info-facts {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 5px 12px;
-    margin: 0;
-}
-
-    .res-info-facts dt {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: .05em;
-        color: var(--roof);
-        padding-top: 1px;
-    }
-
-    .res-info-facts dd {
-        margin: 0;
-        font-size: 13px;
-        line-height: 1.4;
-    }
-
 .wiki-buildings {
     display: flex;
     flex-direction: column;
@@ -493,6 +433,171 @@ button.wiki-res-cell {
     .wiki-mechanic-live .wiki-res-grid {
         margin-top: 4px;
     }
+
+.wiki-convoy-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.wiki-convoy-row {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr) auto;
+    grid-template-areas: "neighbor items tally";
+    align-items: center;
+    gap: 6px 10px;
+    padding: 6px 8px;
+    border: 2px solid color-mix(in srgb, var(--pine-dark) 28%, transparent);
+    background: color-mix(in srgb, var(--plank) 38%, transparent);
+}
+
+.wiki-convoy-row-locked {
+    grid-template-columns: max-content minmax(0, 1fr);
+    grid-template-areas: "neighbor items";
+    opacity: .6;
+}
+
+.wiki-convoy-name {
+    display: inline-flex;
+    grid-area: neighbor;
+    align-items: center;
+    gap: 8px;
+    min-width: 96px;
+    font-weight: 700;
+}
+
+.wiki-convoy-items {
+    grid-area: items;
+}
+
+.wiki-convoy-row .convoy-tally {
+    grid-area: tally;
+}
+
+.wiki-convoy-note {
+    display: inline-flex;
+    grid-area: items;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--roof);
+}
+
+@media (max-width: 720px) {
+    .wiki-convoy-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "neighbor tally"
+            "items    items";
+    }
+
+    .wiki-convoy-row-locked {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "neighbor"
+            "items";
+    }
+
+    .wiki-convoy-name {
+        min-width: 0;
+    }
+}
+
+    .wiki-convoy-note svg {
+        width: 14px;
+        height: 14px;
+    }
+
+.unlock-roadmap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.unlock-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.unlock-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 6px 8px;
+    border: 2px solid color-mix(in srgb, var(--pine-dark) 28%, transparent);
+    background: color-mix(in srgb, var(--plank) 38%, transparent);
+}
+
+.unlock-ico {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    image-rendering: pixelated;
+}
+
+.unlock-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    gap: 2px;
+}
+
+.unlock-name {
+    font-weight: 700;
+}
+
+.unlock-description {
+    color: rgba(51, 41, 26, .72);
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.unlock-badge {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 4px;
+    color: var(--roof);
+    font-family: var(--pixel);
+    font-size: 9px;
+    line-height: 1.4;
+}
+
+.unlock-badge svg {
+    width: 16px;
+    height: 16px;
+}
+
+.unlock-list-done {
+    opacity: .7;
+}
+
+.unlock-row-done {
+    border-color: color-mix(in srgb, var(--pine-dark) 18%, transparent);
+}
+
+.unlock-badge-done {
+    color: var(--pine-dark);
+}
+
+.unlock-here {
+    padding: 5px 0;
+    border-top: 2px dashed color-mix(in srgb, var(--roof) 45%, transparent);
+    border-bottom: 2px dashed color-mix(in srgb, var(--roof) 45%, transparent);
+    color: var(--roof);
+    font-family: var(--pixel);
+    font-size: 10px;
+    text-align: center;
+}
 
 .wiki-res-cell svg {
     width: 32px;

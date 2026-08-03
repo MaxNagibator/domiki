@@ -10,8 +10,9 @@ interface LayoutProps {
 export const Layout = ({ children }: LayoutProps) => {
     return (
         <div>
+            <a className="skip-link" href="#main-content">К содержимому</a>
             <NavMenu />
-            <main className="app-container">
+            <main id="main-content" className="app-container">
                 {children}
             </main>
             <UpdateBanner />

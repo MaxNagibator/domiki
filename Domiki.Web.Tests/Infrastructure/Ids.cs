@@ -19,6 +19,13 @@ public static class ResourceIds
     public const int Bread = 15;
     public const int Ore = 16;
     public const int Iron = 17;
+    public const int Wool = 18;
+    public const int Cloth = 19;
+    public const int Cloak = 20;
+    /// <summary>
+    /// Сыр.
+    /// </summary>
+    public const int Cheese = 21;
 }
 
 public static class DomikIds
@@ -39,6 +46,16 @@ public static class DomikIds
     public const int Field = 14;
     public const int Mill = 15;
     public const int Bakery = 16;
+    public const int Sheepfold = 17;
+    /// <summary>
+    /// Корчма.
+    /// </summary>
+    public const int Tavern = 18;
+
+    /// <summary>
+    /// Изба старосты.
+    /// </summary>
+    public const int ElderHouse = 19;
 }
 
 /// <summary>
@@ -61,6 +78,10 @@ public static class DecorIds
     public const int WandererBanner = 7;
     public const int BrickArch = 8;
     public const int Lantern = 9;
+    public const int CarvedGate = 10;
+    public const int CraneWell = 11;
+    public const int Gazebo = 12;
+    public const int CarpPond = 13;
 }
 
 public static class NeighborIds
@@ -137,6 +158,20 @@ public static class ReceiptIds
     public const int SellIron = 65;
     public const int SellIronX10 = 66;
     public const int SellOreX10 = 67;
+    public const int SheepGraze = 68;
+    public const int SheepShear = 69;
+    public const int MakeCloth = 70;
+    public const int SellWool = 71;
+    public const int SellCloth = 72;
+    public const int SewCloak = 73;
+    /// <summary>
+    /// Сварить сыр.
+    /// </summary>
+    public const int MakeCheese = 74;
+    /// <summary>
+    /// Продать сыр.
+    /// </summary>
+    public const int SellCheese = 75;
 }
 
 public static class BlueprintIds
@@ -154,6 +189,14 @@ public static class WeatherIds
     public const int Drought = 3;
     public const int Frost = 4;
     public const int Wind = 5;
+}
+
+public static class SickTypeIds
+{
+    public const int Cold = 1;
+    public const int Heatstroke = 2;
+    public const int Chill = 3;
+    public const int Lumbago = 4;
 }
 
 public static class TolokaTypeIds

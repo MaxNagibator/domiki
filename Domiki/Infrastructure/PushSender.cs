@@ -62,6 +62,12 @@ public class PushSender
 
         foreach (var subscription in subscriptions)
         {
+            if (!PushEndpointGuard.IsSendable(subscription.Endpoint))
+            {
+                _logger.LogWarning("PushSender - blocked non-public endpoint: " + playerId + " - subscription " + subscription.Id);
+                continue;
+            }
+
             try
             {
                 var pushSubscription = new PushSubscription(subscription.Endpoint, subscription.P256dh, subscription.Auth);

@@ -27,6 +27,7 @@ public class ExpeditionManager
     private readonly ResourceManager _resourceManager;
     private readonly PlayerResourceManager _playerResourceManager;
     private readonly WorkerManager _workerManager;
+    private readonly TavernManager _tavernManager;
     private readonly SeasonManager _seasonManager;
     private readonly PlayerEventManager _playerEventManager;
     private readonly DecorManager _decorManager;
@@ -40,6 +41,7 @@ public class ExpeditionManager
         ResourceManager resourceManager,
         PlayerResourceManager playerResourceManager,
         WorkerManager workerManager,
+        TavernManager tavernManager,
         SeasonManager seasonManager,
         PlayerEventManager playerEventManager,
         DecorManager decorManager,
@@ -52,6 +54,7 @@ public class ExpeditionManager
         _resourceManager = resourceManager;
         _playerResourceManager = playerResourceManager;
         _workerManager = workerManager;
+        _tavernManager = tavernManager;
         _seasonManager = seasonManager;
         _playerEventManager = playerEventManager;
         _decorManager = decorManager;
@@ -120,10 +123,10 @@ public class ExpeditionManager
         }
 
         var workers = _workerManager.EnsureWorkers(playerId);
-        var freeWorkers = workers.Where(x => WorkerManager.IsFree(x, date)).OrderBy(x => x.Id).ToArray();
+        var freeWorkers = _workerManager.GetAvailableWorkers(playerId, workers, date);
         if (freeWorkers.Length < type.WorkerCount)
         {
-            throw new BusinessException("Недостаточно трудяг");
+            throw new BusinessException(WorkerManager.GetNotEnoughWorkersMessage(workers, freeWorkers, date));
         }
 
         Worker[] selectedWorkers;
@@ -150,19 +153,47 @@ public class ExpeditionManager
         }
 
         var resourceTypes = _resourceManager.GetResourceTypes().ToDictionary(x => x.Id, x => x);
-        var writeOffResources = new[]
+        var optionalEquipment = type.Equipment.Where(x => x.IsOptional).ToArray();
+        var foodEquipment = optionalEquipment.Where(x => resourceTypes[x.ResourceTypeId].IsFood).ToArray();
+        var foodCount = foodEquipment.Sum(x => x.Value);
+        var food = _tavernManager.CollectFood(playerId, foodCount);
+        var foodAffordable = food.Sum(x => x.Value) == foodCount;
+        if (provisions && !foodAffordable && _tavernManager.GetFoodStock(playerId) >= foodCount)
+        {
+            throw new BusinessException("Свободной еды нет – остальное заповедано в кладовой");
+        }
+
+        var provisionResources = (foodAffordable
+                ? food
+                : foodEquipment.Select(x => new Resource { Type = resourceTypes[x.ResourceTypeId], Value = x.Value }).ToArray())
+            .Concat(optionalEquipment
+                .Where(x => !resourceTypes[x.ResourceTypeId].IsFood)
+                .Select(x => new Resource { Type = resourceTypes[x.ResourceTypeId], Value = x.Value }))
+            .ToArray();
+        var mandatoryResources = new[]
             {
                 new Resource
                 {
                     Type = resourceTypes[GoldResourceTypeId],
                     Value = type.GoldCost,
                 },
-            }.Concat(type.Equipment.Where(x => !x.IsOptional || provisions)
+            }.Concat(type.Equipment.Where(x => !x.IsOptional)
                 .Select(x => new Resource
                 {
                     Type = resourceTypes[x.ResourceTypeId],
                     Value = x.Value,
                 }))
+            .ToArray();
+        var stocks = _context.Resources.Where(x => x.PlayerId == playerId).ToArray()
+            .Union(_context.Resources.Local.Where(x => x.PlayerId == playerId))
+            .ToDictionary(x => x.TypeId, x => x.Value);
+        var candidateBasketAffordable = mandatoryResources.Concat(provisionResources)
+            .GroupBy(x => x.Type.Id)
+            .All(x => stocks.TryGetValue(x.Key, out var stock) && stock >= x.Sum(y => y.Value));
+        var tavernLevel = _tavernManager.GetLevel(playerId);
+        provisions |= tavernLevel >= TavernManager.ProvisionMinLevel && foodAffordable && candidateBasketAffordable;
+        var writeOffResources = mandatoryResources
+            .Concat(provisions ? provisionResources : [])
             .ToArray();
 
         _playerResourceManager.WriteOffResources(playerId, writeOffResources);

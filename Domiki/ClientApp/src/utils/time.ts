@@ -29,8 +29,32 @@ export function formatDurationShort(totalSeconds: number): string {
     return total < 60 ? `${total}с` : formatDuration(total - (total % 60));
 }
 
+export function formatClock(totalSeconds: number): string {
+    const total = Math.max(0, Math.round(totalSeconds));
+    const days = Math.floor(total / 86400);
+    if (days > 0) {
+        return `${days}д ${Math.floor((total % 86400) / 3600)}ч`;
+    }
+
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const seconds = total % 60;
+    const pad = (value: number) => String(value).padStart(2, '0');
+    return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
+}
+
 export function remainingSeconds(finishDate: string, now: number): number {
     return (new Date(finishDate).getTime() - now) / 1000;
+}
+
+const TIME_OF_DAY_FORMAT = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' });
+const DAY_MONTH_TIME_FORMAT = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+export function formatTimeOfDay(dateIso: string, now: number): string {
+    const date = new Date(dateIso);
+    const nowDate = new Date(now);
+    const sameDay = date.getFullYear() === nowDate.getFullYear() && date.getMonth() === nowDate.getMonth() && date.getDate() === nowDate.getDate();
+    return sameDay ? TIME_OF_DAY_FORMAT.format(date) : DAY_MONTH_TIME_FORMAT.format(date);
 }
 
 export function formatRelativeTime(dateIso: string, now: number): string {

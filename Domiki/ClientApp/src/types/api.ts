@@ -23,9 +23,12 @@ export type ModificatorDto = z.infer<typeof modificatorSchema>;
 export const manufactureSchema = z.object({
     id: z.number(),
     finishDate: z.string(),
+    durationSeconds: z.number(),
     plodderCount: z.number(),
     receiptId: z.number(),
     autoRepeat: z.boolean(),
+    measureResourceTypeId: z.number().nullish(),
+    measureValue: z.number().nullish(),
 });
 export type ManufactureDto = z.infer<typeof manufactureSchema>;
 
@@ -67,6 +70,7 @@ export const resourceTypeSchema = z.object({
     name: z.string(),
     logicName: z.string(),
     marketValue: z.number(),
+    isFood: z.boolean(),
 });
 export type ResourceTypeDto = z.infer<typeof resourceTypeSchema>;
 
@@ -146,8 +150,30 @@ export const neighborReputationSchema = z.object({
     neighborName: z.string(),
     neighborLogicName: z.string(),
     points: z.number(),
+    nextThreshold: z.number().nullable(),
+    nextRewardName: z.string().nullable(),
+    isFriend: z.boolean(),
+    isOpen: z.boolean(),
 });
 export type NeighborReputationDto = z.infer<typeof neighborReputationSchema>;
+
+export const convoyItemSchema = z.object({
+    resourceTypeId: z.number(),
+    price: z.number(),
+});
+export type ConvoyItemDto = z.infer<typeof convoyItemSchema>;
+
+export const convoySchema = z.object({
+    neighborId: z.number(),
+    neighborName: z.string(),
+    neighborLogicName: z.string(),
+    items: z.array(convoyItemSchema),
+    limit: z.number(),
+    remaining: z.number(),
+    windowResetDate: z.string().nullable(),
+    isLocked: z.boolean(),
+});
+export type ConvoyDto = z.infer<typeof convoySchema>;
 
 export const blueprintSchema = z.object({
     id: z.number(),
@@ -165,7 +191,8 @@ export const villageSchema = z.object({
     villageName: z.string().nullable(),
     crestIcon: z.number(),
     crestColor: z.number(),
-    feedWorkers: z.boolean(),
+    profileNeighborId: z.number().nullable(),
+    profileChangeAvailableDate: z.string().nullable(),
 });
 export type VillageDto = z.infer<typeof villageSchema>;
 
@@ -173,6 +200,9 @@ export const villageLevelUnlockSchema = z.object({
     level: z.number().nullable(),
     label: z.string(),
     requirement: z.string().nullable(),
+    unlocked: z.boolean(),
+    kind: z.string(),
+    logicName: z.string().nullable(),
 });
 export type VillageLevelUnlockDto = z.infer<typeof villageLevelUnlockSchema>;
 
@@ -183,7 +213,7 @@ export const villageLevelSchema = z.object({
     reputation: z.number(),
     comfort: z.number(),
     visitsSinceBigGift: z.number(),
-    upcomingUnlocks: z.array(villageLevelUnlockSchema),
+    unlocks: z.array(villageLevelUnlockSchema),
 });
 export type VillageLevelDto = z.infer<typeof villageLevelSchema>;
 
@@ -197,10 +227,12 @@ export const worldVillageSchema = z.object({
     isMe: z.boolean(),
     npcResourceTypeId: z.number().nullable(),
     npcLogicName: z.string().nullable(),
+    profileLogicName: z.string().nullable(),
     seasonOrders: z.number(),
     seasonToloka: z.number(),
     seasonExpeditions: z.number(),
     comfort: z.number(),
+    relocationCount: z.number(),
 });
 export type WorldVillageDto = z.infer<typeof worldVillageSchema>;
 
@@ -255,6 +287,7 @@ export const villageVisitSchema = z.object({
     crestColor: z.number(),
     level: villageLevelSchema,
     buildings: z.array(visitBuildingSchema),
+    profileLogicName: z.string().nullable(),
     guestbook: z.array(guestbookEntrySchema),
     canLeaveEntry: z.boolean(),
     alreadyLeftToday: z.boolean(),
@@ -264,6 +297,8 @@ export const villageVisitSchema = z.object({
     hostCapReached: z.boolean(),
     hasActiveWork: z.boolean(),
     helpUnlockLevel: z.number(),
+    relocationCount: z.number(),
+    chronicleLevelSum: z.number(),
 });
 export type VillageVisitDto = z.infer<typeof villageVisitSchema>;
 
@@ -298,9 +333,69 @@ export const workerSchema = z.object({
     workedSeconds: z.number(),
     restUntil: z.string().nullable(),
     sickUntil: z.string().nullable(),
+    sickTypeId: z.number().nullable(),
+    isAway: z.boolean(),
     skills: z.array(workerSkillSchema),
 });
 export type WorkerDto = z.infer<typeof workerSchema>;
+
+export const sickTypeSchema = z.object({
+    id: z.number(),
+    name: z.string(),
+    logicName: z.string(),
+    weatherTypeId: z.number(),
+    cloakProtects: z.boolean(),
+});
+export type SickTypeDto = z.infer<typeof sickTypeSchema>;
+
+export const foodRuleSchema = z.object({
+    resourceTypeId: z.number(),
+    reserve: z.number(),
+    forbidden: z.boolean(),
+    eatenToday: z.number(),
+});
+export type FoodRuleDto = z.infer<typeof foodRuleSchema>;
+
+export const larderSchema = z.object({
+    rules: z.array(foodRuleSchema),
+});
+export type TavernLarderDto = z.infer<typeof larderSchema>;
+
+export const ledgerFlowSchema = z.object({
+    resourceTypeId: z.number(),
+    gained: z.number(),
+    spent: z.number(),
+});
+export type LedgerFlowDto = z.infer<typeof ledgerFlowSchema>;
+
+export const ledgerShortageSchema = z.object({
+    resourceTypeId: z.number(),
+    hours: z.number(),
+});
+export type LedgerShortageDto = z.infer<typeof ledgerShortageSchema>;
+
+export const ledgerSchema = z.object({
+    level: z.number(),
+    hasEntries: z.boolean(),
+    flows: z.array(ledgerFlowSchema),
+    shortage: ledgerShortageSchema.nullish(),
+    idlePercent: z.number().nullish(),
+});
+export type LedgerDto = z.infer<typeof ledgerSchema>;
+
+export const resourceReserveSchema = z.object({
+    resourceTypeId: z.number(),
+    reserve: z.number(),
+});
+export type ResourceReserveDto = z.infer<typeof resourceReserveSchema>;
+
+export const cloakStateSchema = z.object({
+    stock: z.number(),
+    outOnShifts: z.number(),
+    wearPoints: z.number(),
+    lifetimeShifts: z.number(),
+});
+export type CloakStateDto = z.infer<typeof cloakStateSchema>;
 
 export const weatherEffectSchema = z.object({
     domikTypeId: z.number(),
@@ -378,11 +473,14 @@ export const decorTypeSchema = z.object({
     name: z.string(),
     logicName: z.string(),
     comfortPoints: z.number(),
+    maxCount: z.number().nullable(),
     isPurchasable: z.boolean(),
     cost: z.array(resourceSchema),
     neighborId: z.number().nullable(),
     neighborName: z.string().nullable(),
     reputationThreshold: z.number(),
+    requiresDecorTypeId: z.number().nullable(),
+    requiresDecorName: z.string().nullable(),
 });
 export type DecorTypeDto = z.infer<typeof decorTypeSchema>;
 
@@ -433,6 +531,14 @@ export const tolokaVoteCandidateSchema = z.object({
 });
 export type TolokaVoteCandidateDto = z.infer<typeof tolokaVoteCandidateSchema>;
 
+export const tolokaProgressSchema = z.object({
+    logicName: z.string(),
+    name: z.string(),
+    beforePermille: z.number(),
+    afterPermille: z.number(),
+});
+export type TolokaProgressDto = z.infer<typeof tolokaProgressSchema>;
+
 export const tolokaStateSchema = z.object({
     active: tolokaSchema,
     activeBuffs: z.array(tolokaActiveBuffSchema),
@@ -440,6 +546,7 @@ export const tolokaStateSchema = z.object({
     nextBuffHours: z.number().nullable(),
     candidates: z.array(tolokaVoteCandidateSchema),
     myVoteTolokaTypeId: z.number().nullable(),
+    progress: tolokaProgressSchema.nullable(),
 });
 export type TolokaStateDto = z.infer<typeof tolokaStateSchema>;
 
@@ -494,6 +601,85 @@ export const activeGoalSchema = z.object({
 });
 export type ActiveGoalDto = z.infer<typeof activeGoalSchema>;
 
+export const villageProfileSchema = z.object({
+    neighborId: z.number(),
+    domikTypeId: z.number(),
+    durationPercent: z.number(),
+});
+export type VillageProfileDto = z.infer<typeof villageProfileSchema>;
+
+export const perkSchema = z.object({
+    perkType: z.number(),
+    name: z.string(),
+    description: z.string(),
+    costs: z.array(z.number()),
+    level: z.number(),
+});
+export type PerkDto = z.infer<typeof perkSchema>;
+
+export const valleySchema = z.object({
+    id: z.number(),
+    name: z.string(),
+    logicName: z.string(),
+    description: z.string(),
+});
+export type ValleyDto = z.infer<typeof valleySchema>;
+
+export const relocationSummarySchema = z.object({
+    workers: z.number(),
+    blueprints: z.number(),
+    gold: z.number(),
+    goldTotal: z.number(),
+    coins: z.number(),
+    resources: z.number(),
+    buildings: z.number(),
+    startingCoins: z.number(),
+});
+export type RelocationSummaryDto = z.infer<typeof relocationSummarySchema>;
+
+export const relocationSchema = z.object({
+    threshold: z.number(),
+    level: z.number(),
+    estimatedDays: z.number().nullish(),
+    cooldownUntil: z.string().nullish(),
+    canRelocate: z.boolean(),
+    blockReason: z.string().nullish(),
+    knots: z.number(),
+    relocationCount: z.number(),
+    valleyId: z.number(),
+    valleyName: z.string(),
+    perks: z.array(perkSchema),
+});
+export type RelocationDto = z.infer<typeof relocationSchema>;
+
+export const relocationPlanSchema = z.object({
+    knotsOnRelocate: z.number(),
+    summary: relocationSummarySchema,
+    valleys: z.array(valleySchema),
+});
+export type RelocationPlanDto = z.infer<typeof relocationPlanSchema>;
+
+export const memorialVillageSchema = z.object({
+    villageName: z.string().nullish(),
+    crestIcon: z.number(),
+    crestColor: z.number(),
+    valleyId: z.number(),
+    valleyName: z.string(),
+    level: z.number(),
+    knots: z.number(),
+    livedDays: z.number(),
+    date: z.string(),
+});
+export type MemorialVillageDto = z.infer<typeof memorialVillageSchema>;
+
+export const memorialPostSchema = z.object({
+    villages: z.array(memorialVillageSchema),
+    levelSum: z.number(),
+    relocationCount: z.number(),
+    firstDayDate: z.string().nullish(),
+});
+export type MemorialPostDto = z.infer<typeof memorialPostSchema>;
+
 export const goalsStateSchema = z.object({
     active: activeGoalSchema.nullable(),
     completedCount: z.number(),
@@ -517,13 +703,21 @@ export const gameStateSchema = z.object({
     village: villageSchema,
     villageLevel: villageLevelSchema,
     workers: workerSchema.array(),
+    cloaks: cloakStateSchema,
+    larder: larderSchema,
+    ledger: ledgerSchema.nullish(),
+    reserves: z.array(resourceReserveSchema).optional().default([]),
+    sickTypes: sickTypeSchema.array(),
     purchaseAvailableDomiks: domikTypeSchema.array(),
     weather: weatherStateSchema,
     expeditions: expeditionStateSchema.nullable(),
     decor: decorStateSchema,
     toloka: tolokaStateSchema.nullable(),
     market: marketStateSchema.nullable(),
+    convoys: z.array(convoySchema),
     goals: goalsStateSchema,
+    villageProfiles: z.array(villageProfileSchema),
+    relocation: relocationSchema,
     recap: recapSchema.nullish(),
     events: z.array(z.unknown()).transform(items => items.flatMap(item => {
         const parsed = recapEventSchema.safeParse(item);

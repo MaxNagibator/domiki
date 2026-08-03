@@ -61,7 +61,33 @@ public sealed class AutoRepeatTests
     }
 
     /// <summary>
-    /// Завершение автоповторного производства не падает, даже если рецепт больше не привязан к текущему уровню домика.
+    /// Наряд, у которого закончилось сырьё для повторного запуска, оставляет игроку ровно одно событие
+    /// <see cref="PlayerEventType.ManufactureRepeatFailed"/> с указанием домика и рецепта.
+    /// </summary>
+    [Test]
+    public void AutoRepeatRecordsEventWhenInputsRunOutTest()
+    {
+        const int domikId = 4;
+
+        var player = TestPlayer.Create()
+            .WithDomik(DomikIds.Barrack)
+            .WithDomik(DomikIds.Pottery, 3)
+            .WithResource(ResourceIds.Clay, 4);
+
+        player.StartManufacture(domikId, ReceiptIds.MakeDishes, autoRepeat: true);
+
+        var events = App.Read(context => context.PlayerEvents.Where(x => x.PlayerId == player.Id && x.Type == PlayerEventType.ManufactureRepeatFailed).ToList());
+        Assert.That(events, Has.Count.EqualTo(1));
+
+        using var data = JsonDocument.Parse(events[0].Data);
+        Assert.That(data.RootElement.GetProperty("domikId").GetInt32(), Is.EqualTo(domikId));
+        Assert.That(data.RootElement.GetProperty("domikTypeId").GetInt32(), Is.EqualTo(DomikIds.Pottery));
+        Assert.That(data.RootElement.GetProperty("receiptId").GetInt32(), Is.EqualTo(ReceiptIds.MakeDishes));
+    }
+
+    /// <summary>
+    /// Завершение автоповторного производства не падает, даже если рецепт больше не привязан к текущему уровню домика:
+    /// производство исчезает, а игрок получает ровно одно событие <see cref="PlayerEventType.ManufactureRepeatFailed"/>.
     /// </summary>
     [Test]
     public void AutoRepeatSurvivesRecipeMissingFromLevelTest()
@@ -82,6 +108,32 @@ public sealed class AutoRepeatTests
         Assert.That(player.ManufactureCount(4), Is.Zero);
         var exists = App.Read(context => context.Manufactures.Any(x => x.Id == manufactureId));
         Assert.That(exists, Is.False);
+
+        var events = App.Read(context => context.PlayerEvents.Where(x => x.PlayerId == player.Id && x.Type == PlayerEventType.ManufactureRepeatFailed).ToList());
+        Assert.That(events, Has.Count.EqualTo(1));
+    }
+
+    /// <summary>
+    /// Наряд, у которого автоповтор не смог перезапуститься из-за нехватки сырья, теряет заряд рвения только за успешные
+    /// циклы, а не за проваленный перезапуск.
+    /// </summary>
+    [Test]
+    public void AutoRepeatDoesNotConsumeZealChargeWhenInputsRunOutTest()
+    {
+        const int domikId = 4;
+        const int initialZealCharges = 5;
+        const int successfulCycles = 2;
+
+        var player = TestPlayer.Create()
+            .WithDomik(DomikIds.Barrack)
+            .WithDomik(DomikIds.Pottery, 3)
+            .WithResource(ResourceIds.Clay, 4);
+
+        SetZealCharges(player.Id, initialZealCharges);
+
+        player.StartManufacture(domikId, ReceiptIds.MakeDishes, autoRepeat: true);
+
+        Assert.That(GetZealCharges(player.Id), Is.EqualTo(initialZealCharges - successfulCycles));
     }
 
     /// <summary>
@@ -155,6 +207,19 @@ public sealed class AutoRepeatTests
         scope.Context.Manufactures.Add(manufacture);
         scope.Commit();
         return manufacture.Id;
+    }
+
+    private static int GetZealCharges(int playerId)
+    {
+        using var scope = App.Scope();
+        return scope.Context.Players.Single(x => x.Id == playerId).ZealCharges;
+    }
+
+    private static void SetZealCharges(int playerId, int value)
+    {
+        using var scope = App.Scope();
+        scope.Context.Players.Single(x => x.Id == playerId).ZealCharges = value;
+        scope.Commit();
     }
 }
 

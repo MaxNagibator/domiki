@@ -11,13 +11,17 @@ public class EconomyController : GameControllerBase
     private readonly OrderManager _orderManager;
     private readonly MarketManager _marketManager;
     private readonly ErrandManager _errandManager;
+    private readonly ConvoyManager _convoyManager;
+    private readonly ElderHouseManager _elderHouseManager;
 
-    public EconomyController(DomikManager domikManager, OrderManager orderManager, MarketManager marketManager, ErrandManager errandManager)
+    public EconomyController(DomikManager domikManager, OrderManager orderManager, MarketManager marketManager, ErrandManager errandManager, ConvoyManager convoyManager, ElderHouseManager elderHouseManager)
         : base(domikManager)
     {
         _orderManager = orderManager;
         _marketManager = marketManager;
         _errandManager = errandManager;
+        _convoyManager = convoyManager;
+        _elderHouseManager = elderHouseManager;
     }
 
     [HttpGet]
@@ -37,6 +41,18 @@ public class EconomyController : GameControllerBase
         _orderManager.CompleteOrder(playerId, orderId);
     }
 
+    /// <summary>
+    /// Уступает заказ соседу без выполнения – заказ снимается с доски, слот освобождается на обычную задержку пополнения.
+    /// </summary>
+    /// <param name="orderId">Идентификатор заказа.</param>
+    [HttpPost]
+    [Route("/Domiki/CancelOrder/{orderId}")]
+    public void CancelOrder(int orderId)
+    {
+        var playerId = GetPlayerId();
+        _orderManager.CancelOrder(playerId, orderId);
+    }
+
     [HttpGet]
     [Route("/Domiki/GetReputation")]
     public NeighborReputationDto[] GetReputation()
@@ -44,6 +60,18 @@ public class EconomyController : GameControllerBase
         var playerId = GetPlayerId();
 
         return _orderManager.GetReputation(playerId).Select(x => x.ToDto()).ToArray();
+    }
+
+    /// <summary>
+    /// Назначает (или снимает) дружбу игрока с соседом.
+    /// </summary>
+    /// <param name="request">Сосед, с которым назначается дружба; <see langword="null"/> в <see cref="SetFriendNeighborDto.NeighborId"/> снимает дружбу.</param>
+    [HttpPost]
+    [Route("/Domiki/SetFriendNeighbor")]
+    public void SetFriendNeighbor([FromBody] SetFriendNeighborDto request)
+    {
+        var playerId = GetPlayerId();
+        _orderManager.SetFriendNeighbor(playerId, request.NeighborId);
     }
 
     [HttpGet]
@@ -80,6 +108,14 @@ public class EconomyController : GameControllerBase
     }
 
     [HttpPost]
+    [Route("/Domiki/BuyFromConvoy")]
+    public void BuyFromConvoy([FromBody] BuyFromConvoyDto request)
+    {
+        var playerId = GetPlayerId();
+        _convoyManager.Buy(playerId, request.NeighborId, request.ResourceTypeId, request.Count, DateTimeHelper.GetNowDate());
+    }
+
+    [HttpPost]
     [Route("/Domiki/AcceptErrand/{errandId}")]
     public void AcceptErrand(int errandId, [FromQuery] int clueId, [FromQuery] int[] workerIds)
     {
@@ -93,5 +129,18 @@ public class EconomyController : GameControllerBase
     {
         var playerId = GetPlayerId();
         _errandManager.Cancel(playerId, errandId);
+    }
+
+    /// <summary>
+    /// Заповедует припас от нарядов либо снимает заповедь нулём.
+    /// </summary>
+    /// <param name="resourceTypeId">Тип ресурса.</param>
+    /// <param name="reserve">Сколько единиц отложить; <c>0</c> снимает заповедь.</param>
+    [HttpPost]
+    [Route("/Domiki/SetResourceReserve/{resourceTypeId}")]
+    public void SetResourceReserve(int resourceTypeId, [FromQuery] int reserve)
+    {
+        var playerId = GetPlayerId();
+        _elderHouseManager.SaveReserve(playerId, resourceTypeId, reserve);
     }
 }

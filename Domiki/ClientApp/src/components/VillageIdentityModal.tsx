@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import CloseIcon from 'pixelarticons/svg/close.svg?react';
 import SaveIcon from 'pixelarticons/svg/save.svg?react';
 import type { VillageDto } from '../types/api';
 import { VILLAGE_CREST_COLORS, VILLAGE_CREST_ICONS } from '../constants/village';
+import { prepareInlineSprite } from '../utils/inlineSprite';
 
 const CREST_OPTIONS = VILLAGE_CREST_ICONS.map((Icon, index) => ({ Icon, index, label: `Герб ${String(index + 1)}` }));
 
@@ -16,10 +17,18 @@ export const VillageIdentityModal = ({ village, onSave, onClose }: VillageIdenti
     const [draftVillageName, setDraftVillageName] = useState(() => village?.villageName ?? '');
     const [draftCrestIcon, setDraftCrestIcon] = useState(() => village?.crestIcon ?? 0);
     const [draftCrestColor, setDraftCrestColor] = useState(() => village?.crestColor ?? 0);
+    const dialogRef = useRef<HTMLDialogElement>(null);
+
+    useLayoutEffect(() => {
+        const dialog = dialogRef.current;
+        if (dialog != null && !dialog.open) {
+            dialog.showModal();
+        }
+    }, []);
 
     return (
-        <div className="modal-backdrop" role="presentation">
-            <form className="identity-modal pixel-panel" onSubmit={event => { event.preventDefault(); void onSave(draftVillageName, draftCrestIcon, draftCrestColor); }}>
+        <dialog ref={dialogRef} className="identity-modal pixel-panel" aria-label="Деревня" onClose={onClose}>
+            <form className="identity-form" onSubmit={event => { event.preventDefault(); void onSave(draftVillageName, draftCrestIcon, draftCrestColor); }}>
                 <div className="identity-modal-head">
                     <h2 className="panel-title">Деревня</h2>
                     <button type="button" className="identity-button" title="Закрыть" onClick={onClose}>
@@ -37,7 +46,7 @@ export const VillageIdentityModal = ({ village, onSave, onClose }: VillageIdenti
                             <button key={label} type="button" aria-label={label}
                                 className={'crest-option' + (draftCrestIcon === index ? ' crest-option-selected' : '')}
                                 onClick={() => setDraftCrestIcon(index)}>
-                                <Icon className="crest-ico" aria-hidden="true" />
+                                <Icon className="crest-ico" aria-hidden="true" ref={prepareInlineSprite} />
                             </button>,
                         )}
                     </div>
@@ -59,6 +68,6 @@ export const VillageIdentityModal = ({ village, onSave, onClose }: VillageIdenti
                     Сохранить
                 </button>
             </form>
-        </div>
+        </dialog>
     );
 };

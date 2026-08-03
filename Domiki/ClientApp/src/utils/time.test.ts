@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDuration, formatDurationShort, remainingSeconds } from './time';
+import { formatClock, formatDuration, formatDurationShort, formatTimeOfDay, remainingSeconds } from './time';
 
 describe('formatDuration', () => {
     it.each<[number, string]>([
@@ -31,6 +31,29 @@ describe('formatDurationShort', () => {
         [90061, '1д 1ч 1м'],
     ])('formatDurationShort(%i) -> %s', (totalSeconds, expected) => {
         expect(formatDurationShort(totalSeconds)).toBe(expected);
+    });
+});
+
+describe('formatClock', () => {
+    it.each<[number, string]>([
+        [0, '0:00'],
+        [5, '0:05'],
+        [65, '1:05'],
+        [2405, '40:05'],
+        [3600, '1:00:00'],
+        [3661, '1:01:01'],
+        [90061, '1д 1ч'],
+    ])('formatClock(%i) -> %s', (totalSeconds, expected) => {
+        expect(formatClock(totalSeconds)).toBe(expected);
+    });
+});
+
+describe('formatTimeOfDay', () => {
+    it.each<[string, string, number, string]>([
+        ['same calendar day as now', new Date(2026, 0, 15, 5, 0, 0).toISOString(), new Date(2026, 0, 15, 20, 0, 0).getTime(), '05:00'],
+        ['different calendar day than now', new Date(2026, 0, 16, 5, 0, 0).toISOString(), new Date(2026, 0, 15, 20, 0, 0).getTime(), '16 янв., 05:00'],
+    ])('%s', (_label, dateIso, now, expected) => {
+        expect(formatTimeOfDay(dateIso, now)).toBe(expected);
     });
 });
 

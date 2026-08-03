@@ -92,6 +92,23 @@ public class Worker
     public DateTime? SickUntil { get; set; }
 
     /// <summary>
+    /// Последняя перенесённая трудягой хворь – ссылка на <see cref="Village.Models.SickType.Id"/>.
+    /// </summary>
+    /// <remarks>
+    /// Значение не очищается после выздоровления и читается только вместе с <see cref="SickUntil"/>. <see langword="null"/> – трудяга ещё не болел либо его болезнь возникла до появления справочника хворей.
+    /// </remarks>
+    public int? SickTypeId { get; set; }
+
+    /// <summary>
+    /// Числится ли трудяга в отходе – коек в деревне меньше, чем трудяг.
+    /// </summary>
+    /// <remarks>
+    /// Такой трудяга не берёт работу и выходит на неё, как только койка появится
+    /// (см. <see cref="Workers.WorkerManager.GetAwayWorkerIds"/>).
+    /// </remarks>
+    public bool IsAway { get; set; }
+
+    /// <summary>
     /// Наработанные навыки трудяги по типам построек.
     /// </summary>
     public WorkerSkill[] Skills { get; set; } = [];

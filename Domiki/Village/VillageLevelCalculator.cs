@@ -16,6 +16,10 @@ public class VillageLevelCalculator
     public const int ComfortHabitabilityCap = 50;
     public const int ReputationPointsPerMilestone = 10;
     public const int SmartAutoUnlockLevel = 8;
+    public const int RelocationUnlockLevel = 350;
+    public const int RelocationLevelStep = 50;
+    public const int RelocationMaxUnlockLevel = 500;
+    public const int RelocationCooldownDays = 7;
 
     private readonly ApplicationDbContext _context;
     private readonly ResourceManager _resourceManager;
@@ -62,8 +66,22 @@ public class VillageLevelCalculator
             Reputation = reputation,
             Comfort = comfort,
             VisitsSinceBigGift = visitsSinceBigGift,
-            UpcomingUnlocks = GetUpcomingUnlocks(playerId, level),
+            Unlocks = GetUnlocks(playerId, level),
         };
+    }
+
+    /// <summary>
+    /// Возвращает обжитость, на которой открывается очередной переезд в новую долину.
+    /// </summary>
+    /// <param name="relocationCount">Число уже совершённых игроком переездов.</param>
+    /// <returns>Порог обжитости, не выше <see cref="RelocationMaxUnlockLevel"/>.</returns>
+    /// <remarks>
+    /// Порог растёт шагом <see cref="RelocationLevelStep"/> от <see cref="RelocationUnlockLevel"/>: каждая следующая
+    /// глава длиннее прежней, пока не упрётся в потолок (GAMEDESIGN.md §3 Слой 4).
+    /// </remarks>
+    public static int GetRelocationThreshold(int relocationCount)
+    {
+        return Math.Min(RelocationUnlockLevel + RelocationLevelStep * relocationCount, RelocationMaxUnlockLevel);
     }
 
     public bool CanBuyDomik(int playerId, DomikType domikType)
@@ -83,19 +101,78 @@ public class VillageLevelCalculator
         return GetLevel(playerId).Level >= SmartAutoUnlockLevel;
     }
 
-    private VillageLevelUnlock[] GetUpcomingUnlocks(int playerId, int level)
+    private VillageLevelUnlock[] GetUnlocks(int playerId, int level)
     {
+        var blueprintDomikTypeIds = _resourceManager.GetBlueprints().Select(b => b.DomikTypeId).ToHashSet();
+
         var domikUnlocks = _resourceManager.GetDomikTypes()
-            .Where(x => x.UnlockLevel > level)
-            .Select(x => new VillageLevelUnlock { Level = x.UnlockLevel, Label = x.Name, Requirement = null });
+            .Where(x => x.UnlockLevel > 0 && !blueprintDomikTypeIds.Contains(x.Id))
+            .Select(x => new VillageLevelUnlock
+            {
+                Level = x.UnlockLevel,
+                Label = x.Name,
+                Requirement = null,
+                Unlocked = level >= x.UnlockLevel,
+                Kind = "building",
+                LogicName = x.LogicName,
+            });
+
+        var builtCounts = _context.Domiks
+            .Where(x => x.PlayerId == playerId)
+            .GroupBy(x => x.TypeId)
+            .Select(x => new { TypeId = x.Key, Count = x.Count() })
+            .ToDictionary(x => x.TypeId, x => x.Count);
+
+        var domikTypesById = _resourceManager.GetDomikTypes().ToDictionary(x => x.Id);
+        var countGateUnlocks = _resourceManager.GetDomikTypeCountGates()
+            .Where(x => domikTypesById.ContainsKey(x.DomikTypeId) && x.Ordinal > builtCounts.GetValueOrDefault(x.DomikTypeId))
+            .Select(x => new VillageLevelUnlock
+            {
+                Level = x.UnlockLevel,
+                Label = $"{domikTypesById[x.DomikTypeId].Name} ×{x.Ordinal}",
+                Requirement = null,
+                Unlocked = level >= x.UnlockLevel,
+                Kind = "building",
+                LogicName = domikTypesById[x.DomikTypeId].LogicName,
+            });
 
         var neighborUnlocks = _resourceManager.GetNeighbors()
-            .Where(x => x.UnlockLevel > level)
-            .Select(x => new VillageLevelUnlock { Level = x.UnlockLevel, Label = $"Сосед {x.Name}", Requirement = null });
+            .Where(x => x.UnlockLevel > 0)
+            .Select(x => new VillageLevelUnlock
+            {
+                Level = x.UnlockLevel,
+                Label = $"Сосед {x.Name}",
+                Requirement = null,
+                Unlocked = level >= x.UnlockLevel,
+                Kind = "neighbor",
+                LogicName = x.LogicName,
+            });
 
-        var smartAutoUnlock = SmartAutoUnlockLevel > level
-            ? new[] { new VillageLevelUnlock { Level = SmartAutoUnlockLevel, Label = "Умная артель", Requirement = null } }
-            : Array.Empty<VillageLevelUnlock>();
+        var smartArtel = new[]
+        {
+            new VillageLevelUnlock
+            {
+                Level = SmartAutoUnlockLevel,
+                Label = "Умная артель",
+                Requirement = null,
+                Unlocked = level >= SmartAutoUnlockLevel,
+                Kind = "feature",
+                LogicName = "smart_artel",
+            },
+        };
+
+        var villageProfile = new[]
+        {
+            new VillageLevelUnlock
+            {
+                Level = VillageProfileManager.VillageLevelRequirement,
+                Label = "Уклад деревни",
+                Requirement = null,
+                Unlocked = level >= VillageProfileManager.VillageLevelRequirement,
+                Kind = "feature",
+                LogicName = "village_profile",
+            },
+        };
 
         var owned = _context.PlayerBlueprints.Where(x => x.PlayerId == playerId).Select(x => x.BlueprintId).ToArray();
         var reputations = _context.NeighborReputations.Where(x => x.PlayerId == playerId).ToArray();
@@ -103,18 +180,23 @@ public class VillageLevelCalculator
         var domikTypes = _resourceManager.GetDomikTypes();
         var blueprintUnlocks = _resourceManager.GetBlueprints()
             .Where(b => !owned.Contains(b.Id))
-            .Select(b => new { b, neighbor = neighbors.First(n => n.Id == b.NeighborId), points = reputations.FirstOrDefault(r => r.NeighborId == b.NeighborId)?.Points ?? 0 })
+            .Select(b => new { b, neighbor = neighbors.First(n => n.Id == b.NeighborId), domik = domikTypes.First(d => d.Id == b.DomikTypeId), points = reputations.FirstOrDefault(r => r.NeighborId == b.NeighborId)?.Points ?? 0 })
             .Where(x => x.points < x.b.ReputationThreshold)
             .Select(x => new VillageLevelUnlock
             {
                 Level = null,
-                Label = domikTypes.First(d => d.Id == x.b.DomikTypeId).Name,
+                Label = x.domik.Name,
                 Requirement = $"чертёж: {x.neighbor.Name}, репутация {x.points}/{x.b.ReputationThreshold}",
+                Unlocked = false,
+                Kind = "building",
+                LogicName = x.domik.LogicName,
             });
 
         return domikUnlocks
+            .Concat(countGateUnlocks)
             .Concat(neighborUnlocks)
-            .Concat(smartAutoUnlock)
+            .Concat(smartArtel)
+            .Concat(villageProfile)
             .OrderBy(x => x.Level)
             .ThenBy(x => x.Label)
             .Concat(blueprintUnlocks.OrderBy(x => x.Requirement).ThenBy(x => x.Label))

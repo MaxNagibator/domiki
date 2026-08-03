@@ -6,6 +6,7 @@ import { ManufactureBox } from './ManufactureBox';
 const manufacture: ManufactureDto = {
     id: 17,
     finishDate: '2026-07-13T12:30:00.000Z',
+    durationSeconds: 3600,
     plodderCount: 2,
     receiptId: 4,
     autoRepeat: true,
@@ -15,6 +16,8 @@ const receipt = {
     id: 4,
     name: 'Обжечь кирпич',
     durationSeconds: 3600,
+    inputResources: [{ typeId: 200, value: 2 }],
+    outputResources: [{ typeId: 201, value: 1 }],
 } as ReceiptDto;
 
 const renderBox = (value: ManufactureDto, onToggle = vi.fn()) => {
@@ -23,27 +26,27 @@ const renderBox = (value: ManufactureDto, onToggle = vi.fn()) => {
     return onToggle;
 };
 
-describe('ManufactureBox repeat controls', () => {
-    it('explains the active repeat and lets the player stop it', () => {
+describe('ManufactureBox наряд controls', () => {
+    it('explains the standing наряд and lets the player lift it', () => {
         const onToggle = renderBox(manufacture);
 
-        expect(screen.getByText('Автоповтор включён')).toBeInTheDocument();
-        expect(screen.queryByText(/снова запустится «Обжечь кирпич»/)).not.toBeInTheDocument();
+        expect(screen.getByText('Наряд поставлен')).toBeInTheDocument();
+        expect(screen.queryByText(/снова возьмутся за «Обжечь кирпич»/)).not.toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: 'Автоповтор включён' }));
-        expect(screen.getByText(/снова запустится «Обжечь кирпич»/)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Наряд поставлен' }));
+        expect(screen.getByText(/снова возьмутся за «Обжечь кирпич»/)).toBeInTheDocument();
         expect(screen.getByText('Текущая смена завершится как обычно')).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: 'Остановить повторы' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Снять наряд' }));
         expect(onToggle).toHaveBeenCalledWith(17, false);
     });
 
-    it('lets the player enable repeat for the current shift', () => {
+    it('lets the player put a наряд on the current shift', () => {
         const onToggle = renderBox({ ...manufacture, autoRepeat: false });
 
-        expect(screen.getByText('Автоповтор выключен')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Автоповтор выключен' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Повторять эту смену' }));
+        expect(screen.getByText('Наряда нет')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Наряда нет' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Поставить наряд' }));
         expect(onToggle).toHaveBeenCalledWith(17, true);
     });
 });

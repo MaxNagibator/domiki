@@ -101,6 +101,38 @@ public sealed record GameStateDto
     public required WorkerDto[] Workers { get; init; }
 
     /// <summary>
+    /// Запас, выдача и износ плащей игрока.
+    /// </summary>
+    public required CloakStateDto Cloaks { get; init; }
+
+    /// <summary>
+    /// Кладовая Корчмы: правила подбора еды по каждому съестному припасу.
+    /// </summary>
+    public required TavernLarderDto Larder { get; init; }
+
+    /// <summary>
+    /// Счётная книга Избы старосты за текущие сутки.
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – Избы у игрока нет, книга закрыта (см. <see cref="Economy.ElderHouseManager.GetLedger"/>).
+    /// </remarks>
+    public LedgerDto? Ledger { get; init; }
+
+    /// <summary>
+    /// Заповеданные от нарядов припасы игрока.
+    /// </summary>
+    /// <remarks>
+    /// Пусто, если ничего не заповедано или заповедный ларь ещё не открыт
+    /// (см. <see cref="Economy.ElderHouseManager.ReserveMinLevel"/>).
+    /// </remarks>
+    public required ResourceReserveDto[] Reserves { get; init; }
+
+    /// <summary>
+    /// Справочник хворей, связанных с погодой.
+    /// </summary>
+    public required SickTypeDto[] SickTypes { get; init; }
+
+    /// <summary>
     /// Типы построек, доступные к покупке прямо сейчас.
     /// </summary>
     /// <remarks>
@@ -143,6 +175,14 @@ public sealed record GameStateDto
     public MarketStateDto? Market { get; init; }
 
     /// <summary>
+    /// Обозы соседей, открытых по обжитости деревни, с ассортиментом и остатком суточного лимита.
+    /// </summary>
+    /// <remarks>
+    /// См. <see cref="Economy.ConvoyManager.GetConvoys"/>.
+    /// </remarks>
+    public required ConvoyDto[] Convoys { get; init; }
+
+    /// <summary>
     /// Сводка «Пока вас не было».
     /// </summary>
     /// <remarks>
@@ -163,4 +203,21 @@ public sealed record GameStateDto
     /// Состояние текущих целей игрока.
     /// </summary>
     public required GoalsStateDto Goals { get; init; }
+
+    /// <summary>
+    /// Справочник уклада деревни: соседи и постройки их специализации.
+    /// </summary>
+    /// <remarks>
+    /// См. <see cref="Reference.ResourceManager.GetVillageProfileEffects"/>.
+    /// </remarks>
+    public required VillageProfileDto[] VillageProfiles { get; init; }
+
+    /// <summary>
+    /// Переезд в новую долину: гейт, сводка сборов, узелки памяти и лесенка перков.
+    /// </summary>
+    /// <remarks>
+    /// Памятный столб в снимок не входит – он берётся отдельным запросом
+    /// (см. <see cref="Village.RelocationController.GetMemorialPost"/>).
+    /// </remarks>
+    public required RelocationDto Relocation { get; init; }
 }

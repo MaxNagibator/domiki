@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges" data-size="64" role="img" aria-labelledby="orders-title orders-desc" focusable="false" preserveAspectRatio="xMidYMid meet" color-interpolation="sRGB" data-active="true" data-state="idle" data-motion="on" data-animation-profile="document" style="--asset-phase:-2.19s">
   <title id="orders-title">Заказы</title>
-  <desc id="orders-desc">Пиксельная SVG-иконка механики «Заказы», оптимизированная для размеров 64, 32 и 24 px. Поддерживаются состояния idle, selected, attention, pressed, disabled и режимы motion on/slow/fast/paused/off.</desc><style>
+  <desc id="orders-desc">Развёрнутый свиток распоряжения с зелёной отметкой и красной восковой печатью.</desc><style>
     .micro { }
     .tiny { }
     svg[data-size="32"] .tiny, svg[data-size="24"] .tiny { display:none }
@@ -49,20 +49,21 @@ svg[data-size="32"] .fx-minor,svg[data-size="24"] .fx-minor,svg[data-size="small
 svg[data-size="24"] .fx-selection{opacity:.9}</style><style>svg[data-motion="on"][data-active="false"] .asset-stage,svg[data-motion="on"][data-active="false"] .asset-fx *{animation:none!important}
 @media (prefers-reduced-motion:reduce){.asset-stage,.asset-fx *,.asset-accent{animation:none!important;transform:none!important}.fx-semantic,.fx-attention{display:none!important}}</style><style>.fx-phase-1{--asset-fx-phase:-.35s}.fx-phase-2{--asset-fx-phase:-1.05s}.fx-phase-3{--asset-fx-phase:-1.75s}.fx-phase-4{--asset-fx-phase:-2.45s}
 svg[data-animation-profile="structure"] .asset-accent{--asset-accent-loop:4.4s}
-svg[data-animation-profile="wealth"] .fx-glint,svg[data-animation-profile="badge"] .fx-glint{--asset-fx-loop:2.8s}</style><g class="asset-stage profile-grounded"><!-- Core: large clipboard with an oversized green check. -->
-  <rect x="10" y="8" width="44" height="48" fill="#262626"/>
-  <rect x="14" y="12" width="36" height="40" fill="#efe6d4"/>
-  <rect x="22" y="4" width="20" height="10" fill="#262626"/>
-  <rect x="26" y="6" width="12" height="6" fill="#b07c42"/>
-  <rect x="18" y="28" width="8" height="8" fill="#4f9a3c"/>
-  <rect x="24" y="34" width="8" height="8" fill="#4f9a3c"/>
-  <rect x="30" y="22" width="8" height="14" fill="#4f9a3c"/>
-  <rect x="38" y="20" width="8" height="8" fill="#4f9a3c"/>
-  <g class="tiny">
-    <rect x="18" y="16" width="20" height="4" fill="#6e6e6e"/>
-    <rect x="18" y="46" width="28" height="2" fill="#c9c2b4"/>
-  </g>
-  <g class="micro">
-    <rect x="42" y="32" width="4" height="4" fill="#e8b83a" class="asset-accent asset-phase-1"/>
-  </g>
+svg[data-animation-profile="wealth"] .fx-glint,svg[data-animation-profile="badge"] .fx-glint{--asset-fx-loop:2.8s}</style><g class="asset-stage profile-grounded">
+  <!-- Rolled decree with a wax seal and bold approval mark. -->
+  <rect x="10" y="10" width="44" height="10" fill="#262626"/>
+  <rect x="14" y="18" width="36" height="32" fill="#262626"/>
+  <rect x="10" y="48" width="44" height="10" fill="#262626"/>
+  <rect x="14" y="12" width="36" height="6" fill="#e8c9a2"/>
+  <rect x="18" y="18" width="28" height="32" fill="#efe6d4"/>
+  <rect x="14" y="50" width="36" height="6" fill="#e8c9a2"/>
+  <rect x="22" y="24" width="18" height="4" fill="#565656"/>
+  <rect x="22" y="32" width="8" height="8" fill="#4f9a3c"/>
+  <rect x="28" y="38" width="8" height="8" fill="#4f9a3c"/>
+  <rect x="34" y="28" width="8" height="12" fill="#4f9a3c"/>
+  <rect x="40" y="26" width="6" height="6" fill="#4f9a3c"/>
+  <rect x="40" y="42" width="14" height="14" fill="#262626"/>
+  <rect x="42" y="44" width="10" height="10" fill="#c03434" class="asset-accent asset-phase-2"/>
+  <rect x="45" y="47" width="4" height="4" fill="#e8b83a"/>
+  <rect x="18" y="14" width="8" height="2" fill="#fff5d6" class="tiny"/>
 </g><g class="asset-fx fx-semantic" aria-hidden="true"><g class="fx-scan fx-phase-1 fx-minor"><rect x="44" y="20" width="12" height="4" fill="#efe6d4"/></g><g class="fx-glint fx-phase-3 fx-minor"><rect x="52" y="12" width="4" height="4" fill="#efe6d4"/><rect x="48" y="16" width="12" height="4" fill="#e8b83a"/><rect x="52" y="20" width="4" height="4" fill="#efe6d4"/></g></g><g class="asset-fx fx-selection" aria-hidden="true"><rect x="4" y="4" width="12" height="4" fill="#e8b83a"/><rect x="4" y="4" width="4" height="12" fill="#e8b83a"/><rect x="48" y="4" width="12" height="4" fill="#e8b83a"/><rect x="60" y="4" width="4" height="12" fill="#e8b83a"/><rect x="4" y="60" width="12" height="4" fill="#e8b83a"/><rect x="4" y="48" width="4" height="12" fill="#e8b83a"/><rect x="48" y="60" width="12" height="4" fill="#e8b83a"/><rect x="60" y="48" width="4" height="12" fill="#e8b83a"/></g><g class="asset-fx fx-attention" aria-hidden="true"><rect x="48" y="8" width="4" height="8" fill="#c84444"/><rect x="44" y="4" width="12" height="4" fill="#e8b83a"/><rect x="48" y="16" width="4" height="4" fill="#efe6d4"/></g></svg>

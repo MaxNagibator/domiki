@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges" data-size="64" role="img" aria-labelledby="iron-title iron-desc" focusable="false" preserveAspectRatio="xMidYMid meet" color-interpolation="sRGB" data-active="true" data-state="idle" data-motion="on" data-animation-profile="iron" style="--asset-phase:-1.72s">
   <title id="iron-title">Железо</title>
-  <desc id="iron-desc">Стопка очищенных железных слитков с холодными гранями и редким направленным бликом. Поддерживаются состояния idle, selected, attention, pressed, disabled и режимы motion on/slow/fast/paused/off.</desc>
+  <desc id="iron-desc">Обработанное железо в форме компактной наковальни или двутавровой заготовки.</desc>
   <style>
     .micro { }
     .tiny { }
@@ -50,31 +50,21 @@ svg[data-size="32"] .fx-minor,svg[data-size="24"] .fx-minor,svg[data-size="small
 svg[data-size="24"] .fx-selection{opacity:.9}</style><style>svg[data-motion="on"][data-active="false"] .asset-stage,svg[data-motion="on"][data-active="false"] .asset-fx *{animation:none!important}
 @media (prefers-reduced-motion:reduce){.asset-stage,.asset-fx *,.asset-accent{animation:none!important;transform:none!important}.fx-semantic,.fx-attention{display:none!important}}</style><style>.fx-phase-1{--asset-fx-phase:-.35s}.fx-phase-2{--asset-fx-phase:-1.05s}.fx-phase-3{--asset-fx-phase:-1.75s}.fx-phase-4{--asset-fx-phase:-2.45s}
 svg[data-animation-profile="iron"] .asset-accent{--asset-accent-loop:4.4s}
-svg[data-animation-profile="iron"] .fx-glint,svg[data-animation-profile="iron"] .fx-glint{--asset-fx-loop:2.8s}</style><g class="asset-stage profile-bob"><g id="optical-balance" transform="translate(0 -2)">
-    <!-- bottom ingot -->
-    <rect x="8" y="40" width="48" height="14" fill="#262626"/>
-    <rect x="12" y="42" width="40" height="8" fill="#697477"/>
-    <rect x="16" y="42" width="32" height="4" fill="#aeb8b8" class="asset-accent asset-phase-3"/>
-    <rect x="44" y="48" width="8" height="2" fill="#485154"/>
-    <!-- middle ingot -->
-    <rect x="12" y="30" width="44" height="14" fill="#262626"/>
-    <rect x="16" y="32" width="36" height="8" fill="#7c8789"/>
-    <rect x="20" y="32" width="28" height="4" fill="#c0c8c7" class="asset-accent asset-phase-2"/>
-    <rect x="16" y="38" width="10" height="2" fill="#566164"/>
-    <!-- top ingot -->
-    <rect x="18" y="20" width="38" height="14" fill="#262626"/>
-    <rect x="22" y="22" width="30" height="8" fill="#90999a"/>
-    <rect x="26" y="22" width="22" height="4" fill="#d5dcda" class="asset-accent asset-phase-1"/>
-    <rect x="44" y="28" width="8" height="2" fill="#626d70"/>
-  <g class="micro">
-    <rect x="14" y="46" width="8" height="2" fill="#d5dcda" class="asset-accent asset-phase-4"/>
-    <rect x="34" y="36" width="8" height="2" fill="#e7ebe7" class="asset-accent asset-phase-2"/>
-  </g>
-  <g class="tiny">
-    <rect x="30" y="26" width="6" height="2" fill="#f2f1e9" class="asset-accent asset-phase-3"/>
-  </g>
-</g></g>
-<g class="asset-fx fx-semantic" aria-hidden="true">
+svg[data-animation-profile="iron"] .fx-glint,svg[data-animation-profile="iron"] .fx-glint{--asset-fx-loop:2.8s}</style><g class="asset-stage profile-grounded">
+  <!-- Processed iron shown as an anvil/I-beam silhouette, unlike bread, ore, or wooden stacks. -->
+  <rect x="8" y="22" width="48" height="12" fill="#262626"/>
+  <rect x="20" y="34" width="24" height="12" fill="#262626"/>
+  <rect x="14" y="46" width="36" height="12" fill="#262626"/>
+  <rect x="12" y="24" width="40" height="8" fill="#aeb8b8"/>
+  <rect x="16" y="24" width="32" height="4" fill="#e7ebe7" class="asset-accent asset-phase-2"/>
+  <rect x="24" y="32" width="16" height="14" fill="#7c8789"/>
+  <rect x="18" y="48" width="28" height="8" fill="#697477"/>
+  <rect x="22" y="48" width="20" height="4" fill="#c0c8c7"/>
+  <rect x="12" y="30" width="10" height="2" fill="#566164"/>
+  <rect x="42" y="30" width="8" height="2" fill="#485154"/>
+  <rect x="28" y="38" width="8" height="4" fill="#90999a" class="tiny"/>
+  <rect x="40" y="24" width="6" height="4" fill="#f2f1e9" class="micro asset-accent asset-phase-4"/>
+</g><g class="asset-fx fx-semantic" aria-hidden="true">
   <g class="fx-glint fx-phase-1"><rect x="50" y="14" width="4" height="4" fill="#efe6d4"/><rect x="46" y="18" width="12" height="4" fill="#c9d3d2"/><rect x="50" y="22" width="4" height="4" fill="#efe6d4"/></g>
   <g class="fx-trail fx-phase-3 fx-minor"><rect x="14" y="36" width="14" height="2" fill="#e1e5e2"/></g>
   <g class="fx-rise fx-phase-4 fx-minor"><rect x="10" y="50" width="4" height="4" fill="#b8c1c0"/></g>

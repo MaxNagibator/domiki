@@ -96,10 +96,15 @@ try
             options.Scope.Add("roles");
             options.Events.OnRemoteFailure = context =>
             {
-                Log.Warning(context.Failure, "OIDC remote failure on {Scheme}: {Message}", oidcScheme, context.Failure?.Message);
+                var failure = context.Failure;
+                var reason = failure?.Message is { } message
+                    ? new string(message.Select(c => char.IsControl(c) ? ' ' : c).ToArray())
+                    : "External sign-in failed.";
+
+                Log.Warning("OIDC remote failure on {Scheme}: {FailureType} {Reason}", oidcScheme, failure?.GetType().Name, reason);
 
                 context.HandleResponse();
-                context.Response.Redirect($"/Identity/Account/Login?remoteError={Uri.EscapeDataString(context.Failure?.Message ?? "External sign-in failed.")}");
+                context.Response.Redirect($"/Identity/Account/Login?remoteError={Uri.EscapeDataString(failure?.Message ?? "External sign-in failed.")}");
                 return Task.CompletedTask;
             };
         });
@@ -107,7 +112,7 @@ try
 
     builder.Services.AddAuthorization();
 
-    if (!builder.Environment.IsDevelopment())
+    if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing"))
     {
         builder.Services.AddDataProtection()
             .PersistKeysToFileSystem(new DirectoryInfo("/dpkeys"))
@@ -133,6 +138,8 @@ try
     builder.Services.AddSingleton<ResourceManager>();
     builder.Services.AddScoped<PlayerResourceManager>();
     builder.Services.AddScoped<WorkerManager>();
+    builder.Services.AddScoped<TavernManager>();
+    builder.Services.AddScoped<ElderHouseManager>();
     builder.Services.AddScoped<WorkerMilestoneManager>();
     builder.Services.AddScoped<WeatherManager>();
     builder.Services.AddScoped<BlueprintManager>();
@@ -140,9 +147,13 @@ try
     builder.Services.AddScoped<DecorManager>();
     builder.Services.AddScoped<TolokaManager>();
     builder.Services.AddScoped<MarketManager>();
+    builder.Services.AddScoped<ConvoyManager>();
     builder.Services.AddScoped<WorldManager>();
     builder.Services.AddScoped<SeasonManager>();
     builder.Services.AddScoped<VillageLevelCalculator>();
+    builder.Services.AddScoped<VillageProfileManager>();
+    builder.Services.AddScoped<PerkManager>();
+    builder.Services.AddScoped<RelocationManager>();
     builder.Services.AddScoped<GuestbookManager>();
     builder.Services.AddScoped<HelpManager>();
     builder.Services.AddScoped<PlayerEventManager>();
@@ -237,6 +248,10 @@ try
             if (path != null && path.StartsWith("/assets/", StringComparison.Ordinal))
             {
                 context.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+            }
+            else if (path != null && path.StartsWith("/fonts/", StringComparison.Ordinal))
+            {
+                context.Context.Response.Headers.CacheControl = "public, max-age=2592000";
             }
             else if (path == "/sw.js")
             {

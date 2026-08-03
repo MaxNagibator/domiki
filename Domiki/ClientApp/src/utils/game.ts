@@ -5,7 +5,6 @@ export const INSTA_FINISH_SECONDS_PER_GOLD = 3600;
 export const INSTA_FINISH_MAX_GOLD = 6;
 export const GOLD_RESOURCE_TYPE_ID = 5;
 export const COIN_RESOURCE_TYPE_ID = 1;
-export const SICK_CHANCE_PERCENT = 15;
 export const SICK_MIN_VILLAGE_LEVEL = 15;
 export const ZEAL_X4_THRESHOLD = 16;
 
@@ -211,7 +210,8 @@ export function computeReceiptView(
 }
 
 export function isWorkerFree(worker: WorkerDto, now: number): boolean {
-    return worker.manufactureId == null && worker.expeditionId == null && worker.errandId == null && worker.incidentId == null
+    return !worker.isAway
+        && worker.manufactureId == null && worker.expeditionId == null && worker.errandId == null && worker.incidentId == null
         && (worker.restUntil == null || remainingSeconds(worker.restUntil, now) <= 0);
 }
 
@@ -230,8 +230,8 @@ export function progressPercent(finishDate: string, totalSeconds: number, now: n
     return Math.min(100, Math.max(0, percent));
 }
 
-export function manufactureProgressPercent(manufacture: ManufactureDto, receipt: ReceiptDto, now: number): number {
-    return progressPercent(manufacture.finishDate, receipt.durationSeconds, now);
+export function manufactureProgressPercent(manufacture: ManufactureDto, now: number): number {
+    return progressPercent(manufacture.finishDate, manufacture.durationSeconds, now);
 }
 
 export function instaFinishCost(finishDate: string, now: number): number {
@@ -245,6 +245,19 @@ export function canInstaFinish(finishDate: string, now: number): boolean {
 
 export type DomikStatus = 'upgradeReady' | 'upgrading' | 'producing' | 'idle';
 export type DomikSortMode = 'attention' | 'type' | 'level';
+export type WorkIntensity = 'slow' | 'normal' | 'fast';
+
+export function workIntensity(domik: DomikDto, domikType: DomikTypeDto): WorkIntensity {
+    const active = domik.manufactures?.length ?? 0;
+    const maxSlots = domikType.levels.find(level => level.value === domik.level)?.maxManufactureCount;
+    if (active === 0 || maxSlots == null || maxSlots <= 1) {
+        return 'normal';
+    }
+    if (active >= maxSlots) {
+        return 'fast';
+    }
+    return active === 1 ? 'slow' : 'normal';
+}
 
 export function domikStatus(domik: DomikDto, domikType: DomikTypeDto, resources: ResourceDto[]): DomikStatus {
     if (domik.finishDate != null) {

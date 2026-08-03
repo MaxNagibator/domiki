@@ -102,6 +102,16 @@ public class WorldVillage
     public string? NpcLogicName { get; set; }
 
     /// <summary>
+    /// Публичный идентификатор принятого деревней уклада – технический код соседа-источника (см.
+    /// <see cref="Economy.Models.Neighbor.LogicName"/>).
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – деревня уклад не приняла. Наружу отдаётся только этот код, а не внутренний
+    /// <see cref="Data.Entities.Player.ProfileNeighborId"/>; по коду клиент показывает бейдж уклада (см. GAMEDESIGN.md §3 Слой 4).
+    /// </remarks>
+    public string? ProfileLogicName { get; set; }
+
+    /// <summary>
     /// Число выполненных заказов за текущий сезон – счётчик номинации «Лучший поставщик».
     /// </summary>
     public int SeasonOrders { get; set; }
@@ -123,6 +133,14 @@ public class WorldVillage
     /// Совпадает с <see cref="VillageLevel.Comfort"/>.
     /// </remarks>
     public int Comfort { get; set; }
+
+    /// <summary>
+    /// Число переездов хозяина деревни в новую долину.
+    /// </summary>
+    /// <remarks>
+    /// Единственное, что памятный столб показывает публично в каталоге (GAMEDESIGN.md §3.7).
+    /// </remarks>
+    public int RelocationCount { get; set; }
 }
 
 /// <summary>
@@ -157,6 +175,26 @@ public class VillageVisit
     /// Постройки посещаемой деревни с их уровнями.
     /// </summary>
     public VisitBuilding[] Buildings { get; set; } = [];
+
+    /// <summary>
+    /// Публичный идентификатор принятого хозяином уклада – технический код соседа-источника (см.
+    /// <see cref="Economy.Models.Neighbor.LogicName"/>).
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – хозяин уклад не принял. При визите наружу отдаётся только этот код, а не внутренний
+    /// <see cref="Data.Entities.Player.ProfileNeighborId"/>.
+    /// </remarks>
+    public string? ProfileLogicName { get; set; }
+
+    /// <summary>
+    /// Сколько раз хозяин переезжал в новую долину.
+    /// </summary>
+    public int RelocationCount { get; set; }
+
+    /// <summary>
+    /// Суммарная обжитость всех прожитых хозяином деревень на дни их отъездов.
+    /// </summary>
+    public int ChronicleLevelSum { get; set; }
 }
 
 /// <summary>

@@ -1,20 +1,11 @@
-.hud-news {
+.changelog-chip {
     position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 5px 9px;
-    color: var(--ink);
-    background: #fffaec;
-    border: 3px solid var(--ink);
-    clip-path: var(--cut);
-    cursor: pointer;
 }
 
 .hud-news-dot {
     position: absolute;
-    top: 3px;
-    right: 3px;
+    top: 4px;
+    right: 6px;
     width: 9px;
     height: 9px;
     background: var(--roof);

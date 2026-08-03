@@ -13,6 +13,23 @@ public static class WorkersActs
         return App.Act<WorkerManager, IReadOnlyList<Worker>>(m => m.GetWorkers(p.Id).ToList());
     }
 
+    public static TestPlayer SetFoodRule(this TestPlayer p, int resourceTypeId, int reserve, bool forbidden)
+    {
+        App.Act<TavernManager>(m => m.SaveRule(p.Id, resourceTypeId, reserve, forbidden));
+        return p;
+    }
+
+    public static FoodRule[] FoodRules(this TestPlayer p)
+    {
+        return App.Act<TavernManager, FoodRule[]>(m => m.GetRules(p.Id));
+    }
+
+    public static TestPlayer RegisterMeal(this TestPlayer p, int resourceTypeId, int value)
+    {
+        App.Act<TavernManager>(m => m.RegisterMeal(p.Id, [new() { Type = new() { Id = resourceTypeId }, Value = value }]));
+        return p;
+    }
+
     public static DateTime RestUntilValue(this Worker worker)
     {
         Assert.That(worker.RestUntil, Is.Not.Null);

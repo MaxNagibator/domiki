@@ -131,6 +131,42 @@ public sealed record TolokaStateDto
     /// <see langword="null"/> – игрок ещё не голосовал.
     /// </remarks>
     public int? MyVoteTolokaTypeId { get; init; }
+
+    /// <summary>
+    /// Насколько корзина подросла с прошлого захода игрока.
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – прироста нет либо толока сменилась; отдаётся только состоянием игры, витрине «Пока вас не было».
+    /// </remarks>
+    public TolokaProgressDto? Progress { get; init; }
+}
+
+/// <summary>
+/// Насколько корзина толоки подросла с прошлого захода игрока.
+/// </summary>
+public sealed record TolokaProgressDto
+{
+    /// <summary>
+    /// Технический код типа толоки.
+    /// </summary>
+    public required string LogicName { get; init; }
+
+    /// <summary>
+    /// Название толоки для отображения.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Прогресс корзины на момент прошлого захода.
+    /// </summary>
+    /// <value>Промилле, <c>0</c>–<c>1000</c>.</value>
+    public required int BeforePermille { get; init; }
+
+    /// <summary>
+    /// Прогресс корзины сейчас.
+    /// </summary>
+    /// <value>Промилле, <c>0</c>–<c>1000</c>.</value>
+    public required int AfterPermille { get; init; }
 }
 
 /// <summary>

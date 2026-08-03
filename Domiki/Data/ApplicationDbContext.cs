@@ -20,6 +20,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Incident> Incidents { get; set; }
     public DbSet<Neighbor> Neighbors { get; set; }
     public DbSet<NeighborReputation> NeighborReputations { get; set; }
+    public DbSet<NeighborConvoy> NeighborConvoys { get; set; }
+    public DbSet<VillageProfileEffect> VillageProfileEffects { get; set; }
     public DbSet<Blueprint> Blueprints { get; set; }
     public DbSet<PlayerBlueprint> PlayerBlueprints { get; set; }
     public DbSet<Player> Players { get; set; }
@@ -30,6 +32,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Worker> Workers { get; set; }
     public DbSet<WorkerSkill> WorkerSkills { get; set; }
     public DbSet<WorkerMilestone> WorkerMilestones { get; set; }
+    public DbSet<PlayerFoodRule> PlayerFoodRules { get; set; }
+    public DbSet<PlayerResourceFlow> PlayerResourceFlows { get; set; }
+    public DbSet<PlayerLaborDay> PlayerLaborDays { get; set; }
+    public DbSet<PlayerResourceReserve> PlayerResourceReserves { get; set; }
 
     public DbSet<Receipt> Receipts { get; set; }
     public DbSet<ReceiptResource> ReceiptResources { get; set; }
@@ -42,6 +48,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<DomikTypeLevelReceipt> DomikTypeLevelRecepts { get; set; }
 
     public DbSet<WeatherType> WeatherTypes { get; set; }
+    public DbSet<SickType> SickTypes { get; set; }
     public DbSet<WeatherTypeEffect> WeatherTypeEffects { get; set; }
     public DbSet<WeatherPeriod> WeatherPeriods { get; set; }
 
@@ -63,6 +70,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<TolokaVote> TolokaVotes { get; set; }
     public DbSet<TradeLot> TradeLots { get; set; }
     public DbSet<SeasonCounter> SeasonCounters { get; set; }
+    public DbSet<VillageChronicle> VillageChronicles { get; set; }
+    public DbSet<PlayerPerk> PlayerPerks { get; set; }
     public DbSet<PlayerEvent> PlayerEvents { get; set; }
     public DbSet<GuestbookEntry> GuestbookEntries { get; set; }
     public DbSet<PlayerPushSubscription> PlayerPushSubscriptions { get; set; }
@@ -90,6 +99,30 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasOne<Worker>()
             .WithMany()
             .HasForeignKey(p => p.WorkerId);
+
+        modelBuilder.Entity<DecorType>()
+            .HasOne<DecorType>()
+            .WithMany()
+            .HasForeignKey(p => p.RequiresDecorTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<SickType>()
+            .HasOne(x => x.WeatherType)
+            .WithMany()
+            .HasForeignKey(x => x.WeatherTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Manufacture>()
+            .HasOne(x => x.SickType)
+            .WithMany()
+            .HasForeignKey(x => x.SickTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Worker>()
+            .HasOne(x => x.SickType)
+            .WithMany()
+            .HasForeignKey(x => x.SickTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<StarterGoal>()
             .HasData(new StarterGoal { Id = 1, Ordinal = 1, Name = "Поставь копку глины", ConditionType = GoalConditionType.StartAnyManufacture, Param = 0, Param2 = 0, RewardCoins = 10 },

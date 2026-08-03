@@ -164,8 +164,9 @@
     flex: 1;
     min-width: 0;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
+    gap: 4px 10px;
     min-height: 40px;
     padding: 7px 12px;
     background: #fffaec;
@@ -185,6 +186,8 @@
     }
 
 .journal-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
     font-weight: 600;
 }
 

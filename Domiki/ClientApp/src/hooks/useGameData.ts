@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { acceptLot as acceptLotApi, apiGet, ApiError, buyDecor as buyDecorApi, cancelLot as cancelLotApi, contributeToloka as contributeTolokaApi, getDecor, getGameState, getMarket, getToloka, getVillage, hurryDomik as hurryDomikApi, hurryManufacture as hurryManufactureApi, postLot as postLotApi, setFeedWorkers as setFeedWorkersApi, setManufactureAutoRepeat as setManufactureAutoRepeatApi, setVillage as setVillageApi, startExpedition as startExpeditionApi, voteToloka as voteTolokaApi } from '../services/api';
+import { acceptLot as acceptLotApi, apiGet, ApiError, buyDecor as buyDecorApi, buyFromConvoy as buyFromConvoyApi, buyPerk as buyPerkApi, cancelLot as cancelLotApi, contributeToloka as contributeTolokaApi, getDecor, getGameState, getMarket, getToloka, getVillage, hurryDomik as hurryDomikApi, hurryManufacture as hurryManufactureApi, postLot as postLotApi, relocate as relocateApi, setFoodRule as setFoodRuleApi, setManufactureAutoRepeat as setManufactureAutoRepeatApi, setManufactureMeasure as setManufactureMeasureApi, setResourceReserve as setResourceReserveApi, setVillage as setVillageApi, startExpedition as startExpeditionApi, voteToloka as voteTolokaApi } from '../services/api';
 import { useToast } from '../services/toastContext';
 import {
     domikTypeSchema,
     resourceSchema,
     villageLevelSchema,
     type BlueprintDto,
+    type CloakStateDto,
     type DecorStateDto,
     type DomikDto,
     type DomikIncidentDto,
     type DomikTypeDto,
+    type ConvoyDto,
     type ErrandDto,
     type IncidentDto,
     type ExpeditionStateDto,
@@ -22,9 +24,15 @@ import {
     type ResourceTypeDto,
     type RecapDto,
     type RecapEventDto,
+    type RelocationDto,
+    type SickTypeDto,
+    type TavernLarderDto,
+    type LedgerDto,
+    type ResourceReserveDto,
     type TolokaStateDto,
     type VillageDto,
     type VillageLevelDto,
+    type VillageProfileDto,
     type WeatherStateDto,
     type WorkerDto,
 } from '../types/api';
@@ -47,30 +55,43 @@ export interface GameData {
     loading: boolean;
     village: VillageDto | null;
     villageLevel: VillageLevelDto | null;
+    villageProfiles: VillageProfileDto[];
+    relocation: RelocationDto | null;
     weather: WeatherStateDto | null;
     expeditions: ExpeditionStateDto | null;
     decor: DecorStateDto | null;
     toloka: TolokaStateDto | null;
     market: MarketStateDto | null;
+    convoys: ConvoyDto[];
     goals: GoalsStateDto | null;
     workers: WorkerDto[];
+    cloaks: CloakStateDto;
+    larder: TavernLarderDto | null;
+    ledger: LedgerDto | null;
+    reserves: ResourceReserveDto[];
+    sickTypes: SickTypeDto[];
     purchaseDomikTypes: DomikTypeDto[] | null;
     now: number;
     reload: () => Promise<void>;
     scheduleReload: () => void;
     refreshPurchaseTypes: () => Promise<void>;
     setVillage: (name: string, crestIcon: number, crestColor: number) => Promise<void>;
-    setFeedWorkers: (enabled: boolean) => Promise<void>;
     hurryManufacture: (manufactureId: number) => Promise<void>;
     setManufactureAutoRepeat: (manufactureId: number, autoRepeat: boolean) => Promise<void>;
+    setManufactureMeasure: (manufactureId: number, resourceTypeId: number | null, value: number | null) => Promise<void>;
+    setResourceReserve: (resourceTypeId: number, reserve: number) => Promise<void>;
     hurryDomik: (domikId: number) => Promise<void>;
     startExpedition: (expeditionTypeId: number, workerIds?: number[], provisions?: boolean) => Promise<void>;
     buyDecor: (decorTypeId: number) => Promise<void>;
+    setFoodRule: (resourceTypeId: number, reserve: number, forbidden: boolean) => Promise<void>;
     contributeToloka: (resourceTypeId: number, amount: number) => Promise<void>;
     voteToloka: (tolokaTypeId: number) => Promise<void>;
     postLot: (kind: number, giveResourceTypeId: number, giveValue: number, wantResourceTypeId: number, wantValue: number) => Promise<void>;
     acceptLot: (lotId: number) => Promise<void>;
     cancelLot: (lotId: number) => Promise<void>;
+    buyFromConvoy: (neighborId: number, resourceTypeId: number, count: number) => Promise<void>;
+    relocate: (valleyId: number, villageName: string | null) => Promise<void>;
+    buyPerk: (perkType: number) => Promise<void>;
     recap: RecapDto | null;
     clearRecap: () => void;
     events: RecapEventDto[];
@@ -106,13 +127,21 @@ export function useGameData(): GameData {
     const [blueprints, setBlueprints] = useState<BlueprintDto[]>([]);
     const [village, setVillageState] = useState<VillageDto | null>(null);
     const [villageLevel, setVillageLevel] = useState<VillageLevelDto | null>(null);
+    const [villageProfiles, setVillageProfiles] = useState<VillageProfileDto[]>([]);
+    const [relocation, setRelocation] = useState<RelocationDto | null>(null);
     const [weather, setWeather] = useState<WeatherStateDto | null>(null);
     const [expeditions, setExpeditions] = useState<ExpeditionStateDto | null>(null);
     const [decor, setDecor] = useState<DecorStateDto | null>(null);
     const [toloka, setToloka] = useState<TolokaStateDto | null>(null);
     const [market, setMarket] = useState<MarketStateDto | null>(null);
+    const [convoys, setConvoys] = useState<ConvoyDto[]>([]);
     const [goals, setGoals] = useState<GoalsStateDto | null>(null);
     const [workers, setWorkers] = useState<WorkerDto[]>([]);
+    const [cloaks, setCloaks] = useState<CloakStateDto>({ stock: 0, outOnShifts: 0, wearPoints: 0, lifetimeShifts: 0 });
+    const [larder, setLarder] = useState<TavernLarderDto | null>(null);
+    const [ledger, setLedger] = useState<LedgerDto | null>(null);
+    const [reserves, setReserves] = useState<ResourceReserveDto[]>([]);
+    const [sickTypes, setSickTypes] = useState<SickTypeDto[]>([]);
     const [purchaseDomikTypes, setPurchaseDomikTypes] = useState<DomikTypeDto[] | null>(null);
     const [recap, setRecap] = useState<RecapDto | null>(null);
     const [events, setEvents] = useState<RecapEventDto[]>([]);
@@ -125,11 +154,13 @@ export function useGameData(): GameData {
     const domiksRef = useRef(domiks);
     const expeditionsRef = useRef(expeditions);
     const goalsRef = useRef(goals);
+    const relocationRef = useRef(relocation);
     const eventsRef = useRef<RecapEventDto[] | undefined>(undefined);
     const tolokaRef = useRef(toloka);
     const errandRef = useRef(errand);
     const incidentRef = useRef(incident);
     const domikIncidentRef = useRef(domikIncident);
+    const convoysRef = useRef(convoys);
     const reloadedRestDeadlinesRef = useRef<Set<string>>(new Set());
     const reloadedTolokaBuffDeadlinesRef = useRef<Set<string>>(new Set());
     const reloadedFinishDeadlinesRef = useRef<Set<string>>(new Set());
@@ -151,12 +182,20 @@ export function useGameData(): GameData {
     }, [goals]);
 
     useEffect(() => {
+        relocationRef.current = relocation;
+    }, [relocation]);
+
+    useEffect(() => {
         eventsRef.current = events;
     }, [events]);
 
     useEffect(() => {
         tolokaRef.current = toloka;
     }, [toloka]);
+
+    useEffect(() => {
+        convoysRef.current = convoys;
+    }, [convoys]);
 
     useEffect(() => {
         errandRef.current = errand;
@@ -182,6 +221,10 @@ export function useGameData(): GameData {
         const prevGoal = goalsRef.current?.active;
         if (prevGoal != null && (state.goals.active == null || state.goals.active.ordinal > prevGoal.ordinal)) {
             toast.success(`Наказ выполнен: «${prevGoal.name}» (+${prevGoal.rewardCoins} монет)`);
+        }
+        const prevRelocation = relocationRef.current;
+        if (prevRelocation != null && prevRelocation.level < prevRelocation.threshold && state.relocation.level >= state.relocation.threshold) {
+            toast.success(`Деревня встала на ноги. Всё, что «${state.village.villageName ?? 'деревня'}» могла завести, заведено: постройки, соседи, ремёсла. Дальше – те же дела, только глубже. Захочется нового – можно собираться в новую долину.`);
         }
         const previousEvents = eventsRef.current;
         if (previousEvents != null) {
@@ -212,12 +255,20 @@ export function useGameData(): GameData {
         setBlueprints(state.blueprints);
         setVillageState(state.village);
         setVillageLevel(state.villageLevel);
+        setVillageProfiles(state.villageProfiles);
+        setRelocation(state.relocation);
         setWorkers(state.workers);
+        setCloaks(state.cloaks);
+        setLarder(state.larder);
+        setLedger(state.ledger ?? null);
+        setReserves(state.reserves);
+        setSickTypes(state.sickTypes);
         setWeather(state.weather);
         setExpeditions(state.expeditions);
         setDecor(state.decor);
         setToloka(state.toloka);
         setMarket(state.market);
+        setConvoys(state.convoys);
         setGoals(state.goals);
         setEvents(state.events);
         if (state.recap != null && state.recap.events.length > 0) {
@@ -264,11 +315,6 @@ export function useGameData(): GameData {
         setVillageState(await getVillage());
     }, []);
 
-    const setFeedWorkers = useCallback(async (enabled: boolean) => {
-        await setFeedWorkersApi(enabled);
-        setVillageState(await getVillage());
-    }, []);
-
     const hurryManufacture = useCallback(async (manufactureId: number) => {
         await hurryManufactureApi(manufactureId);
         scheduleReload();
@@ -276,6 +322,16 @@ export function useGameData(): GameData {
 
     const setManufactureAutoRepeat = useCallback(async (manufactureId: number, autoRepeat: boolean) => {
         await setManufactureAutoRepeatApi(manufactureId, autoRepeat);
+        scheduleReload();
+    }, [scheduleReload]);
+
+    const setManufactureMeasure = useCallback(async (manufactureId: number, resourceTypeId: number | null, value: number | null) => {
+        await setManufactureMeasureApi(manufactureId, resourceTypeId, value);
+        scheduleReload();
+    }, [scheduleReload]);
+
+    const setResourceReserve = useCallback(async (resourceTypeId: number, reserve: number) => {
+        await setResourceReserveApi(resourceTypeId, reserve);
         scheduleReload();
     }, [scheduleReload]);
 
@@ -328,6 +384,21 @@ export function useGameData(): GameData {
         await refreshMarketAndResources();
     }, [refreshMarketAndResources]);
 
+    const buyFromConvoy = useCallback(async (neighborId: number, resourceTypeId: number, count: number) => {
+        await buyFromConvoyApi(neighborId, resourceTypeId, count);
+        scheduleReload();
+    }, [scheduleReload]);
+
+    const relocate = useCallback(async (valleyId: number, villageName: string | null) => {
+        await relocateApi(valleyId, villageName);
+        await reload();
+    }, [reload]);
+
+    const buyPerk = useCallback(async (perkType: number) => {
+        await buyPerkApi(perkType);
+        scheduleReload();
+    }, [scheduleReload]);
+
     const clearRecap = useCallback(() => setRecap(null), []);
 
     const buyDecor = useCallback(async (decorTypeId: number) => {
@@ -341,6 +412,11 @@ export function useGameData(): GameData {
         setResources(nextResources);
         setVillageLevel(nextVillageLevel);
     }, []);
+
+    const setFoodRule = useCallback(async (resourceTypeId: number, reserve: number, forbidden: boolean) => {
+        await setFoodRuleApi(resourceTypeId, reserve, forbidden);
+        scheduleReload();
+    }, [scheduleReload]);
 
     useEffect(() => {
         const id = setInterval(() => setNow(Date.now()), 1000);
@@ -367,13 +443,19 @@ export function useGameData(): GameData {
                 setBlueprints(state.blueprints);
                 setVillageState(state.village);
                 setVillageLevel(state.villageLevel);
+                setVillageProfiles(state.villageProfiles);
+                setRelocation(state.relocation);
                 setWorkers(state.workers);
+                setLarder(state.larder);
+                setLedger(state.ledger ?? null);
+                setReserves(state.reserves);
                 setPurchaseDomikTypes(state.purchaseAvailableDomiks);
                 setWeather(state.weather);
                 setExpeditions(state.expeditions);
                 setDecor(state.decor);
                 setToloka(state.toloka);
                 setMarket(state.market);
+                setConvoys(state.convoys);
                 setGoals(state.goals);
                 setEvents(state.events);
                 if (state.recap != null && state.recap.events.length > 0) {
@@ -518,6 +600,18 @@ export function useGameData(): GameData {
             }
         }
 
+        for (const convoy of convoysRef.current) {
+            if (convoy.windowResetDate == null) {
+                continue;
+            }
+
+            const key = `convoy:${convoy.neighborId}:${convoy.windowResetDate}`;
+            if (!reloadedFinishDeadlinesRef.current.has(key) && remainingSeconds(convoy.windowResetDate, now) <= 0) {
+                reloadedFinishDeadlinesRef.current.add(key);
+                expiredFinish = true;
+            }
+        }
+
         const expiredTolokaBuffs = tolokaRef.current?.activeBuffs.filter(buff => {
             const key = `toloka:${buff.logicName}:${buff.buffUntil}`;
             return remainingSeconds(buff.buffUntil, now) <= 0 && !reloadedTolokaBuffDeadlinesRef.current.has(key);
@@ -548,13 +642,21 @@ export function useGameData(): GameData {
         blueprints,
         village,
         villageLevel,
+        villageProfiles,
+        relocation,
         weather,
         expeditions,
         decor,
         toloka,
         market,
+        convoys,
         goals,
         workers,
+        cloaks,
+        larder,
+        ledger,
+        reserves,
+        sickTypes,
         purchaseDomikTypes,
         now,
         loading,
@@ -562,17 +664,22 @@ export function useGameData(): GameData {
         scheduleReload,
         refreshPurchaseTypes,
         setVillage,
-        setFeedWorkers,
         hurryManufacture,
         setManufactureAutoRepeat,
+        setManufactureMeasure,
+        setResourceReserve,
         hurryDomik,
         startExpedition,
         buyDecor,
+        setFoodRule,
         contributeToloka,
         voteToloka,
         postLot,
         acceptLot,
         cancelLot,
+        buyFromConvoy,
+        relocate,
+        buyPerk,
         recap,
         clearRecap,
         events,

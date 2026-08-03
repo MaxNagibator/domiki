@@ -17,8 +17,9 @@ public class VillageController : GameControllerBase
     private readonly DecorManager _decorManager;
     private readonly GuestbookManager _guestbookManager;
     private readonly HelpManager _helpManager;
+    private readonly VillageProfileManager _villageProfileManager;
 
-    public VillageController(DomikManager domikManager, ResourceManager resourceManager, WorldManager worldManager, SeasonManager seasonManager, VillageLevelCalculator villageLevelCalculator, WeatherManager weatherManager, DecorManager decorManager, GuestbookManager guestbookManager, HelpManager helpManager)
+    public VillageController(DomikManager domikManager, ResourceManager resourceManager, WorldManager worldManager, SeasonManager seasonManager, VillageLevelCalculator villageLevelCalculator, WeatherManager weatherManager, DecorManager decorManager, GuestbookManager guestbookManager, HelpManager helpManager, VillageProfileManager villageProfileManager)
         : base(domikManager)
     {
         _domikManager = domikManager;
@@ -30,6 +31,7 @@ public class VillageController : GameControllerBase
         _decorManager = decorManager;
         _guestbookManager = guestbookManager;
         _helpManager = helpManager;
+        _villageProfileManager = villageProfileManager;
     }
 
     [HttpGet]
@@ -47,14 +49,6 @@ public class VillageController : GameControllerBase
     {
         var playerId = GetPlayerId();
         _domikManager.SetVillageIdentity(playerId, request?.Name, request?.CrestIcon ?? -1, request?.CrestColor ?? -1);
-    }
-
-    [HttpPost]
-    [Route("/Domiki/SetFeedWorkers")]
-    public void SetFeedWorkers([FromBody] SetFeedWorkersDto request)
-    {
-        var playerId = GetPlayerId();
-        _domikManager.SetFeedWorkers(playerId, request?.Enabled ?? false);
     }
 
     [HttpGet]
@@ -159,5 +153,17 @@ public class VillageController : GameControllerBase
     {
         var playerId = GetPlayerId();
         _decorManager.BuyDecor(playerId, decorTypeId);
+    }
+
+    /// <summary>
+    /// Принимает или сменяет уклад деревни на профиль указанного соседа.
+    /// </summary>
+    /// <param name="neighborId">Сосед, чей уклад принимается.</param>
+    [HttpPost]
+    [Route("/Domiki/SetVillageProfile")]
+    public void SetVillageProfile([FromQuery] int neighborId)
+    {
+        var playerId = GetPlayerId();
+        _villageProfileManager.SetVillageProfile(playerId, neighborId);
     }
 }

@@ -1,0 +1,618 @@
+.worker-rail-slot {
+    flex: 0 0 200px;
+    min-width: 0;
+    align-self: stretch;
+    position: relative;
+}
+
+.worker-rail-float {
+    position: absolute;
+    inset: 0;
+}
+
+.yard-rail {
+    position: sticky;
+    top: var(--hud-sticky-offset, 76px);
+    display: grid;
+    grid-auto-rows: minmax(0, auto);
+    align-content: start;
+    gap: 10px;
+    height: min(calc(100vh - var(--hud-sticky-offset, 76px) - 24px), 100%);
+}
+
+.worker-rail {
+    width: 100%;
+    position: relative;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    background: var(--plank);
+    border: 3px solid var(--ink);
+    clip-path: var(--cut);
+    box-shadow: inset 0 -4px 0 var(--plank-dark);
+}
+
+.worker-rail-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.worker-rail-title {
+    font-family: var(--pixel);
+    font-size: 11px;
+    color: var(--ink);
+}
+
+.worker-rail-tally {
+    font-size: 11px;
+    color: var(--ink-muted);
+}
+
+.worker-rail-skill-of {
+    min-height: 15px;
+    margin: 0;
+    font-size: 10px;
+    color: var(--ink-muted);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.worker-rail-held {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 6px 8px;
+    font-size: 11px;
+    background: #fff7e0;
+    border: 2px solid var(--coin);
+    clip-path: var(--cut);
+}
+
+.worker-rail-cancel.btn-game.btn-ghost {
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
+.worker-rail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: var(--pine) var(--plank-dark);
+}
+
+.worker-rail-list::-webkit-scrollbar {
+    width: 10px;
+}
+
+.worker-rail-list::-webkit-scrollbar-track {
+    background: var(--plank-dark);
+}
+
+.worker-rail-list::-webkit-scrollbar-thumb {
+    background: var(--pine);
+    border: 2px solid var(--ink);
+}
+
+.worker-rail-empty {
+    margin: 0;
+    font-size: 11px;
+    color: var(--ink-muted);
+}
+
+.worker-rail-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.worker-rail-group-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 5px 6px;
+    font-family: var(--pixel);
+    font-size: 9px;
+    color: var(--ink-muted);
+    text-align: left;
+    background: var(--plank);
+    border: 0;
+    border-top: 2px solid var(--plank-dark);
+    cursor: pointer;
+}
+
+.rail-card {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 56px;
+    padding: 5px 6px 5px 10px;
+    background: #fffaec;
+    border: 2px solid var(--ink);
+    clip-path: var(--cut);
+    box-shadow: inset 4px 0 0 var(--rail-mark, transparent);
+    touch-action: none;
+    cursor: grab;
+}
+
+.rail-card--busy,
+.rail-card--resting,
+.rail-card--sick,
+.rail-card--trip,
+.rail-card--away {
+    background: var(--plank-dark);
+    cursor: default;
+    opacity: .75;
+}
+
+.rail-card--free {
+    --rail-mark: var(--pine);
+}
+
+.rail-card--busy {
+    --rail-mark: var(--roof);
+}
+
+.rail-card--resting {
+    --rail-mark: #517ea6;
+}
+
+.rail-card--sick {
+    --rail-mark: #8a5fb0;
+}
+
+.rail-card--trip {
+    --rail-mark: #b8860b;
+}
+
+.rail-card--away {
+    --rail-mark: var(--ink-muted);
+}
+
+
+.rail-card--held {
+    border-color: var(--coin);
+    opacity: .45;
+}
+
+.rail-card-portrait svg {
+    display: block;
+    width: 32px;
+    height: 32px;
+    image-rendering: pixelated;
+}
+
+.rail-card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.rail-card-skill {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--pixel);
+    font-size: 11px;
+}
+
+.rail-card-skill--high {
+    color: var(--pine);
+}
+
+.rail-card-skill--some,
+.rail-card-skill--none {
+    color: var(--ink-muted);
+}
+
+.rail-card-skill-ico {
+    width: 16px;
+    height: 16px;
+    image-rendering: pixelated;
+}
+
+.rail-card-trait {
+    font-style: normal;
+    font-size: 9px;
+    color: var(--ink-muted);
+}
+
+.rail-card-name {
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.assign-ghost {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 900;
+    will-change: transform;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 132px;
+    padding: 4px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #fffaec;
+    border: 2px solid var(--coin);
+    clip-path: var(--cut);
+    pointer-events: none;
+}
+
+.assign-ghost svg {
+    width: 24px;
+    height: 24px;
+    image-rendering: pixelated;
+}
+
+body.assign-active .actions-scrim {
+    pointer-events: none;
+}
+
+.plot-assign-ok {
+    border-color: var(--coin);
+    background: #fff7e0;
+}
+
+.plot-assign-no {
+    background: var(--plank-dark);
+    border-color: rgba(51, 41, 26, .35);
+}
+
+.plot-assign-no .plot-sprite {
+    opacity: .5;
+}
+
+.plot-assign-hover.plot-assign-ok {
+    transform: translateY(-4px);
+    box-shadow: inset 0 -6px 0 var(--coin);
+}
+
+.plot-sign-refuse {
+    justify-content: center;
+    font-size: 10px;
+    color: var(--ink-muted);
+    background: var(--plank-dark);
+}
+
+.domiks-edge {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 32px;
+    color: var(--plank);
+    background: rgba(64, 99, 47, .85);
+}
+
+.domiks-edge--left {
+    left: 0;
+}
+
+.domiks-edge--right {
+    right: 0;
+}
+
+.domiks-edge-chevron {
+    font-family: var(--pixel);
+    font-size: 20px;
+}
+
+.domiks-edge-label {
+    font-size: 10px;
+    writing-mode: vertical-rl;
+}
+
+.assign-menu {
+    position: fixed;
+    z-index: 880;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    background: #fffaec;
+    border: 3px solid var(--ink);
+    clip-path: var(--cut);
+    box-shadow: inset 0 -4px 0 var(--plank-dark);
+}
+
+.assign-menu-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px;
+    padding-bottom: 4px;
+    border-bottom: 2px solid var(--plank-dark);
+}
+
+.assign-menu-domik {
+    font-family: var(--pixel);
+    font-size: 10px;
+}
+
+.assign-menu-worker {
+    font-size: 11px;
+    color: var(--pine);
+}
+
+.assign-menu-option {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 7px 8px;
+    font: inherit;
+    color: var(--ink);
+    text-align: left;
+    background: #fffaec;
+    border: 2px solid var(--ink);
+    clip-path: var(--cut);
+    cursor: pointer;
+}
+
+    .assign-menu-option:hover:not(:disabled) {
+        background: var(--plank-dark);
+    }
+
+.assign-menu-option--blocked {
+    color: var(--ink-muted);
+    background: var(--plank-dark);
+    cursor: default;
+}
+
+.assign-menu-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.assign-menu-name {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.assign-menu-time {
+    font-family: var(--pixel);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+}
+
+.assign-menu-flow {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+.assign-menu-arrow {
+    color: var(--ink-muted);
+}
+
+.assign-menu-crew,
+.assign-menu-block {
+    font-size: 11px;
+    color: var(--ink-muted);
+}
+
+.assign-menu-block {
+    color: var(--roof);
+}
+
+@media (max-width: 900px) {
+    .worker-rail-slot {
+        flex: none;
+        align-self: auto;
+        position: static;
+    }
+
+    .worker-rail-float {
+        position: static;
+    }
+
+    .yard-rail {
+        position: fixed;
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: var(--game-tabs-height, 76px);
+        z-index: 840;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        height: auto;
+        max-height: 62vh;
+    }
+
+    .worker-rail {
+        flex: 0 1 auto;
+        width: auto;
+        max-height: 45vh;
+        gap: 6px;
+        padding: 8px 10px 10px;
+        border-width: 2px 0 0;
+        border-color: var(--plank-dark);
+        clip-path: none;
+    }
+
+    .worker-rail[data-open='false'] {
+        padding-bottom: 8px;
+    }
+
+        .worker-rail[data-open='false'] .worker-rail-list,
+        .worker-rail[data-open='false'] .worker-rail-skill-of,
+        .worker-rail-skill-of:empty {
+            display: none;
+        }
+
+    .worker-rail-held {
+        position: static;
+    }
+
+    .worker-rail-head {
+        align-items: center;
+    }
+
+    .worker-rail-toggle {
+        width: 100%;
+        min-height: 34px;
+        padding: 0;
+        font: inherit;
+        color: inherit;
+        text-align: left;
+        background: none;
+        border: 0;
+        cursor: pointer;
+    }
+
+        .worker-rail-toggle:focus-visible {
+            outline: 3px solid var(--coin);
+            outline-offset: -3px;
+        }
+
+    .worker-rail-stack {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        margin-left: 6px;
+    }
+
+        .worker-rail-stack svg {
+            width: 28px;
+            height: 28px;
+            background: #fffaec;
+            border: 2px solid var(--ink);
+            clip-path: var(--cut);
+            image-rendering: pixelated;
+        }
+
+        .worker-rail-stack svg + svg {
+            margin-left: -4px;
+        }
+
+    .worker-rail-caret {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        color: var(--pine-dark);
+    }
+
+    .worker-rail-list {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x proximity;
+        scrollbar-gutter: auto;
+    }
+
+    .rail-card {
+        position: relative;
+        flex: 0 0 auto;
+        flex-direction: column;
+        gap: 3px;
+        width: 88px;
+        min-height: 0;
+        padding: 5px 4px 6px;
+        box-shadow: inset 0 -4px 0 var(--rail-mark, transparent);
+        scroll-snap-align: start;
+    }
+
+    .rail-card-portrait svg {
+        width: 40px;
+        height: 40px;
+    }
+
+    .rail-card-text {
+        align-items: center;
+        gap: 3px;
+        width: 100%;
+    }
+
+    .rail-card-skill {
+        justify-content: center;
+        gap: 2px;
+        width: 100%;
+        padding: 1px;
+        overflow: hidden;
+        font-size: 9px;
+        color: #fff8e6;
+        background: var(--pine);
+        clip-path: var(--cut);
+    }
+
+    .rail-card-skill--some {
+        color: #fff8e6;
+        background: var(--pine-dark);
+    }
+
+    .rail-card-skill--none {
+        color: var(--ink-muted);
+        background: var(--plank-dark);
+    }
+
+    .rail-card-skill-ico {
+        width: 12px;
+        height: 12px;
+    }
+
+    .rail-card-trait {
+        padding: 0 2px;
+        font-size: 8px;
+        color: inherit;
+        background: rgba(0, 0, 0, .22);
+    }
+
+    .rail-card-name {
+        width: 100%;
+        font-size: 11px;
+        text-align: center;
+    }
+
+    .worker-rail-group {
+        flex-direction: row;
+    }
+
+    .worker-rail-group-head {
+        position: static;
+        align-self: stretch;
+        padding: 6px 10px;
+        text-align: center;
+        white-space: nowrap;
+        background: none;
+        border: 2px dashed rgba(51, 41, 26, .32);
+        clip-path: var(--cut);
+    }
+
+    .game {
+        padding-bottom: calc(var(--stock-rail-height, 40px) + var(--worker-rail-height, 130px) + var(--game-tabs-height, 76px) + 12px);
+    }
+
+    .domik-pager {
+        scroll-margin-bottom: calc(var(--stock-rail-height, 40px) + var(--worker-rail-height, 130px) + var(--game-tabs-height, 76px) + 24px);
+    }
+
+    .toast-container {
+        bottom: calc(var(--stock-rail-height, 40px) + var(--worker-rail-height, 130px) + var(--game-tabs-height, 76px) + 12px);
+    }
+}

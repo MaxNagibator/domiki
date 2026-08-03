@@ -29,6 +29,15 @@ public static class TolokaDtoExtensions
                 })
                 .ToArray(),
             MyVoteTolokaTypeId = state.MyVoteTolokaTypeId,
+            Progress = state.Progress == null
+                ? null
+                : new TolokaProgressDto
+                {
+                    LogicName = state.Progress.LogicName,
+                    Name = state.Progress.Name,
+                    BeforePermille = state.Progress.BeforePermille,
+                    AfterPermille = state.Progress.AfterPermille,
+                },
         };
     }
 

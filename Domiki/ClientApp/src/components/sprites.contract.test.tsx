@@ -1,10 +1,19 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { Crest } from './Crest';
+import { VillageIdentityModal } from './VillageIdentityModal';
 import {
     AbstractSprite,
     DecorSprite,
     DomikSprite,
+    MechanicSprite,
+    NeighborSprite,
     ResourceSprite,
+    SheepSprite,
+    TolokaSprite,
+    TraitSprite,
+    WeatherSprite,
+    WorkerSprite,
 } from './sprites';
 
 describe('sprite registry contract', () => {
@@ -20,8 +29,18 @@ describe('sprite registry contract', () => {
             <>
                 <DecorSprite logicName="brick_arch" />
                 <DecorSprite logicName="lantern" />
+                <DecorSprite logicName="carved_gate" />
+                <DecorSprite logicName="crane_well" />
+                <DecorSprite logicName="gazebo" />
+                <DecorSprite logicName="carp_pond" />
             </>,
         );
+
+        expect(container.querySelectorAll('svg')).toHaveLength(6);
+    });
+
+    it('renders the cheese resource and tavern from the registry', () => {
+        const { container } = render(<><ResourceSprite logicName="cheese" /><DomikSprite logicName="tavern" /></>);
 
         expect(container.querySelectorAll('svg')).toHaveLength(2);
     });
@@ -39,6 +58,46 @@ describe('sprite registry contract', () => {
         expect(warn).toHaveBeenCalledWith('[sprites] Unknown abstract logicName: "missing_abstract"');
         expect(warn).toHaveBeenCalledWith('[sprites] Unknown decor logicName: "missing_decor"');
         warn.mockRestore();
+    });
+});
+
+describe('inline sprite style budget', () => {
+    it('hoists every family stylesheet into a single document-level sheet', () => {
+        const { container } = render(
+            <>
+                <DomikSprite logicName="tavern" />
+                <DomikSprite logicName="forge" />
+                <DecorSprite logicName="bench" />
+                <ResourceSprite logicName="coin" />
+                <ResourceSprite logicName="wood" />
+                <AbstractSprite logicName="journal" />
+                <MechanicSprite logicName="orders" />
+                <NeighborSprite logicName="zarechye" />
+                <TraitSprite logicName="nimble" />
+                <WeatherSprite logicName="rain" />
+                <TolokaSprite logicName="bridge" />
+                <SheepSprite />
+                <WorkerSprite name="Аким" />
+                <WorkerSprite name="Дарья" />
+            </>,
+        );
+        const hosts = document.querySelectorAll('style[data-sprite-styles]');
+
+        expect(container.querySelectorAll('svg style')).toHaveLength(0);
+        expect(hosts).toHaveLength(1);
+        expect(hosts[0]?.textContent).not.toBe('');
+    });
+
+    it('hoists crest stylesheets from the village badge and the identity modal', () => {
+        const { container } = render(
+            <>
+                <Crest icon={0} color={0} />
+                <VillageIdentityModal village={null} onSave={() => Promise.resolve()} onClose={() => undefined} />
+            </>,
+        );
+
+        expect(container.querySelectorAll('svg')).not.toHaveLength(0);
+        expect(container.querySelectorAll('svg style')).toHaveLength(0);
     });
 });
 

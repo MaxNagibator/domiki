@@ -1,10 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import BackpackIcon from 'pixelarticons/svg/backpack.svg?react';
 import MapPinIcon from 'pixelarticons/svg/map-pin.svg?react';
-import GiftIcon from 'pixelarticons/svg/gift.svg?react';
 import ClockIcon from 'pixelarticons/svg/clock.svg?react';
-import CoinsIcon from 'pixelarticons/svg/coins.svg?react';
-import UsersIcon from 'pixelarticons/svg/users.svg?react';
 import type { DecorTypeDto, ExpeditionStateDto, ResourceDto, ResourceTypeDto, WorkerDto } from '../types/api';
 import { EXPEDITION_LOOT_KIND_BLUEPRINT, EXPEDITION_LOOT_KIND_DECOR, EXPEDITION_LOOT_KIND_RESOURCE, EXPEDITION_LOOT_KIND_TRAIT_UPGRADE, GOLD_RESOURCE_TYPE_ID, hasResourcesFor, isWorkerFree } from '../utils/game';
 import { isSkilledWorker } from '../utils/worker';
@@ -15,6 +11,8 @@ import { ProgressBar } from './ProgressBar';
 import { ActionButton } from './ActionButton';
 import { AbstractSprite, DecorSprite, MechanicSprite, ResourceSprite, WorkerSprite } from './sprites';
 
+const TAVERN_PROVISION_LEVEL = 2;
+
 const durationBetween = (startDate: string, finishDate: string) =>
     Math.max(1, Math.round((new Date(finishDate).getTime() - new Date(startDate).getTime()) / 1000));
 
@@ -24,6 +22,7 @@ interface ExpeditionsBoxProps {
     decorTypes: DecorTypeDto[];
     resources: ResourceDto[];
     workers: WorkerDto[];
+    tavernLevel: number;
     now: number;
     onStart: (expeditionTypeId: number, workerIds?: number[], provisions?: boolean) => void;
 }
@@ -35,10 +34,8 @@ const EXPEDITION_EMBLEM: Record<string, string> = {
 };
 
 const ExpeditionEmblem = ({ logicName, size = 40, className }: { logicName: string | undefined; size?: 24 | 32 | 40; className?: string }) => {
-    const emblem = logicName == null ? undefined : EXPEDITION_EMBLEM[logicName];
-    return emblem == null
-        ? <BackpackIcon className={className} aria-hidden="true" />
-        : <AbstractSprite logicName={emblem} size={size} className={className} aria-hidden="true" />;
+    const emblem = (logicName == null ? undefined : EXPEDITION_EMBLEM[logicName]) ?? 'expedition_generic';
+    return <AbstractSprite logicName={emblem} size={size} className={className} aria-hidden="true" />;
 };
 
 const EXPEDITION_FLAVOR: Record<string, string> = {
@@ -60,7 +57,7 @@ const RareFind = ({ icon, label, title }: { icon: ReactNode; label: string; titl
     </span>
 );
 
-export const ExpeditionsBox = ({ expeditions, resourceTypes, decorTypes, resources, workers, now, onStart }: ExpeditionsBoxProps) => {
+export const ExpeditionsBox = ({ expeditions, resourceTypes, decorTypes, resources, workers, tavernLevel, now, onStart }: ExpeditionsBoxProps) => {
     const [manualMode, setManualMode] = useState<Record<number, boolean>>({});
     const [picks, setPicks] = useState<Record<number, number[]>>({});
     const [provisions, setProvisions] = useState<Record<number, boolean>>({});
@@ -74,6 +71,9 @@ export const ExpeditionsBox = ({ expeditions, resourceTypes, decorTypes, resourc
     const untilPity = Math.max(0, expeditions.pityThreshold - expeditions.expeditionsSincePity);
     const goldType = resourceTypes.find(x => x.id === GOLD_RESOURCE_TYPE_ID);
     const allOut = expeditions.active.length >= expeditions.maxActive;
+    const foodStock = resourceTypes
+        .filter(resourceType => resourceType.isFood)
+        .reduce((sum, resourceType) => sum + (resources.find(resource => resource.typeId === resourceType.id)?.value ?? 0), 0);
 
     const toggleManual = (typeId: number) => setManualMode(mode => ({ ...mode, [typeId]: !mode[typeId] }));
     const toggleProvisions = (typeId: number) => setProvisions(current => ({ ...current, [typeId]: !current[typeId] }));
@@ -109,7 +109,7 @@ export const ExpeditionsBox = ({ expeditions, resourceTypes, decorTypes, resourc
                     <div className="expeditions-trail-track" aria-hidden="true">
                         {Array.from({ length: expeditions.pityThreshold }, (_, index) =>
                             <span key={index} className={'trail-pip' + (index < expeditions.expeditionsSincePity ? ' trail-pip-done' : '')} />)}
-                        <span className="expeditions-trail-goal"><GiftIcon aria-hidden="true" /></span>
+                        <span className="expeditions-trail-goal"><AbstractSprite logicName="rare_expedition_find" size={24} aria-hidden="true" /></span>
                     </div>
                     <span className="expeditions-trail-count">ещё {untilPity}</span>
                 </div>}
@@ -120,7 +120,10 @@ export const ExpeditionsBox = ({ expeditions, resourceTypes, decorTypes, resourc
                     const canAffordGold = hasResourcesFor([{ typeId: GOLD_RESOURCE_TYPE_ID, value: type.goldCost }], resources);
                     const equipment = type.equipment.filter(entry => !entry.isOptional);
                     const provisionEquipment = type.equipment.filter(entry => entry.isOptional);
-                    const useProvisions = provisions[type.id] ?? false;
+                    const automaticProvisions = tavernLevel >= TAVERN_PROVISION_LEVEL;
+                    const provisionCount = provisionEquipment.reduce((sum, entry) => sum + entry.value, 0);
+                    const provisionsReady = foodStock >= provisionCount;
+                    const useProvisions = automaticProvisions ? provisionsReady : provisions[type.id] === true;
                     const equipmentReqs = equipment.map(e => ({ typeId: e.resourceTypeId, value: e.value }));
                     const canAffordEquipment = hasResourcesFor(equipmentReqs, resources);
                     const hasWorkers = freeWorkers.length >= type.workerCount;
@@ -154,7 +157,7 @@ export const ExpeditionsBox = ({ expeditions, resourceTypes, decorTypes, resourc
                                 </StatChip>
                                 {goldType != null
                                     ? <ResourceChip resourceType={goldType} value={type.goldCost} />
-                                    : <StatChip icon={<CoinsIcon className="stat-chip-ico" aria-hidden="true" />} tone="gold" title="Золото">{type.goldCost}</StatChip>}
+                                    : <StatChip icon={<ResourceSprite logicName="gold" size={24} className="stat-chip-ico" aria-hidden="true" />} tone="gold" title="Золото">{type.goldCost}</StatChip>}
                             </div>
                             {equipment.length > 0 &&
                                 <div className={'expedition-req' + (canAffordEquipment ? '' : ' expedition-req-short')}>
@@ -172,13 +175,19 @@ export const ExpeditionsBox = ({ expeditions, resourceTypes, decorTypes, resourc
                                 </div>}
                             {provisionEquipment.length > 0 &&
                                 <>
-                                    <label className="receipt-optional expedition-manual-toggle">
-                                        <input type="checkbox" checked={useProvisions} onChange={() => toggleProvisions(type.id)} />
-                                        Провизия в дорогу
-                                    </label>
-                                    {useProvisions &&
+                                    {automaticProvisions
+                                        ? <span className="receipt-optional expedition-manual-toggle" title="Корчма кладёт в котомки любую еду со склада, кроме заповеданной, дешёвую первой">
+                                            {provisionsReady
+                                                ? `Котомки собирает корчма: еды из запаса – ${provisionCount}`
+                                                : 'Котомки собрать не из чего – еды в запасе нет'}
+                                        </span>
+                                        : <label className="receipt-optional expedition-manual-toggle">
+                                            <input type="checkbox" checked={useProvisions} onChange={() => toggleProvisions(type.id)} />
+                                            Котомка в дорогу
+                                        </label>}
+                                    {!automaticProvisions && useProvisions &&
                                         <div className="expedition-req">
-                                            <span className="panel-label">провизия</span>
+                                            <span className="panel-label">котомка</span>
                                             <div className="expedition-chips">
                                                 {provisionEquipment.map(entry => {
                                                     const resourceType = resourceTypes.find(x => x.id === entry.resourceTypeId);
@@ -258,7 +267,9 @@ export const ExpeditionsBox = ({ expeditions, resourceTypes, decorTypes, resourc
                                 </div>
                             }
                             <ActionButton className="btn-game" disabled={!canStart} title={blockedTitle}
-                                onClick={() => onStart(type.id, isManual ? picked : undefined, useProvisions)}>
+                                onClick={() => automaticProvisions
+                                    ? onStart(type.id, isManual ? picked : undefined)
+                                    : onStart(type.id, isManual ? picked : undefined, useProvisions)}>
                                 <ExpeditionEmblem logicName={type.logicName} size={24} className="btn-ico" />
                                 Отправить
                             </ActionButton>
@@ -293,7 +304,7 @@ export const ExpeditionsBox = ({ expeditions, resourceTypes, decorTypes, resourc
                                             </span>
                                         ))}
                                         {crew.length === 0 && type != null &&
-                                            <StatChip icon={<UsersIcon className="stat-chip-ico" aria-hidden="true" />} title="Трудяг в походе">
+                                            <StatChip icon={<MechanicSprite logicName="workers" size={24} className="stat-chip-ico" aria-hidden="true" />} title="Трудяг в походе">
                                                 ×{type.workerCount}
                                             </StatChip>}
                                     </div>

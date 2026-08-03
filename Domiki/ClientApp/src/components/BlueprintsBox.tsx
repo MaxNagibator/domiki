@@ -2,6 +2,7 @@ import CheckIcon from 'pixelarticons/svg/check.svg?react';
 import FlagIcon from 'pixelarticons/svg/flag.svg?react';
 import type { BlueprintDto, DecorTypeDto, DomikTypeDto, NeighborReputationDto } from '../types/api';
 import { DecorSprite, DomikSprite, MechanicSprite, NeighborSprite } from './sprites';
+import '../styles/blueprints.css';
 
 interface BlueprintsBoxProps {
     blueprints: BlueprintDto[];

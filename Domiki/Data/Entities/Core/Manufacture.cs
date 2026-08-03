@@ -71,6 +71,23 @@ public class Manufacture
     public bool AutoRepeat { get; set; }
 
     /// <summary>
+    /// Мера наряда: ресурс, по запасу которого наряд снимается сам.
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – меры нет, наряд идёт, пока хватает припасов. Мера открывается уровнем
+    /// <see cref="Economy.ElderHouseManager.MeasureMinLevel"/> Избы старосты и переносится на каждый следующий круг наряда.
+    /// </remarks>
+    public int? MeasureResourceTypeId { get; set; }
+
+    /// <summary>
+    /// Мера наряда: сколько единиц <see cref="MeasureResourceTypeId"/> нужно набрать, чтобы наряд снялся.
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> вместе с <see cref="MeasureResourceTypeId"/> – меры нет.
+    /// </remarks>
+    public int? MeasureValue { get; set; }
+
+    /// <summary>
     /// Использован ли опциональный ингредиент рецепта.
     /// </summary>
     /// <remarks>
@@ -86,4 +103,22 @@ public class Manufacture
     /// Следствие плохой погоды.
     /// </remarks>
     public int SickChance { get; set; }
+
+    /// <summary>
+    /// Тип хвори, риск которой зафиксирован при старте производства.
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> – погода не несёт риска хвори для этого производства.
+    /// </remarks>
+    public int? SickTypeId { get; set; }
+
+    /// <summary>
+    /// Число плащей, выданных трудягам на эту смену.
+    /// </summary>
+    public int CloakCount { get; set; }
+
+    /// <summary>
+    /// Навигационное свойство к типу хвори риска производства.
+    /// </summary>
+    public SickType? SickType { get; set; }
 }

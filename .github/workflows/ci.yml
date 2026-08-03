@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  CONNECTION_STRING: Host=127.0.0.1;Database=dev-domiki;Username=postgres;Password=postgres
+
+jobs:
+  frontend:
+    name: "Фронт: линт, тесты, сборка"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Domiki/ClientApp
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Domiki/ClientApp/package-lock.json
+
+      - name: Установка пакетов
+        run: npm ci
+
+      - name: Линт
+        run: npm run lint
+
+      - name: Тесты
+        run: npm run test:run
+
+      - name: Сборка
+        run: npm run build
+
+  backend:
+    name: "Бэк: интеграционные тесты"
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dev-domiki
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Тесты
+        run: dotnet test Domiki.Web.Tests/Domiki.Web.Tests.csproj -c Release
+        env:
+          ConnectionStrings__DefaultConnection: ${{ env.CONNECTION_STRING }}
+
+  perf:
+    name: "Бюджет стилей и вкладок"
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dev-domiki
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Domiki/ClientApp/package-lock.json
+
+      - name: Установка пакетов
+        working-directory: Domiki/ClientApp
+        run: npm ci
+
+      - name: Проверка Chrome
+        run: google-chrome --version
+
+      - name: Публикация приложения
+        run: dotnet publish Domiki/Domiki.Web.csproj -c Release -o publish
+
+      - name: Каталог ключей Data Protection
+        run: sudo mkdir -p /dpkeys && sudo chown "$USER" /dpkeys
+
+      - name: Запуск приложения
+        working-directory: publish
+        env:
+          ASPNETCORE_URLS: http://127.0.0.1:5000
+          ConnectionStrings__DefaultConnection: ${{ env.CONNECTION_STRING }}
+        run: |
+          nohup dotnet Domiki.Web.dll > app.log 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:5000/healthz > /dev/null; then
+              echo "приложение поднялось за ${attempt} попыток"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "приложение не поднялось"
+          cat app.log
+          exit 1
+
+      - name: Замер вкладок
+        working-directory: Domiki/ClientApp
+        env:
+          PERF_BASE: http://127.0.0.1:5000
+          PERF_CHROME: /usr/bin/google-chrome
+          PERF_BASELINE: perf/ci-limits.json
+        run: npm run perf
+
+      - name: Лог приложения
+        if: failure()
+        run: cat publish/app.log

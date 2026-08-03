@@ -18,6 +18,8 @@ public class PushManager
             throw new BusinessException("Некорректная подписка");
         }
 
+        PushEndpointGuard.EnsureRegisterable(endpoint);
+
         var dbSubscription = _context.PlayerPushSubscriptions.SingleOrDefault(x => x.Endpoint == endpoint);
         if (dbSubscription == null)
         {

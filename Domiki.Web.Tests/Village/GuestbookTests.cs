@@ -298,16 +298,6 @@ file static class GuestbookTestsActs
         return App.Act<GuestbookManager, GuestbookModel>(m => m.GetGuestbook(host.Id, date));
     }
 
-    public static TestPlayer RaiseVillageLevel(this TestPlayer p, int target)
-    {
-        while (p.GetVillageLevel().Level < target)
-        {
-            p.WithDomik(DomikIds.Market);
-        }
-
-        return p;
-    }
-
     public static VillageVisitDto VisitVillageAsGuest(this TestPlayer guest, TestPlayer host)
     {
         using var scope = App.Scope();

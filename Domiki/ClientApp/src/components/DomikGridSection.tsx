@@ -5,17 +5,31 @@ import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
 import ChevronUpIcon from 'pixelarticons/svg/chevron-up.svg?react';
 import ChevronLeftIcon from 'pixelarticons/svg/chevron-left.svg?react';
 import ChevronRightIcon from 'pixelarticons/svg/chevron-right.svg?react';
-import RepeatIcon from 'pixelarticons/svg/repeat.svg?react';
 import BellIcon from 'pixelarticons/svg/bell.svg?react';
 import GridIcon from 'pixelarticons/svg/grid-3x3.svg?react';
-import type { DomikDto, DomikTypeDto, ReceiptDto, ResourceDto, WeatherPeriodDto, WorkerDto } from '../types/api';
+import type { DomikDto, DomikTypeDto, ManufactureDto, ReceiptDto, ResourceDto, ResourceTypeDto, WeatherPeriodDto, WorkerDto } from '../types/api';
 import type { DomikNamer } from '../utils/domikNames';
-import { canAffordUpgrade, sortDomiks } from '../utils/game';
+import { canAffordUpgrade, manufactureProgressPercent, progressPercent, sortDomiks, workIntensity } from '../utils/game';
 import type { DomikSortMode } from '../utils/game';
-import { formatDuration, remainingSeconds } from '../utils/time';
-import { AbstractSprite, WorkerSprite } from './sprites';
+import type { AssignTarget } from '../utils/assign';
+import { formatClock, remainingSeconds } from '../utils/time';
+import { weatherMark, weatherMarkSpeech } from '../utils/weather';
+import { WorkerSprite } from './sprites';
 import { AnimatedDomikSprite } from './AnimatedDomikSprite';
-import { UpgradeBox } from './UpgradeBox';
+import { WeatherMark } from './WeatherMark';
+import { ProgressBar } from './ProgressBar';
+import { PlotSign } from './PlotSign';
+import type { PlotState } from './PlotSign';
+
+const CREW_FACES = 5;
+
+const nearestManufacture = (manufactures: ManufactureDto[], now: number) => manufactures.reduce<ManufactureDto | null>(
+    (nearest, manufacture) => remainingSeconds(manufacture.finishDate, now) <= 0
+        ? nearest
+        : nearest == null || Date.parse(manufacture.finishDate) < Date.parse(nearest.finishDate)
+            ? manufacture
+            : nearest,
+    null);
 
 type SortModeEntry = { mode: DomikSortMode; label: string; Icon: typeof StoreIcon };
 
@@ -83,21 +97,67 @@ export const DomikSortMenu = ({ value, onChange }: DomikSortMenuProps) => {
     );
 };
 
+const PAGE_EDGE_DELAY = 600;
+
+export interface AssignGrid {
+    active: boolean;
+    dragging: boolean;
+    targets: Map<number, AssignTarget>;
+    hoverDomikId: number | null;
+    onDrop: (domikId: number, point: { x: number; y: number }) => void;
+}
+
+interface PageEdgeProps {
+    side: 'left' | 'right';
+    label: string;
+    onReach: () => void;
+}
+
+const PageEdge = ({ side, label, onReach }: PageEdgeProps) => {
+    const timerRef = useRef<number | null>(null);
+
+    useEffect(() => () => { if (timerRef.current != null) window.clearTimeout(timerRef.current); }, []);
+
+    const arm = () => {
+        if (timerRef.current == null) {
+            timerRef.current = window.setTimeout(() => { timerRef.current = null; onReach(); }, PAGE_EDGE_DELAY);
+        }
+    };
+
+    const disarm = () => {
+        if (timerRef.current != null) {
+            window.clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
+    };
+
+    return (
+        <div className={`domiks-edge domiks-edge--${side}`} aria-hidden="true"
+            onPointerEnter={arm} onPointerLeave={disarm}>
+            <span className="domiks-edge-chevron">{side === 'left' ? '‹' : '›'}</span>
+            <span className="domiks-edge-label">{label}</span>
+        </div>
+    );
+};
+
 interface DomikGridSectionProps {
     domiks: DomikDto[];
     domikTypes: DomikTypeDto[];
     receipts: ReceiptDto[];
     resources: ResourceDto[];
+    resourceTypes: ResourceTypeDto[];
     currentWeather: WeatherPeriodDto | null;
     now: number;
     sortMode: DomikSortMode;
+    onSortChange: (mode: DomikSortMode) => void;
     selectedDomikId: number | null;
     displayName: DomikNamer;
     onSelect: (id: number, logicName: string) => void;
     workers: WorkerDto[];
+    assign: AssignGrid;
 }
 
-export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, currentWeather, now, sortMode, selectedDomikId, displayName: namer, onSelect, workers }: DomikGridSectionProps) => {
+export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, resourceTypes, currentWeather, now, sortMode, onSortChange, selectedDomikId, displayName: namer, onSelect, workers, assign }: DomikGridSectionProps) => {
     const [rowsPerPage, setRowsPerPage] = useState<RowsPerPage>(() => {
         const saved = localStorage.getItem('domik-page-size');
         if (saved === '2') return 2;
@@ -174,14 +234,7 @@ export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, curr
 
                         const hasManufacture = domik.manufactures != null && domik.manufactures.length > 0;
                         const activeCount = domik.manufactures?.length ?? 0;
-                        const maxSlots = domikType.levels.find(level => level.value === domik.level)?.maxManufactureCount;
-                        const intensity = maxSlots == null
-                            ? 'normal'
-                            : activeCount >= maxSlots
-                                ? 'fast'
-                                : maxSlots > 1 && activeCount === 1
-                                    ? 'slow'
-                                    : 'normal';
+                        const intensity = workIntensity(domik, domikType);
                         const repeatedRecipeNames = (domik.manufactures ?? []).flatMap(manufacture => {
                             if (!manufacture.autoRepeat) {
                                 return [];
@@ -190,16 +243,16 @@ export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, curr
                             return name == null ? [] : [name];
                         });
                         const repeatTitle = repeatedRecipeNames.length > 0
-                            ? `Автоповтор: ${repeatedRecipeNames.join(', ')}`
+                            ? `Наряды: ${repeatedRecipeNames.join(', ')}`
                             : null;
                         const durationSecondsText = domik.finishDate != null
-                            ? formatDuration(remainingSeconds(domik.finishDate, now))
+                            ? formatClock(remainingSeconds(domik.finishDate, now))
                             : null;
-                        const cardWeather = currentWeather?.effects.find(
-                            effect => effect.domikTypeId === domik.typeId && effect.outputPercent !== 100) ?? null;
-                        const crew = workers
-                            .filter(worker => worker.manufactureId != null && (domik.manufactures ?? []).some(manufacture => manufacture.id === worker.manufactureId))
-                            .slice(0, 4);
+                        const cardWeather = weatherMark(currentWeather, domik.typeId);
+                        const busyCrew = workers
+                            .filter(worker => worker.manufactureId != null && (domik.manufactures ?? []).some(manufacture => manufacture.id === worker.manufactureId));
+                        const crew = busyCrew.slice(0, CREW_FACES);
+                        const crewExtra = busyCrew.length - crew.length;
                         const displayName = namer(domik.typeId, domik.id, domikType.name, domikType.logicName);
                         const upgradeAvailable = canAffordUpgrade(domik, domikType, resources);
                         const cardStatus = domik.finishDate != null
@@ -209,51 +262,89 @@ export const DomikGridSection = ({ domiks, domikTypes, receipts, resources, curr
                                 : upgradeAvailable
                                     ? 'доступно улучшение'
                                     : 'готов к работе';
+                        const nextManufacture = nearestManufacture(domik.manufactures ?? [], now);
+                        const nextOutputId = nextManufacture == null
+                            ? null
+                            : receipts.find(receipt => receipt.id === nextManufacture.receiptId)?.outputResources[0]?.typeId ?? null;
+                        const nextOutput = nextOutputId == null ? null : resourceTypes.find(type => type.id === nextOutputId) ?? null;
+                        const plotState: PlotState = domik.finishDate != null
+                            ? { kind: 'upgrading', label: `Ур. ${domik.level + 1}`, output: null, timer: durationSecondsText, slots: null, repeat: false }
+                            : hasManufacture
+                                ? {
+                                    kind: 'working',
+                                    label: nextOutput?.name ?? 'Работает',
+                                    output: nextOutput?.logicName ?? null,
+                                    timer: nextManufacture == null ? null : formatClock(remainingSeconds(nextManufacture.finishDate, now)),
+                                    slots: activeCount > 1 ? activeCount : null,
+                                    repeat: repeatTitle != null,
+                                }
+                                : upgradeAvailable
+                                    ? { kind: 'upgradeable', label: 'Улучшить', output: null, timer: null, slots: null, repeat: false }
+                                    : { kind: 'idle', label: 'Свободен', output: null, timer: null, slots: null, repeat: false };
+                        const progress = domik.finishDate != null
+                            ? domik.upgradeSeconds == null ? null : progressPercent(domik.finishDate, domik.upgradeSeconds, now)
+                            : nextManufacture == null ? null : manufactureProgressPercent(nextManufacture, now);
+                        const assignTarget = assign.active ? assign.targets.get(domik.id) ?? null : null;
+                        const assignClass = assignTarget == null
+                            ? ''
+                            : (assignTarget.eligible ? ' plot-assign-ok' : ' plot-assign-no')
+                                + (assign.hoverDomikId === domik.id ? ' plot-assign-hover' : '');
                         return (
-                            <button key={domik.id} type="button"
-                                className={'plot' + (selectedDomikId === domik.id ? ' plot-selected' : '')}
-                                aria-label={`${displayName}, уровень ${domik.level}, ${cardStatus}`}
+                            <button key={domik.id} type="button" data-assign-domik={domik.id}
+                                className={'plot' + (plotState.kind === 'upgradeable' ? ' plot-callout' : '') + (selectedDomikId === domik.id ? ' plot-selected' : '') + assignClass}
+                                data-weather-effect={cardWeather == null ? undefined : cardWeather.buff ? 'buff' : 'nerf'}
+                                aria-label={`${displayName}, уровень ${domik.level}, ${cardStatus}${busyCrew.length > 0 ? `, трудяг ${busyCrew.length}` : ''}${cardWeather == null ? '' : weatherMarkSpeech(cardWeather)}`}
                                 aria-pressed={selectedDomikId === domik.id}
-                                onClick={() => onSelect(domik.id, domikType.logicName)}>
-                                {cardWeather != null &&
-                                    <span className={'plot-weather' + (cardWeather.outputPercent > 100 ? ' plot-weather-buff' : ' plot-weather-nerf')}
-                                        title={`Погода: ${cardWeather.outputPercent > 100 ? "+" : ""}${cardWeather.outputPercent - 100}% выход`}>
-                                        {cardWeather.outputPercent > 100 ? '+' : ''}{cardWeather.outputPercent - 100}%
+                                onClick={event => {
+                                    if (assign.active) {
+                                        assign.onDrop(domik.id, { x: event.clientX, y: event.clientY });
+                                        return;
+                                    }
+                                    onSelect(domik.id, domikType.logicName);
+                                }}>
+                                <span className="plot-head">
+                                    <span className="plot-name">{displayName}</span>
+                                    <span className="plot-marks">
+                                        <span className="plot-level" title={`Уровень ${domik.level}`}>{domik.level}</span>
+                                        {cardWeather != null && <WeatherMark key={cardWeather.weatherLogicName} mark={cardWeather} />}
                                     </span>
-                                }
-                                <AnimatedDomikSprite mode="levelup" className="plot-sprite" logicName={domikType.logicName} level={domik.level} working={hasManufacture} intensity={intensity} />
-                                {crew.length > 0 &&
-                                    <span className="plot-crew">
-                                        {crew.map(worker =>
-                                            <span key={worker.id} className="plot-crew-face" title={worker.name}>
-                                                <WorkerSprite name={worker.name} state="working" data-size="32" aria-hidden="true" />
-                                            </span>,
-                                        )}
-                                    </span>
-                                }
-                                <span className="plot-name">{displayName}</span>
-                                <UpgradeBox durationSeconds={durationSecondsText} level={domik.level} />
-                                <span className="plot-status">
-                                    {upgradeAvailable &&
-                                        <img className="status-icon" src="/images/upgrade_available.png" alt="" aria-hidden="true" title="Доступно улучшение" />
-                                    }
-                                    {domik.finishDate != null &&
-                                        <img className="status-icon icon-busy" src="/images/upgrade_in_process.png" alt="" aria-hidden="true" title="Идёт улучшение" />
-                                    }
-                                    {hasManufacture &&
-                                        <AbstractSprite logicName="production_recipe" size={24} className="status-icon" aria-hidden="true" />
-                                    }
-                                    {repeatTitle != null &&
-                                        <RepeatIcon className="status-icon status-repeat" aria-hidden="true" title={repeatTitle} />
+                                </span>
+                                <span className="plot-yard">
+                                    <AnimatedDomikSprite mode="levelup" className="plot-sprite" logicName={domikType.logicName} level={domik.level} working={hasManufacture} intensity={intensity} />
+                                    {crew.length > 0 &&
+                                        <span className="plot-crew" title={`Трудяг на работе: ${busyCrew.length}`}>
+                                            {crew.map(worker =>
+                                                <span key={worker.id} className="plot-crew-face">
+                                                    <WorkerSprite name={worker.name} state="working" data-size="32" aria-hidden="true" />
+                                                </span>,
+                                            )}
+                                            {crewExtra > 0 &&
+                                                <span className="plot-crew-more">+{crewExtra}</span>
+                                            }
+                                        </span>
                                     }
                                 </span>
+                                <ProgressBar
+                                    className={'plot-progress plot-progress-' + plotState.kind + (progress == null ? ' plot-progress-empty' : '')}
+                                    value={progress ?? 0} max={100} />
+                                {assignTarget != null && assignTarget.reason != null
+                                    ? <span className="plot-sign plot-sign-refuse">{assignTarget.reason}</span>
+                                    : <PlotSign {...plotState} />
+                                }
                             </button>
                         );
                     })
                 }
+                {assign.dragging && totalPages > 1 && safePage > 1 &&
+                    <PageEdge side="left" label={`Стр. ${safePage - 1}`} onReach={() => { setPage(safePage - 1); }} />
+                }
+                {assign.dragging && totalPages > 1 && safePage < totalPages &&
+                    <PageEdge side="right" label={`Стр. ${safePage + 1}`} onReach={() => { setPage(safePage + 1); }} />
+                }
             </div>
-            {(totalPages > 1 || domiks.length > 2 * columns) &&
+            {domiks.length > 1 &&
                 <div className="domik-pager">
+                    <DomikSortMenu value={sortMode} onChange={onSortChange} />
                     {totalPages > 1 &&
                         <div className="domik-pager-nav">
                             <button type="button" className="btn-game btn-ghost btn-icon" disabled={safePage <= 1}
