@@ -41,7 +41,10 @@ namespace Domiki.Web.Models
                 RollCount = type.RollCount,
                 Loot = type.Loot.Select(x => new ExpeditionLootDto
                 {
+                    Kind = (int)x.Kind,
                     ResourceTypeId = x.ResourceTypeId,
+                    DecorTypeId = x.DecorTypeId,
+                    BlueprintId = x.BlueprintId,
                     MinValue = x.MinValue,
                     MaxValue = x.MaxValue,
                     IsRare = x.IsRare,
@@ -50,6 +53,7 @@ namespace Domiki.Web.Models
                 {
                     ResourceTypeId = x.ResourceTypeId,
                     Value = x.Value,
+                    IsOptional = x.IsOptional,
                 }).ToArray(),
             };
         }

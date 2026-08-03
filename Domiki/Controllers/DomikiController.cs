@@ -27,8 +27,9 @@ namespace Domiki.Controllers
         private readonly WorldManager _worldManager;
         private readonly SeasonManager _seasonManager;
         private readonly PlayerEventManager _playerEventManager;
+        private readonly GoalManager _goalManager;
 
-        public DomikiController(ILogger<DomikiController> logger, DomikManager domikManager, ResourceManager resourceManager, OrderManager orderManager, WorkerManager workerManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, ExpeditionManager expeditionManager, DecorManager decorManager, TolokaManager tolokaManager, MarketManager marketManager, WorldManager worldManager, SeasonManager seasonManager, PlayerEventManager playerEventManager)
+        public DomikiController(ILogger<DomikiController> logger, DomikManager domikManager, ResourceManager resourceManager, OrderManager orderManager, WorkerManager workerManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, ExpeditionManager expeditionManager, DecorManager decorManager, TolokaManager tolokaManager, MarketManager marketManager, WorldManager worldManager, SeasonManager seasonManager, PlayerEventManager playerEventManager, GoalManager goalManager)
         {
             _logger = logger;
             _domikManager = domikManager;
@@ -45,6 +46,7 @@ namespace Domiki.Controllers
             _worldManager = worldManager;
             _seasonManager = seasonManager;
             _playerEventManager = playerEventManager;
+            _goalManager = goalManager;
         }
 
         [HttpGet]
@@ -52,6 +54,7 @@ namespace Domiki.Controllers
         public Response<GameStateDto> GetGameState()
         {
             int playerId = GetPlayerId();
+            var goals = _goalManager.GetGoalsState(playerId);
             var blueprints = _resourceManager.GetBlueprints();
 
             var content = new GameStateDto
@@ -67,14 +70,15 @@ namespace Domiki.Controllers
                 Village = _domikManager.GetVillage(playerId).ToDto(),
                 VillageLevel = _villageLevelCalculator.GetLevel(playerId).ToDto(),
                 Workers = _workerManager.GetWorkers(playerId).Select(x => x.ToDto()).ToArray(),
-                PurchaseAvailableDomiks = _domikManager.GetPurchaseAvailableDomiks(playerId).Select(x => x.Type.ToDto(x.AvailableCount, blueprints.FirstOrDefault(b => b.DomikTypeId == x.Type.Id)?.Id)).ToArray(),
+                PurchaseAvailableDomiks = _domikManager.GetPurchaseAvailableDomiks(playerId).Select(x => x.Type.ToDto(x.AvailableCount, blueprints.FirstOrDefault(b => b.DomikTypeId == x.Type.Id)?.Id, x.NextCountGateLevel)).ToArray(),
                 Weather = _weatherManager.GetWeather(DateTimeHelper.GetNowDate()).ToDto(),
                 Expeditions = _expeditionManager.GetExpeditions(playerId)?.ToDto(),
-                Decor = _decorManager.GetDecor(playerId).ToDto(),
+                Decor = _decorManager.GetDecor(playerId).ToDto(_resourceManager.GetNeighbors()),
                 Toloka = _tolokaManager.GetToloka(DateTimeHelper.GetNowDate(), playerId)?.ToDto(),
                 Market = _marketManager.GetMarket(playerId)?.ToDto(),
                 Recap = _playerEventManager.TakeRecap(playerId, DateTimeHelper.GetNowDate()).ToDto(),
                 Events = _playerEventManager.GetRecentEvents(playerId).Select(x => x.ToDto()).ToArray(),
+                Goals = goals.ToDto(),
             };
             return new Response<GameStateDto>(content);
         }
@@ -152,6 +156,15 @@ namespace Domiki.Controllers
         }
 
         [HttpPost]
+        [Route("/Domiki/SetFeedWorkers")]
+        public Response SetFeedWorkers([FromBody] SetFeedWorkersDto request)
+        {
+            int playerId = GetPlayerId();
+            _domikManager.SetFeedWorkers(playerId, request?.Enabled ?? false);
+            return new Response { Type = ResponseType.Success };
+        }
+
+        [HttpPost]
         [Route("/Domiki/UpgradeDomik/{id}")]
         public Response UpgradeDomik(int id)
         {
@@ -175,7 +188,7 @@ namespace Domiki.Controllers
         {
             int playerId = GetPlayerId();
             var blueprints = _resourceManager.GetBlueprints();
-            var content = _domikManager.GetPurchaseAvailableDomiks(playerId).Select(x => x.Type.ToDto(x.AvailableCount, blueprints.FirstOrDefault(b => b.DomikTypeId == x.Type.Id)?.Id)).ToArray();
+            var content = _domikManager.GetPurchaseAvailableDomiks(playerId).Select(x => x.Type.ToDto(x.AvailableCount, blueprints.FirstOrDefault(b => b.DomikTypeId == x.Type.Id)?.Id, x.NextCountGateLevel)).ToArray();
             return new Response<DomikTypeDto[]>(content);
         }
 
@@ -314,7 +327,7 @@ namespace Domiki.Controllers
         {
             int playerId = GetPlayerId();
 
-            var content = _decorManager.GetDecor(playerId).ToDto();
+            var content = _decorManager.GetDecor(playerId).ToDto(_resourceManager.GetNeighbors());
             return new Response<DecorStateDto>(content);
         }
 
@@ -395,10 +408,10 @@ namespace Domiki.Controllers
 
         [HttpPost]
         [Route("/Domiki/StartExpedition/{expeditionTypeId}")]
-        public Response StartExpedition(int expeditionTypeId, [FromQuery] int[] workerIds = null)
+        public Response StartExpedition(int expeditionTypeId, [FromQuery] int[] workerIds = null, [FromQuery] bool provisions = false)
         {
             int playerId = GetPlayerId();
-            _expeditionManager.StartExpedition(playerId, expeditionTypeId, workerIds);
+            _expeditionManager.StartExpedition(playerId, expeditionTypeId, workerIds, provisions);
             return new Response { Type = ResponseType.Success };
         }
 

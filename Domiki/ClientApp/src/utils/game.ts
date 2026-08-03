@@ -5,8 +5,18 @@ export const INSTA_FINISH_SECONDS_PER_GOLD = 3600;
 export const INSTA_FINISH_MAX_GOLD = 6;
 export const GOLD_RESOURCE_TYPE_ID = 5;
 export const COIN_RESOURCE_TYPE_ID = 1;
+export const ZEAL_X4_THRESHOLD = 16;
+
+export const EXPEDITION_LOOT_KIND_RESOURCE = 1;
+export const EXPEDITION_LOOT_KIND_DECOR = 2;
+export const EXPEDITION_LOOT_KIND_TRAIT_UPGRADE = 3;
+export const EXPEDITION_LOOT_KIND_BLUEPRINT = 4;
 
 const plodderTypeId = 1;
+
+export function nextUpgradeLevel(domikType: DomikTypeDto, level: number) {
+    return domikType.levels.find(x => x.value === level + 1) ?? null;
+}
 
 export function hasResourcesFor(cost: ResourceDto[], owned: ResourceDto[]): boolean {
     return cost.every(resource => {
@@ -15,13 +25,76 @@ export function hasResourcesFor(cost: ResourceDto[], owned: ResourceDto[]): bool
     });
 }
 
+export function resourceShortfall(cost: ResourceDto[], owned: ResourceDto[]): ResourceDto[] {
+    const required = new Map<number, number>();
+    cost.forEach(resource => required.set(resource.typeId, (required.get(resource.typeId) ?? 0) + resource.value));
+
+    return [...required].flatMap(([typeId, value]) => {
+        const available = owned.find(resource => resource.typeId === typeId)?.value ?? 0;
+        const missing = Math.max(0, value - available);
+        return missing > 0 ? [{ typeId, value: missing }] : [];
+    });
+}
+
+export interface ResourceSource {
+    logicName: string;
+    name: string;
+}
+
+export function resourceSourceMap(domikTypes: DomikTypeDto[], receipts: ReceiptDto[]): Map<number, ResourceSource[]> {
+    const receiptById = new Map(receipts.map(receipt => [receipt.id, receipt]));
+    const map = new Map<number, ResourceSource[]>();
+
+    for (const type of domikTypes) {
+        const outputs = new Set<number>();
+        for (const level of type.levels) {
+            for (const receiptId of level.receiptIds) {
+                receiptById.get(receiptId)?.outputResources.forEach(output => outputs.add(output.typeId));
+            }
+        }
+
+        for (const typeId of outputs) {
+            const list = map.get(typeId) ?? [];
+            if (!list.some(source => source.logicName === type.logicName)) {
+                list.push({ logicName: type.logicName, name: type.name });
+                map.set(typeId, list);
+            }
+        }
+    }
+
+    return map;
+}
+
+export type TradeDeal = 'good' | 'fair' | 'bad';
+
+export function tradeDeal(giveValue: number, giveMarketValue: number, wantValue: number, wantMarketValue: number): TradeDeal {
+    const received = giveValue * giveMarketValue;
+    const paid = wantValue * wantMarketValue;
+    if (paid <= 0 || received <= 0) {
+        return 'fair';
+    }
+
+    const ratio = received / paid;
+    if (ratio >= 1.15) {
+        return 'good';
+    }
+
+    return ratio <= 0.85 ? 'bad' : 'fair';
+}
+
+export function tradeRatio(giveValue: number, wantValue: number): [number, number] {
+    const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+    const divisor = gcd(Math.abs(giveValue), Math.abs(wantValue)) || 1;
+    return [giveValue / divisor, wantValue / divisor];
+}
+
 export function canAffordUpgrade(domik: DomikDto, domikType: DomikTypeDto, resources: ResourceDto[]): boolean {
     if (domik.level <= 0 || domik.level >= domikType.maxLevel || domik.finishDate != null) {
         return false;
     }
 
-    const domikLevel = domikType.levels.find(x => x.value === domik.level);
-    return domikLevel != null && hasResourcesFor(domikLevel.resources, resources);
+    const nextLevel = nextUpgradeLevel(domikType, domik.level);
+    return nextLevel != null && hasResourcesFor(nextLevel.resources, resources);
 }
 
 export function computePlodderCount(domiks: DomikDto[], domikTypes: DomikTypeDto[]): PlodderCount {
@@ -80,13 +153,12 @@ export function computeSelectedDomikView(
                 .map(receiptId => receipts.find(x => x.id === receiptId))
                 .filter((receipt): receipt is ReceiptDto => receipt != null);
 
-            if (domik.level < domikType.maxLevel && domik.finishDate == null) {
-                const hasResources = hasResourcesFor(domikLevel.resources, resources);
-
+            const nextLevel = nextUpgradeLevel(domikType, domik.level);
+            if (nextLevel != null && domik.level < domikType.maxLevel && domik.finishDate == null) {
                 upgrade = {
                     nextLevel: domik.level + 1,
-                    resources: domikLevel.resources,
-                    hasResources,
+                    resources: nextLevel.resources,
+                    hasResources: hasResourcesFor(nextLevel.resources, resources),
                 };
             }
         }
@@ -103,23 +175,37 @@ function mergeResources(resources: ResourceDto[]): ResourceDto[] {
     return [...byType].map(([typeId, value]) => ({ typeId, value }));
 }
 
+export function zealMultiplier(zealCharges: number): number {
+    if (zealCharges > ZEAL_X4_THRESHOLD) {
+        return 4;
+    }
+
+    return zealCharges > 0 ? 2 : 1;
+}
+
+export function zealApplies(receipt: ReceiptDto, domikType: DomikTypeDto): boolean {
+    return receipt.durationSeconds <= 3600 && domikType.logicName !== 'market';
+}
+
 export function computeReceiptView(
     receipt: ReceiptDto,
     resources: ResourceDto[],
     freePlodders: number,
     useOptional: boolean,
+    zealCharges?: number,
+    domikType?: DomikTypeDto,
 ): ReceiptView {
     const withOptional = useOptional && receipt.optionalInputResources.length > 0;
     const inputs = mergeResources(
         withOptional ? [...receipt.inputResources, ...receipt.optionalInputResources] : receipt.inputResources,
     );
-    const durationSeconds = withOptional
-        ? Math.floor((receipt.durationSeconds * (100 - receipt.speedupPercent)) / 100)
-        : receipt.durationSeconds;
+    const durationSeconds = receipt.durationSeconds;
+    const multiplier = domikType != null && zealApplies(receipt, domikType) ? zealMultiplier(zealCharges ?? 0) : 1;
+    const effectiveDurationSeconds = Math.max(1, Math.floor(durationSeconds / multiplier));
     const hasResources = hasResourcesFor(inputs, resources);
     const hasPlodders = freePlodders >= receipt.plodderCount;
 
-    return { receipt, inputs, durationSeconds, hasResources, hasPlodders, canRun: hasResources && hasPlodders };
+    return { receipt, inputs, durationSeconds, effectiveDurationSeconds, zealMultiplier: multiplier, hasResources, hasPlodders, canRun: hasResources && hasPlodders };
 }
 
 export function isWorkerFree(worker: WorkerDto, now: number): boolean {
@@ -181,10 +267,28 @@ function attentionRank(domik: DomikDto, domikTypes: DomikTypeDto[], resources: R
     return ATTENTION_ORDER[domikStatus(domik, type, resources)];
 }
 
+const MECHANIC_LOGIC_NAMES = new Set(['market_yard', 'gathering', 'scout_hut']);
+
+function typeCategoryRank(domikType: DomikTypeDto): number {
+    if (domikType.levels.some(level => level.receiptIds.length > 0)) {
+        return 0;
+    }
+    if (MECHANIC_LOGIC_NAMES.has(domikType.logicName)) {
+        return 1;
+    }
+    return 2;
+}
+
 export function sortDomiks(domiks: DomikDto[], domikTypes: DomikTypeDto[], resources: ResourceDto[], mode: DomikSortMode): DomikDto[] {
     const copy = [...domiks];
     if (mode === 'type') {
-        return copy.sort((a, b) => a.typeId - b.typeId || b.level - a.level);
+        return copy.sort((a, b) => {
+            const typeA = domikTypes.find(x => x.id === a.typeId);
+            const typeB = domikTypes.find(x => x.id === b.typeId);
+            const rankA = typeA == null ? 3 : typeCategoryRank(typeA);
+            const rankB = typeB == null ? 3 : typeCategoryRank(typeB);
+            return rankA - rankB || a.typeId - b.typeId || b.level - a.level;
+        });
     }
     if (mode === 'level') {
         return copy.sort((a, b) => b.level - a.level || a.typeId - b.typeId);

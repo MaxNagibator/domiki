@@ -47,6 +47,7 @@ export const upgradeLevelSchema = z.object({
     resources: z.array(resourceSchema),
     modificators: z.array(modificatorSchema),
     receiptIds: z.array(z.number()),
+    maxManufactureCount: z.number(),
 });
 export type UpgradeLevelDto = z.infer<typeof upgradeLevelSchema>;
 
@@ -59,6 +60,7 @@ export const domikTypeSchema = z.object({
     maxLevel: z.number(),
     unlockLevel: z.number(),
     blueprintId: z.number().nullable(),
+    nextCountGateLevel: z.number().nullable(),
     levels: z.array(upgradeLevelSchema),
 });
 export type DomikTypeDto = z.infer<typeof domikTypeSchema>;
@@ -78,7 +80,7 @@ export const receiptSchema = z.object({
     inputResources: z.array(resourceSchema),
     optionalInputResources: z.array(resourceSchema),
     durationSeconds: z.number(),
-    speedupPercent: z.number(),
+    outputBonusPercent: z.number(),
     outputResources: z.array(resourceSchema),
     plodderCount: z.number(),
 });
@@ -127,12 +129,14 @@ export const villageSchema = z.object({
     villageName: z.string().nullable(),
     crestIcon: z.number(),
     crestColor: z.number(),
+    feedWorkers: z.boolean(),
 });
 export type VillageDto = z.infer<typeof villageSchema>;
 
 export const villageLevelUnlockSchema = z.object({
-    level: z.number(),
+    level: z.number().nullable(),
     label: z.string(),
+    requirement: z.string().nullable(),
 });
 export type VillageLevelUnlockDto = z.infer<typeof villageLevelUnlockSchema>;
 
@@ -235,7 +239,10 @@ export const weatherStateSchema = z.object({
 export type WeatherStateDto = z.infer<typeof weatherStateSchema>;
 
 export const expeditionLootSchema = z.object({
-    resourceTypeId: z.number(),
+    kind: z.number(),
+    resourceTypeId: z.number().nullable(),
+    decorTypeId: z.number().nullable(),
+    blueprintId: z.number().nullable(),
     minValue: z.number(),
     maxValue: z.number(),
     isRare: z.boolean(),
@@ -245,6 +252,7 @@ export type ExpeditionLootDto = z.infer<typeof expeditionLootSchema>;
 export const expeditionEquipmentSchema = z.object({
     resourceTypeId: z.number(),
     value: z.number(),
+    isOptional: z.boolean(),
 });
 export type ExpeditionEquipmentDto = z.infer<typeof expeditionEquipmentSchema>;
 
@@ -284,7 +292,11 @@ export const decorTypeSchema = z.object({
     name: z.string(),
     logicName: z.string(),
     comfortPoints: z.number(),
+    isPurchasable: z.boolean(),
     cost: z.array(resourceSchema),
+    neighborId: z.number().nullable(),
+    neighborName: z.string().nullable(),
+    reputationThreshold: z.number(),
 });
 export type DecorTypeDto = z.infer<typeof decorTypeSchema>;
 
@@ -313,12 +325,18 @@ export const tolokaSchema = z.object({
 });
 export type TolokaDto = z.infer<typeof tolokaSchema>;
 
+export const tolokaActiveBuffSchema = z.object({
+    logicName: z.string(),
+    label: z.string(),
+    percent: z.number(),
+    buffUntil: z.string(),
+});
+export type TolokaActiveBuffDto = z.infer<typeof tolokaActiveBuffSchema>;
+
 export const tolokaStateSchema = z.object({
     active: tolokaSchema,
     myContribution: z.number(),
-    buffActive: z.boolean(),
-    buffUntil: z.string().nullable(),
-    buffPercent: z.number(),
+    activeBuffs: z.array(tolokaActiveBuffSchema),
     buffHours: z.number(),
     nextBuffHours: z.number().nullable(),
 });
@@ -366,6 +384,22 @@ export const recapSchema = z.object({
 });
 export type RecapDto = z.infer<typeof recapSchema>;
 
+export const activeGoalSchema = z.object({
+    id: z.number(),
+    ordinal: z.number(),
+    name: z.string(),
+    rewardCoins: z.number(),
+});
+export type ActiveGoalDto = z.infer<typeof activeGoalSchema>;
+
+export const goalsStateSchema = z.object({
+    active: activeGoalSchema.nullable(),
+    completedCount: z.number(),
+    totalCount: z.number(),
+    zealCharges: z.number(),
+});
+export type GoalsStateDto = z.infer<typeof goalsStateSchema>;
+
 export const gameStateSchema = z.object({
     domikTypes: domikTypeSchema.array(),
     resourceTypes: resourceTypeSchema.array(),
@@ -384,6 +418,7 @@ export const gameStateSchema = z.object({
     decor: decorStateSchema,
     toloka: tolokaStateSchema.nullable(),
     market: marketStateSchema.nullable(),
+    goals: goalsStateSchema,
     recap: recapSchema.nullish(),
     events: z.array(z.unknown()).transform(items => items.flatMap(item => {
         const parsed = recapEventSchema.safeParse(item);
@@ -407,6 +442,8 @@ export interface ReceiptView {
     receipt: ReceiptDto;
     inputs: ResourceDto[];
     durationSeconds: number;
+    effectiveDurationSeconds: number;
+    zealMultiplier: number;
     hasResources: boolean;
     hasPlodders: boolean;
     canRun: boolean;

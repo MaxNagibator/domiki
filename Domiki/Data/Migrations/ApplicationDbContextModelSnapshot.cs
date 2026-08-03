@@ -149,12 +149,21 @@ namespace Domiki.Web.Data.Migrations
                     b.Property<int>("ComfortPoints")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsPurchasable")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("LogicName")
                         .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("NeighborId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReputationThreshold")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -211,6 +220,24 @@ namespace Domiki.Web.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("DomikTypes");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.DomikTypeCountGate", b =>
+                {
+                    b.Property<int>("DomikTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("UnlockLevel")
+                        .HasColumnType("integer");
+
+                    b.HasKey("DomikTypeId", "Ordinal");
+
+                    b.ToTable("DomikTypeCountGates");
                 });
 
             modelBuilder.Entity("Domiki.Web.Data.DomikTypeLevel", b =>
@@ -320,6 +347,9 @@ namespace Domiki.Web.Data.Migrations
                     b.Property<int>("PlayerId")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("Provisioned")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -342,6 +372,9 @@ namespace Domiki.Web.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnOrder(2);
 
+                    b.Property<bool>("IsOptional")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("Value")
                         .HasColumnType("integer");
 
@@ -352,16 +385,26 @@ namespace Domiki.Web.Data.Migrations
 
             modelBuilder.Entity("Domiki.Web.Data.ExpeditionLoot", b =>
                 {
-                    b.Property<int>("ExpeditionTypeId")
-                        .HasColumnType("integer")
-                        .HasColumnOrder(1);
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
 
-                    b.Property<int>("ResourceTypeId")
-                        .HasColumnType("integer")
-                        .HasColumnOrder(2);
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BlueprintId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("DecorTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ExpeditionTypeId")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsRare")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
 
                     b.Property<int>("MaxValue")
                         .HasColumnType("integer");
@@ -369,10 +412,15 @@ namespace Domiki.Web.Data.Migrations
                     b.Property<int>("MinValue")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("ResourceTypeId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Weight")
                         .HasColumnType("integer");
 
-                    b.HasKey("ExpeditionTypeId", "ResourceTypeId");
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpeditionTypeId");
 
                     b.ToTable("ExpeditionLoot");
                 });
@@ -424,6 +472,9 @@ namespace Domiki.Web.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("DomikPlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DurationSeconds")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("FinishDate")
@@ -485,6 +536,9 @@ namespace Domiki.Web.Data.Migrations
                     b.Property<int>("PrimaryResourceTypeId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("SecondaryResourceTypeId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("UnlockLevel")
                         .HasColumnType("integer");
 
@@ -499,7 +553,7 @@ namespace Domiki.Web.Data.Migrations
                             LogicName = "zarechye",
                             Name = "Заречье",
                             PrimaryResourceTypeId = 6,
-                            UnlockLevel = 8
+                            UnlockLevel = 10
                         },
                         new
                         {
@@ -507,7 +561,7 @@ namespace Domiki.Web.Data.Migrations
                             LogicName = "borovoe",
                             Name = "Боровое",
                             PrimaryResourceTypeId = 7,
-                            UnlockLevel = 8
+                            UnlockLevel = 10
                         },
                         new
                         {
@@ -635,6 +689,15 @@ namespace Domiki.Web.Data.Migrations
                     b.Property<int>("ExpeditionsSincePity")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("FeedWorkers")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("GoldMinedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("GoldMinedToday")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("LastSeen")
                         .HasColumnType("timestamp with time zone");
 
@@ -643,6 +706,9 @@ namespace Domiki.Web.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<DateTime?>("NextOrderRefillAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("Version")
                         .IsConcurrencyToken()
                         .HasColumnType("uuid");
@@ -650,6 +716,9 @@ namespace Domiki.Web.Data.Migrations
                     b.Property<string>("VillageName")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<int>("ZealCharges")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -731,6 +800,22 @@ namespace Domiki.Web.Data.Migrations
                     b.ToTable("PlayerEvents");
                 });
 
+            modelBuilder.Entity("Domiki.Web.Data.PlayerGoal", b =>
+                {
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GoalId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CompleteDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("PlayerId", "GoalId");
+
+                    b.ToTable("PlayerGoals");
+                });
+
             modelBuilder.Entity("Domiki.Web.Data.PlayerPushSubscription", b =>
                 {
                     b.Property<int>("Id")
@@ -782,10 +867,10 @@ namespace Domiki.Web.Data.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("text");
 
-                    b.Property<int>("PlodderCount")
+                    b.Property<int>("OutputBonusPercent")
                         .HasColumnType("integer");
 
-                    b.Property<int>("SpeedupPercent")
+                    b.Property<int>("PlodderCount")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -883,6 +968,131 @@ namespace Domiki.Web.Data.Migrations
                     b.ToTable("SeasonCounters");
                 });
 
+            modelBuilder.Entity("Domiki.Web.Data.StarterGoal", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ConditionType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Param")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Param2")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RewardCoins")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("StarterGoals");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            ConditionType = 2,
+                            Name = "Поставь копку глины",
+                            Ordinal = 1,
+                            Param = 0,
+                            Param2 = 0,
+                            RewardCoins = 10
+                        },
+                        new
+                        {
+                            Id = 2,
+                            ConditionType = 1,
+                            Name = "Купи Лавку",
+                            Ordinal = 2,
+                            Param = 7,
+                            Param2 = 0,
+                            RewardCoins = 20
+                        },
+                        new
+                        {
+                            Id = 3,
+                            ConditionType = 3,
+                            Name = "Продай ресурс в Лавке",
+                            Ordinal = 3,
+                            Param = 0,
+                            Param2 = 0,
+                            RewardCoins = 15
+                        },
+                        new
+                        {
+                            Id = 4,
+                            ConditionType = 1,
+                            Name = "Купи Лесопилку",
+                            Ordinal = 4,
+                            Param = 6,
+                            Param2 = 0,
+                            RewardCoins = 20
+                        },
+                        new
+                        {
+                            Id = 5,
+                            ConditionType = 4,
+                            Name = "Улучши Артельную избу до уровня 2",
+                            Ordinal = 5,
+                            Param = 2,
+                            Param2 = 2,
+                            RewardCoins = 50
+                        },
+                        new
+                        {
+                            Id = 6,
+                            ConditionType = 5,
+                            Name = "Сдай заказ соседям",
+                            Ordinal = 6,
+                            Param = 0,
+                            Param2 = 0,
+                            RewardCoins = 30
+                        },
+                        new
+                        {
+                            Id = 7,
+                            ConditionType = 2,
+                            Name = "Поставь смену на 8 часов",
+                            Ordinal = 7,
+                            Param = 28800,
+                            Param2 = 0,
+                            RewardCoins = 20
+                        },
+                        new
+                        {
+                            Id = 8,
+                            ConditionType = 1,
+                            Name = "Купи Каменоломню",
+                            Ordinal = 8,
+                            Param = 3,
+                            Param2 = 0,
+                            RewardCoins = 40
+                        },
+                        new
+                        {
+                            Id = 9,
+                            ConditionType = 6,
+                            Name = "Достигни обжитости 10",
+                            Ordinal = 9,
+                            Param = 10,
+                            Param2 = 0,
+                            RewardCoins = 50
+                        });
+                });
+
             modelBuilder.Entity("Domiki.Web.Data.Toloka", b =>
                 {
                     b.Property<int>("Id")
@@ -896,6 +1106,9 @@ namespace Domiki.Web.Data.Migrations
 
                     b.Property<DateTime?>("CompletedDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Goal")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("timestamp with time zone");
@@ -959,6 +1172,24 @@ namespace Domiki.Web.Data.Migrations
                     b.HasIndex("ResourceTypeId");
 
                     b.ToTable("TolokaTypes");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.TolokaTypeEffect", b =>
+                {
+                    b.Property<int>("TolokaTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("DomikTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnOrder(2);
+
+                    b.Property<int>("OutputPercent")
+                        .HasColumnType("integer");
+
+                    b.HasKey("TolokaTypeId", "DomikTypeId");
+
+                    b.ToTable("TolokaTypeEffects");
                 });
 
             modelBuilder.Entity("Domiki.Web.Data.TradeLot", b =>
@@ -1062,7 +1293,7 @@ namespace Domiki.Web.Data.Migrations
                         new
                         {
                             Id = 4,
-                            DurationPercent = 15,
+                            DurationPercent = 25,
                             LogicName = "sonya",
                             LuckWeightPercent = 0,
                             Name = "Соня",
@@ -1673,6 +1904,17 @@ namespace Domiki.Web.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("ResourceType");
+                });
+
+            modelBuilder.Entity("Domiki.Web.Data.TolokaTypeEffect", b =>
+                {
+                    b.HasOne("Domiki.Web.Data.TolokaType", "TolokaType")
+                        .WithMany()
+                        .HasForeignKey("TolokaTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TolokaType");
                 });
 
             modelBuilder.Entity("Domiki.Web.Data.TradeLot", b =>

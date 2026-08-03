@@ -12,20 +12,28 @@ namespace Domiki.Web.Tests
             var playerId = GetPlayerId();
 
             var initial = GetVillageLevel(playerId);
-            Assert.That(initial.Level, Is.EqualTo(0));
+            Assert.That(initial.Level, Is.EqualTo(4));
 
-            BuyDomik(playerId, 2);
+            GrantDomik(playerId, 3, 2);
             var withBarracks = GetVillageLevel(playerId);
-            Assert.That(withBarracks.Buildings, Is.EqualTo(1));
-            Assert.That(withBarracks.Residents, Is.EqualTo(1));
+            Assert.That(withBarracks.Buildings, Is.EqualTo(3));
+            Assert.That(withBarracks.Residents, Is.EqualTo(2));
             Assert.That(withBarracks.Reputation, Is.EqualTo(0));
             Assert.That(withBarracks.Comfort, Is.EqualTo(0));
-            Assert.That(withBarracks.Level, Is.EqualTo(3));
+            Assert.That(withBarracks.Level, Is.EqualTo(7));
 
             GrantReputation(playerId, 4, 10);
             var withReputation = GetVillageLevel(playerId);
             Assert.That(withReputation.Reputation, Is.EqualTo(1));
-            Assert.That(withReputation.Level, Is.EqualTo(8));
+            Assert.That(withReputation.Level, Is.EqualTo(12));
+        }
+
+        [TestCase(49, 49)]
+        [TestCase(50, 50)]
+        [TestCase(80, 50)]
+        public void ComfortContributionToLevelIsCappedTest(int comfort, int expectedContribution)
+        {
+            Assert.That(VillageLevelCalculator.ComputeLevel(0, 0, 0, comfort), Is.EqualTo(expectedContribution));
         }
 
         [Test]
@@ -34,9 +42,10 @@ namespace Domiki.Web.Tests
             var playerId = GetPlayerId();
 
             var ex = Assert.Throws<BusinessException>(() => BuyDomik(playerId, 3));
-            Assert.That(ex.Message, Is.EqualTo("Откроется при обжитости 3"));
+            Assert.That(ex.Message, Is.EqualTo("Откроется при обжитости 6"));
 
-            BuyDomik(playerId, 2);
+            GrantDomik(playerId, 3, 2);
+            GrantDomik(playerId, 4, 2);
 
             Assert.DoesNotThrow(() => BuyDomik(playerId, 3));
         }
@@ -56,8 +65,8 @@ namespace Domiki.Web.Tests
         public void OrderBoardCanUseUnlockedNeighborsAfterThresholdTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            GrantReputation(playerId, 4, 10);
+            GrantDomik(playerId, 3, 2);
+            BuyDomik(playerId, 3);
 
             var sawGatedNeighbor = false;
             for (var i = 0; i < 40 && !sawGatedNeighbor; i++)
@@ -75,9 +84,7 @@ namespace Domiki.Web.Tests
         public void AutoWorkerSelectionIsByIdBeforeSmartAutoThresholdTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
+            GrantDomik(playerId, 3, 2);
 
             var workers = GetWorkers(playerId);
             var weakWorker = workers[0];
@@ -85,7 +92,7 @@ namespace Domiki.Web.Tests
             SetWorkerTrait(weakWorker.Id, 1);
             SetWorkerTrait(strongWorker.Id, 3);
 
-            StartManufacture(playerId, 3, 1, false);
+            StartManufacture(playerId, 2, 1, false);
 
             var busyWorker = GetWorkers(playerId).Single(x => x.ManufactureId != null);
             Assert.That(busyWorker.Id, Is.EqualTo(weakWorker.Id));
@@ -95,10 +102,8 @@ namespace Domiki.Web.Tests
         public void AutoWorkerSelectionIsByFitnessAfterSmartAutoThresholdTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
+            GrantDomik(playerId, 3, 2);
+            GrantDomik(playerId, 4, 2);
 
             var workers = GetWorkers(playerId);
             var weakWorker = workers[0];
@@ -106,7 +111,7 @@ namespace Domiki.Web.Tests
             SetWorkerTrait(weakWorker.Id, 1);
             SetWorkerTrait(strongWorker.Id, 3);
 
-            StartManufacture(playerId, 4, 1, false);
+            StartManufacture(playerId, 2, 1, false);
 
             var busyWorker = GetWorkers(playerId).Single(x => x.ManufactureId != null);
             Assert.That(busyWorker.Id, Is.EqualTo(strongWorker.Id));

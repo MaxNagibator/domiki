@@ -14,9 +14,14 @@ namespace Domiki.Web.Business.Core
         public const int RestSeconds = 2 * 3600;
         public const int RestComfortMaxPercent = 50;
         public const int StartingCoins = 200;
+        public const int ZealStartCharges = 24;
+        public const int ZealX4Threshold = 16;
+        public const int ZealMaxRecipeSeconds = 3600;
         private const int InstaFinishSecondsPerGold = 3600;
         private const int InstaFinishMaxGold = 6;
         private const int GoldResourceTypeId = 5;
+        private const int StartingBarracksTypeId = 2;
+        private const int StartingClayMineTypeId = 5;
 
         private static readonly Regex SpaceRegex = new Regex(" +", RegexOptions.Compiled);
         private static readonly string[] VillageNameForbiddenWords =
@@ -49,8 +54,9 @@ namespace Domiki.Web.Business.Core
         private BlueprintManager _blueprintManager;
         private TolokaManager _tolokaManager;
         private PlayerEventManager _playerEventManager;
+        private GoalManager _goalManager;
 
-        public DomikManager(Data.UnitOfWork uow, Data.ApplicationDbContext context, ICalculator calculator, ResourceManager resourceManager, PlayerResourceManager playerResourceManager, WorkerManager workerManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, TolokaManager tolokaManager, PlayerEventManager playerEventManager)
+        public DomikManager(Data.UnitOfWork uow, Data.ApplicationDbContext context, ICalculator calculator, ResourceManager resourceManager, PlayerResourceManager playerResourceManager, WorkerManager workerManager, WeatherManager weatherManager, VillageLevelCalculator villageLevelCalculator, BlueprintManager blueprintManager, TolokaManager tolokaManager, PlayerEventManager playerEventManager, GoalManager goalManager)
         {
             _context = context;
             _calculator = calculator;
@@ -63,6 +69,7 @@ namespace Domiki.Web.Business.Core
             _blueprintManager = blueprintManager;
             _tolokaManager = tolokaManager;
             _playerEventManager = playerEventManager;
+            _goalManager = goalManager;
         }
 
         public int GetPlayerId(string aspNetUserId)
@@ -77,6 +84,10 @@ namespace Domiki.Web.Business.Core
                 _context.Resources.Add(new Data.Resource { TypeId = 1, Player = dbPlayer, Value = StartingCoins });
 
                 _context.SaveChanges();
+
+                _context.Domiks.Add(new Data.Domik { PlayerId = dbPlayer.Id, Id = 1, TypeId = StartingBarracksTypeId, Level = 1 });
+                _context.Domiks.Add(new Data.Domik { PlayerId = dbPlayer.Id, Id = 2, TypeId = StartingClayMineTypeId, Level = 1 });
+                _context.SaveChanges();
             }
             return dbPlayer.Id;
         }
@@ -89,7 +100,16 @@ namespace Domiki.Web.Business.Core
                 VillageName = dbPlayer.VillageName,
                 CrestIcon = dbPlayer.CrestIcon,
                 CrestColor = dbPlayer.CrestColor,
+                FeedWorkers = dbPlayer.FeedWorkers,
             };
+        }
+
+        public void SetFeedWorkers(int playerId, bool enabled)
+        {
+            _playerResourceManager.LockDbPlayerRow(playerId);
+
+            var dbPlayer = _context.Players.Single(x => x.Id == playerId);
+            dbPlayer.FeedWorkers = enabled;
         }
 
         public void SetVillageIdentity(int playerId, string name, int crestIcon, int crestColor)
@@ -120,17 +140,38 @@ namespace Domiki.Web.Business.Core
             }
         }
 
-        public IEnumerable<(DomikType Type, int AvailableCount)> GetPurchaseAvailableDomiks(int playerId)
+        public IEnumerable<(DomikType Type, int AvailableCount, int? NextCountGateLevel)> GetPurchaseAvailableDomiks(int playerId)
         {
-            var available = new List<(DomikType Type, int AvailableCount)>();
+            var available = new List<(DomikType Type, int AvailableCount, int? NextCountGateLevel)>();
             var domiks = GetDomiks(playerId);
+            var gates = _resourceManager.GetDomikTypeCountGates();
+            var villageLevel = _villageLevelCalculator.GetLevel(playerId).Level;
             foreach (var domikType in _resourceManager.GetDomikTypes())
             {
                 var current = domiks.Count(x => x.Type.Id == domikType.Id);
-                var availableCount = Math.Max(0, domikType.MaxCount - current);
-                if (availableCount > 0)
+                var typeGates = gates.Where(x => x.DomikTypeId == domikType.Id).ToDictionary(x => x.Ordinal, x => x.UnlockLevel);
+
+                var allowed = domikType.MaxCount;
+                for (var ordinal = 2; ordinal <= domikType.MaxCount; ordinal++)
                 {
-                    available.Add((domikType, availableCount));
+                    if (typeGates.TryGetValue(ordinal, out var gateLevel) && gateLevel > villageLevel)
+                    {
+                        allowed = ordinal - 1;
+                        break;
+                    }
+                }
+                allowed = Math.Max(allowed, current);
+
+                var availableCount = Math.Max(0, Math.Min(domikType.MaxCount, allowed) - current);
+                int? nextCountGateLevel = null;
+                if (typeGates.TryGetValue(current + 1, out var nextGateLevel) && nextGateLevel > villageLevel)
+                {
+                    nextCountGateLevel = nextGateLevel;
+                }
+
+                if (availableCount > 0 || nextCountGateLevel != null)
+                {
+                    available.Add((domikType, availableCount, nextCountGateLevel));
                 }
             }
             return available;
@@ -163,10 +204,11 @@ namespace Domiki.Web.Business.Core
         public void BuyDomik(int playerId, int typeId)
         {
             _playerResourceManager.LockDbPlayerRow(playerId);
-            var available = GetPurchaseAvailableDomiks(playerId);
-            if (available.Any(x => x.Type.Id == typeId))
+            var available = GetPurchaseAvailableDomiks(playerId).ToArray();
+            var entry = available.FirstOrDefault(x => x.Type.Id == typeId);
+            if (entry.Type != null && entry.AvailableCount > 0)
             {
-                var domikType = _resourceManager.GetDomikTypes().First(x => x.Id == typeId);
+                var domikType = entry.Type;
                 if (!_villageLevelCalculator.CanBuyDomik(playerId, domikType))
                 {
                     throw new BusinessException($"Откроется при обжитости {domikType.UnlockLevel}");
@@ -198,6 +240,10 @@ namespace Domiki.Web.Business.Core
                         Date = date.AddSeconds(domikLevel.UpgradeSeconds),
                     });
                 };
+            }
+            else if (entry.Type != null && entry.NextCountGateLevel != null)
+            {
+                throw new BusinessException($"Постройка «{entry.Type.Name}» откроется при обжитости {entry.NextCountGateLevel}");
             }
             else
             {
@@ -268,6 +314,14 @@ namespace Domiki.Web.Business.Core
                     dbDomik.UpgradeSeconds = null;
                     dbDomik.Level++;
                     _playerEventManager.Record(calcInfo.PlayerId, Data.PlayerEventType.DomikUpgraded, new { domikTypeId = dbDomik.TypeId, level = dbDomik.Level });
+
+                    var domikName = _resourceManager.GetDomikTypes().First(x => x.Id == dbDomik.TypeId).Name;
+                    (calcInfo.PushTitle, calcInfo.PushBody) = (dbDomik.Level % 3) switch
+                    {
+                        0 => ($"Новоселье в «{domikName}»!", $"Уровень {dbDomik.Level} готов. Пора замахнуться на большее?"),
+                        1 => ($"«{domikName}» вырос до {dbDomik.Level} уровня!", "Стропила подняты, краска высохла. Что улучшим следующим?"),
+                        _ => ($"«{domikName}»: уровень {dbDomik.Level}", "Стройка отгремела. Загляни – деревня хорошеет на глазах."),
+                    };
 
                     return true;
                 }
@@ -356,10 +410,10 @@ namespace Domiki.Web.Business.Core
 
             var writeOffResources = receipt.InputResources;
             var duration = receipt.DurationSeconds;
-            if (useOptional && receipt.OptionalInputResources is not null && receipt.OptionalInputResources.Length > 0)
+            var useOptionalApplied = useOptional && receipt.OptionalInputResources is not null && receipt.OptionalInputResources.Length > 0;
+            if (useOptionalApplied)
             {
                 writeOffResources = writeOffResources.Concat(receipt.OptionalInputResources).ToArray();
-                duration = receipt.DurationSeconds * (100 - receipt.SpeedupPercent) / 100;
             }
 
             Data.Worker[] selectedWorkers;
@@ -403,9 +457,25 @@ namespace Domiki.Web.Business.Core
             duration = (int)Math.Ceiling(duration * (100 - avgSkill) / 100);
             duration = Math.Max(duration, (int)Math.Ceiling(receipt.DurationSeconds * 0.6));
 
+            var marketDomikTypeId = _resourceManager.GetDomikTypes().First(x => x.LogicName == "market").Id;
+            if (receipt.DurationSeconds <= ZealMaxRecipeSeconds && dbDomik.TypeId != marketDomikTypeId)
+            {
+                var dbPlayer = _context.Players.First(x => x.Id == playerId);
+                if (dbPlayer.ZealCharges > 0)
+                {
+                    var mult = dbPlayer.ZealCharges > ZealX4Threshold ? 4 : 2;
+                    duration = Math.Max(1, duration / mult);
+                    dbPlayer.ZealCharges--;
+                }
+            }
+
             var weatherPercent = _weatherManager.GetOutputPercent(date, domikType.Id);
-            var tolokaPercent = _tolokaManager.HasActiveBuff(playerId, date) ? 100 + TolokaManager.TolokaBuffPercent : 100;
+            var tolokaPercent = _tolokaManager.GetTolokaOutputPercent(playerId, domikType.Id, date);
             var outputPercent = (int)Math.Round(weatherPercent * tolokaPercent / 100.0);
+            if (useOptionalApplied)
+            {
+                outputPercent += receipt.OutputBonusPercent;
+            }
 
             _playerResourceManager.WriteOffResources(playerId, writeOffResources);
 
@@ -415,10 +485,11 @@ namespace Domiki.Web.Business.Core
                 DomikPlayerId = playerId,
                 ReceiptId = receiptId,
                 FinishDate = date.AddSeconds(duration),
+                DurationSeconds = duration,
                 PlodderCount = needPlodderCount,
                 OutputPercent = outputPercent,
                 AutoRepeat = autoRepeat,
-                UseOptional = useOptional && receipt.OptionalInputResources is not null && receipt.OptionalInputResources.Length > 0,
+                UseOptional = useOptionalApplied,
             };
             _context.Manufactures.Add(manufacture);
             _context.SaveChanges();
@@ -437,6 +508,7 @@ namespace Domiki.Web.Business.Core
                     Date = manufacture.FinishDate,
                 });
             };
+            _goalManager.OnManufactureStarted(playerId, receipt);
         }
 
         public bool FinishManufacture(DateTime date, CalculateInfo calcInfo)
@@ -452,10 +524,28 @@ namespace Domiki.Web.Business.Core
                 var autoRepeat = dbManufacture.AutoRepeat;
                 var domikId = dbManufacture.DomikId;
                 var playerId = calcInfo.PlayerId;
+                var dbDomik = _context.Domiks.Single(x => x.PlayerId == calcInfo.PlayerId && x.Id == dbManufacture.DomikId);
+                var dbPlayer = _context.Players.First(x => x.Id == calcInfo.PlayerId);
                 var produced = new Dictionary<int, int>();
                 foreach (var resource in recept.OutputResources)
                 {
                     var granted = Math.Max(1, (int)Math.Round(resource.Value * dbManufacture.OutputPercent / 100.0));
+                    if (resource.Type.Id == GoldResourceTypeId)
+                    {
+                        var today = date.Date;
+                        if (dbPlayer.GoldMinedDate != today)
+                        {
+                            dbPlayer.GoldMinedDate = today;
+                            dbPlayer.GoldMinedToday = 0;
+                        }
+                        var allowed = Math.Max(0, dbDomik.Level - dbPlayer.GoldMinedToday);
+                        granted = Math.Min(granted, allowed);
+                        dbPlayer.GoldMinedToday += granted;
+                        if (granted == 0)
+                        {
+                            continue;
+                        }
+                    }
                     _playerResourceManager.GrantResource(calcInfo.PlayerId, resource.Type.Id, granted);
                     if (produced.TryGetValue(resource.Type.Id, out var value))
                     {
@@ -466,22 +556,31 @@ namespace Domiki.Web.Business.Core
                         produced[resource.Type.Id] = granted;
                     }
                 }
-                var dbDomik = _context.Domiks.Single(x => x.PlayerId == calcInfo.PlayerId && x.Id == dbManufacture.DomikId);
                 var comfort = DecorCalculator.GetComfort(
                     _context.PlayerDecors.Where(x => x.PlayerId == dbManufacture.DomikPlayerId).Select(x => new PlayerDecor { DecorTypeId = x.DecorTypeId, Count = x.Count }).ToArray(),
                     _resourceManager.GetDecorTypes());
                 var restSeconds = RestSeconds * (100 - Math.Min(RestComfortMaxPercent, comfort)) / 100;
                 var traits = _resourceManager.GetTraits().ToDictionary(x => x.Id, x => x);
+                var isTradeDomik = _resourceManager.GetDomikTypes().First(x => x.LogicName == "market").Id == dbDomik.TypeId;
+                var breadRes = _context.Resources.Local.FirstOrDefault(x => x.PlayerId == playerId && x.TypeId == 15)
+                    ?? _context.Resources.FirstOrDefault(x => x.PlayerId == playerId && x.TypeId == 15);
                 var freedWorkerIds = new List<int>();
+                var workerNames = new List<string>();
                 foreach (var worker in _context.Workers.Where(x => x.ManufactureId == dbManufacture.Id).ToArray())
                 {
+                    workerNames.Add(worker.Name);
                     IncrementWorkerSkill(worker.Id, dbDomik.TypeId);
-                    if (!traits[worker.TraitId].NoFatigue)
+                    if (!traits[worker.TraitId].NoFatigue && !isTradeDomik)
                     {
-                        worker.WorkedSeconds += recept.DurationSeconds;
+                        worker.WorkedSeconds += dbManufacture.DurationSeconds;
                         if (worker.WorkedSeconds >= FatigueThresholdSeconds)
                         {
-                            worker.RestUntil = date.AddSeconds(restSeconds);
+                            var fed = dbPlayer.FeedWorkers && breadRes?.Value >= 1;
+                            if (fed)
+                            {
+                                breadRes.Value -= 1;
+                            }
+                            worker.RestUntil = date.AddSeconds(fed ? restSeconds / 2 : restSeconds);
                             worker.WorkedSeconds = 0;
                         }
                     }
@@ -491,6 +590,29 @@ namespace Domiki.Web.Business.Core
                 }
                 _context.Manufactures.Remove(dbManufacture);
                 _playerEventManager.RecordManufactureFinished(calcInfo.PlayerId, dbDomik.TypeId, produced);
+
+                var manufactureDomikName = _resourceManager.GetDomikTypes().First(x => x.Id == dbDomik.TypeId).Name;
+                var pushWorker = workerNames.Count > 0 ? workerNames[dbManufacture.Id % workerNames.Count] : null;
+                if (produced.Count > 0)
+                {
+                    var resourceNames = _resourceManager.GetResourceTypes().ToDictionary(x => x.Id, x => x.Name);
+                    var producedList = string.Join(", ", produced.Select(x => x.Value + " × " + resourceNames[x.Key]));
+                    var (title, body) = (dbManufacture.Id % 4) switch
+                    {
+                        0 when pushWorker != null => ($"У {pushWorker} всё готово!", $"Со «{manufactureDomikName}» свежая партия: {producedList}. Что скуём дальше?"),
+                        1 when pushWorker != null => ($"«{manufactureDomikName}»: смена сдана", $"{pushWorker} управляется на славу – {producedList} уже на складе. Пора за новое дело!"),
+                        2 when pushWorker != null => ($"Труд не пропал даром", $"От {pushWorker} прибыло: {producedList}. Деревня ждёт нового свершения!"),
+                        _ => ($"«{manufactureDomikName}» – новая партия", $"На складе прибыло: {producedList}. Заглянешь запустить ещё?"),
+                    };
+                    calcInfo.PushTitle = title;
+                    calcInfo.PushBody = body;
+                }
+                else
+                {
+                    calcInfo.PushTitle = pushWorker != null ? $"Смена у {pushWorker} окончена" : $"«{manufactureDomikName}»: смена сдана";
+                    calcInfo.PushBody = "Мастерская простаивает – загляни, пора запускать новое.";
+                }
+
                 if (autoRepeat)
                 {
                     _context.SaveChanges();
@@ -498,7 +620,7 @@ namespace Domiki.Web.Business.Core
                     {
                         StartManufacture(playerId, domikId, receiptId, useOptional, freedWorkerIds.ToArray(), autoRepeat: true);
                     }
-                    catch (BusinessException)
+                    catch (Exception)
                     {
                     }
                 }

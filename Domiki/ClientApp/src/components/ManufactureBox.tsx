@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import ZapIcon from 'pixelarticons/svg/zap.svg?react';
-import type { ManufactureDto, ReceiptDto } from '../types/api';
+import RepeatIcon from 'pixelarticons/svg/repeat.svg?react';
+import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
+import type { ManufactureDto, ReceiptDto, ResourceTypeDto } from '../types/api';
 import { canInstaFinish, instaFinishCost, manufactureProgressPercent } from '../utils/game';
 import { ProgressBar } from './ProgressBar';
+import { ResourceSprite } from './sprites';
 
 interface ManufactureBoxProps {
     manufacture: ManufactureDto;
@@ -9,17 +13,26 @@ interface ManufactureBoxProps {
     now: number;
     remainingText: string;
     goldValue: number;
-    goldIconSrc?: string | undefined;
+    goldType?: ResourceTypeDto | undefined;
     onHurry: (manufactureId: number) => void;
     onToggleAutoRepeat: (manufactureId: number, next: boolean) => void;
 }
 
-export const ManufactureBox = ({ manufacture, receipt, now, remainingText, goldValue, goldIconSrc, onHurry, onToggleAutoRepeat }: ManufactureBoxProps) => {
+export const ManufactureBox = ({ manufacture, receipt, now, remainingText, goldValue, goldType, onHurry, onToggleAutoRepeat }: ManufactureBoxProps) => {
+    const [repeatExpanded, setRepeatExpanded] = useState(false);
     const percent = manufactureProgressPercent(manufacture, receipt, now);
     const hurryCost = instaFinishCost(manufacture.finishDate, now);
     const tooFar = !canInstaFinish(manufacture.finishDate, now);
     const notEnoughGold = goldValue < hurryCost;
-    const hurryTitle = tooFar ? 'До конца слишком далеко' : notEnoughGold ? 'Не хватает золота' : undefined;
+    const hurryTitle = tooFar
+        ? `До конца ${remainingText}; ускорение доступно в последние 6 ч`
+        : notEnoughGold ? `Не хватает золота: ${hurryCost - goldValue}` : undefined;
+    const repeatAt = new Intl.DateTimeFormat('ru-RU', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(new Date(manufacture.finishDate));
 
     return (
         <div className="manufacture-box">
@@ -37,15 +50,36 @@ export const ManufactureBox = ({ manufacture, receipt, now, remainingText, goldV
                 onClick={() => onHurry(manufacture.id)}>
                 <ZapIcon className="btn-ico" aria-hidden="true" />
                 Поторопить – {Math.max(1, hurryCost)}
-                {goldIconSrc != null &&
-                    <img className="hurry-cost-ico" src={goldIconSrc} alt="золота" />
+                {goldType != null &&
+                    <ResourceSprite logicName={goldType.logicName} className="hurry-cost-ico" aria-hidden="true" />
                 }
             </button>
-            <label className="receipt-optional">
-                <input type="checkbox" checked={manufacture.autoRepeat}
-                    onChange={() => onToggleAutoRepeat(manufacture.id, !manufacture.autoRepeat)} />
-                Повторять
-            </label>
+            <div className={'manufacture-repeat' + (manufacture.autoRepeat ? ' manufacture-repeat-on' : '')}>
+                <button type="button" className="manufacture-repeat-toggle"
+                    aria-expanded={repeatExpanded}
+                    onClick={() => setRepeatExpanded(expanded => !expanded)}>
+                    <RepeatIcon className="manufacture-repeat-ico" aria-hidden="true" />
+                    <strong>{manufacture.autoRepeat ? 'Автоповтор включён' : 'Автоповтор выключен'}</strong>
+                    <ChevronDownIcon className={'manufacture-repeat-caret' + (repeatExpanded ? ' manufacture-repeat-caret-open' : '')}
+                        aria-hidden="true" />
+                </button>
+                {repeatExpanded &&
+                    <div className="manufacture-repeat-body">
+                        <p>
+                            {manufacture.autoRepeat
+                                ? <>Следующая попытка — {repeatAt}: снова запустится «{receipt.name}», если хватит ресурсов и трудяги смогут продолжить.</>
+                                : <>После завершения «{receipt.name}» новая смена сама не запустится.</>}
+                        </p>
+                        <button type="button" className="btn-game btn-ghost manufacture-repeat-action"
+                            onClick={() => onToggleAutoRepeat(manufacture.id, !manufacture.autoRepeat)}>
+                            {manufacture.autoRepeat ? 'Остановить повторы' : 'Повторять эту смену'}
+                        </button>
+                        {manufacture.autoRepeat &&
+                            <span className="manufacture-repeat-note">Текущая смена завершится как обычно</span>
+                        }
+                    </div>
+                }
+            </div>
         </div>
     );
 };

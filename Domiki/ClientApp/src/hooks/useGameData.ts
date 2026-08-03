@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { acceptLot as acceptLotApi, apiGet, ApiError, buyDecor as buyDecorApi, cancelLot as cancelLotApi, contributeToloka as contributeTolokaApi, getDecor, getGameState, getMarket, getToloka, getVillage, hurryDomik as hurryDomikApi, hurryManufacture as hurryManufactureApi, postLot as postLotApi, setManufactureAutoRepeat as setManufactureAutoRepeatApi, setVillage as setVillageApi, startExpedition as startExpeditionApi } from '../services/api';
+import { acceptLot as acceptLotApi, apiGet, ApiError, buyDecor as buyDecorApi, cancelLot as cancelLotApi, contributeToloka as contributeTolokaApi, getDecor, getGameState, getMarket, getToloka, getVillage, hurryDomik as hurryDomikApi, hurryManufacture as hurryManufactureApi, postLot as postLotApi, setFeedWorkers as setFeedWorkersApi, setManufactureAutoRepeat as setManufactureAutoRepeatApi, setVillage as setVillageApi, startExpedition as startExpeditionApi } from '../services/api';
 import { useToast } from '../services/toast';
 import {
     domikTypeSchema,
@@ -10,6 +10,7 @@ import {
     type DomikDto,
     type DomikTypeDto,
     type ExpeditionStateDto,
+    type GoalsStateDto,
     type MarketStateDto,
     type NeighborReputationDto,
     type OrderDto,
@@ -35,6 +36,7 @@ export interface GameData {
     orders: OrderDto[];
     reputation: NeighborReputationDto[];
     blueprints: BlueprintDto[];
+    loading: boolean;
     village: VillageDto | null;
     villageLevel: VillageLevelDto | null;
     weather: WeatherStateDto | null;
@@ -42,16 +44,18 @@ export interface GameData {
     decor: DecorStateDto | null;
     toloka: TolokaStateDto | null;
     market: MarketStateDto | null;
+    goals: GoalsStateDto | null;
     workers: WorkerDto[];
     purchaseDomikTypes: DomikTypeDto[] | null;
     now: number;
     reload: () => Promise<void>;
     refreshPurchaseTypes: () => Promise<void>;
     setVillage: (name: string, crestIcon: number, crestColor: number) => Promise<void>;
+    setFeedWorkers: (enabled: boolean) => Promise<void>;
     hurryManufacture: (manufactureId: number) => Promise<void>;
     setManufactureAutoRepeat: (manufactureId: number, autoRepeat: boolean) => Promise<void>;
     hurryDomik: (domikId: number) => Promise<void>;
-    startExpedition: (expeditionTypeId: number, workerIds?: number[]) => Promise<void>;
+    startExpedition: (expeditionTypeId: number, workerIds?: number[], provisions?: boolean) => Promise<void>;
     buyDecor: (decorTypeId: number) => Promise<void>;
     contributeToloka: (amount: number) => Promise<void>;
     postLot: (giveResourceTypeId: number, giveValue: number, wantResourceTypeId: number, wantValue: number) => Promise<void>;
@@ -80,16 +84,19 @@ export function useGameData(): GameData {
     const [decor, setDecor] = useState<DecorStateDto | null>(null);
     const [toloka, setToloka] = useState<TolokaStateDto | null>(null);
     const [market, setMarket] = useState<MarketStateDto | null>(null);
+    const [goals, setGoals] = useState<GoalsStateDto | null>(null);
     const [workers, setWorkers] = useState<WorkerDto[]>([]);
     const [purchaseDomikTypes, setPurchaseDomikTypes] = useState<DomikTypeDto[] | null>(null);
     const [recap, setRecap] = useState<RecapDto | null>(null);
     const [events, setEvents] = useState<RecapEventDto[]>([]);
     const [now, setNow] = useState(() => Date.now());
+    const [loading, setLoading] = useState(true);
 
     const refetching = useRef(false);
     const pendingReload = useRef(false);
     const workersRef = useRef(workers);
     const expeditionsRef = useRef(expeditions);
+    const goalsRef = useRef(goals);
     const tolokaRef = useRef(toloka);
     const reloadedRestDeadlinesRef = useRef<Set<string>>(new Set());
     const reloadedTolokaBuffDeadlinesRef = useRef<Set<string>>(new Set());
@@ -101,6 +108,10 @@ export function useGameData(): GameData {
     useEffect(() => {
         expeditionsRef.current = expeditions;
     }, [expeditions]);
+
+    useEffect(() => {
+        goalsRef.current = goals;
+    }, [goals]);
 
     useEffect(() => {
         tolokaRef.current = toloka;
@@ -115,6 +126,10 @@ export function useGameData(): GameData {
                 toast.success(`Экспедиция «${finished.expeditionName}» вернулась`);
             }
         }
+        const prevGoal = goalsRef.current?.active;
+        if (prevGoal != null && (state.goals.active == null || state.goals.active.ordinal > prevGoal.ordinal)) {
+            toast.success(`Наказ выполнен: «${prevGoal.name}» (+${prevGoal.rewardCoins} монет)`);
+        }
         setDomiks(state.domiks);
         setResources(state.resources);
         setOrders(state.orders);
@@ -128,6 +143,7 @@ export function useGameData(): GameData {
         setDecor(state.decor);
         setToloka(state.toloka);
         setMarket(state.market);
+        setGoals(state.goals);
         setEvents(state.events);
         if (state.recap != null && state.recap.events.length > 0) {
             setRecap(state.recap);
@@ -173,6 +189,11 @@ export function useGameData(): GameData {
         setVillageState(await getVillage());
     }, []);
 
+    const setFeedWorkers = useCallback(async (enabled: boolean) => {
+        await setFeedWorkersApi(enabled);
+        setVillageState(await getVillage());
+    }, []);
+
     const hurryManufacture = useCallback(async (manufactureId: number) => {
         await hurryManufactureApi(manufactureId);
         await reload();
@@ -188,8 +209,8 @@ export function useGameData(): GameData {
         await reload();
     }, [reload]);
 
-    const startExpedition = useCallback(async (expeditionTypeId: number, workerIds?: number[]) => {
-        await startExpeditionApi(expeditionTypeId, workerIds);
+    const startExpedition = useCallback(async (expeditionTypeId: number, workerIds?: number[], provisions?: boolean) => {
+        await startExpeditionApi(expeditionTypeId, workerIds, provisions);
         await reload();
     }, [reload]);
 
@@ -270,6 +291,7 @@ export function useGameData(): GameData {
                 setDecor(state.decor);
                 setToloka(state.toloka);
                 setMarket(state.market);
+                setGoals(state.goals);
                 setEvents(state.events);
                 if (state.recap != null && state.recap.events.length > 0) {
                     setRecap(state.recap);
@@ -280,6 +302,10 @@ export function useGameData(): GameData {
                 }
                 if (err instanceof ApiError) {
                     toast.error(err.message);
+                }
+            } finally {
+                if (!signal.aborted) {
+                    setLoading(false);
                 }
             }
         })();
@@ -360,17 +386,17 @@ export function useGameData(): GameData {
             expiredWorkerRest = true;
         }
 
-        const buffUntil = tolokaRef.current?.buffUntil;
-        const expiredTolokaBuff = buffUntil != null
-            && remainingSeconds(buffUntil, now) <= 0
-            && !reloadedTolokaBuffDeadlinesRef.current.has(`toloka:${buffUntil}`);
+        const expiredTolokaBuffs = tolokaRef.current?.activeBuffs.filter(buff => {
+            const key = `toloka:${buff.logicName}:${buff.buffUntil}`;
+            return remainingSeconds(buff.buffUntil, now) <= 0 && !reloadedTolokaBuffDeadlinesRef.current.has(key);
+        }) ?? [];
 
-        if (!expiredWorkerRest && !expiredTolokaBuff) {
+        if (!expiredWorkerRest && expiredTolokaBuffs.length === 0) {
             return;
         }
 
-        if (expiredTolokaBuff) {
-            reloadedTolokaBuffDeadlinesRef.current.add(`toloka:${buffUntil}`);
+        for (const buff of expiredTolokaBuffs) {
+            reloadedTolokaBuffDeadlinesRef.current.add(`toloka:${buff.logicName}:${buff.buffUntil}`);
         }
 
         scheduleReload();
@@ -392,12 +418,15 @@ export function useGameData(): GameData {
         decor,
         toloka,
         market,
+        goals,
         workers,
         purchaseDomikTypes,
         now,
+        loading,
         reload,
         refreshPurchaseTypes,
         setVillage,
+        setFeedWorkers,
         hurryManufacture,
         setManufactureAutoRepeat,
         hurryDomik,

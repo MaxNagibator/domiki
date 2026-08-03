@@ -15,5 +15,11 @@ namespace Domiki.Web.Data
         public string LogicName { get; set; }
 
         public int ComfortPoints { get; set; }
+
+        public bool IsPurchasable { get; set; }
+
+        public int? NeighborId { get; set; }
+
+        public int ReputationThreshold { get; set; }
     }
 }

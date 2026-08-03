@@ -13,23 +13,20 @@ import SaveIcon from 'pixelarticons/svg/save.svg?react';
 import ZapIcon from 'pixelarticons/svg/zap.svg?react';
 import LockIcon from 'pixelarticons/svg/lock.svg?react';
 import EarthIcon from 'pixelarticons/svg/earth.svg?react';
-import ClipboardIcon from 'pixelarticons/svg/clipboard.svg?react';
-import NoteIcon from 'pixelarticons/svg/note.svg?react';
-import BackpackIcon from 'pixelarticons/svg/backpack.svg?react';
-import GardenIcon from 'pixelarticons/svg/tree.svg?react';
-import BuildingCommunityIcon from 'pixelarticons/svg/building-community.svg?react';
-import UsersIcon from 'pixelarticons/svg/users.svg?react';
 import BellIcon from 'pixelarticons/svg/bell.svg?react';
 import BellOffIcon from 'pixelarticons/svg/bell-off.svg?react';
 import GridIcon from 'pixelarticons/svg/grid-3x3.svg?react';
 import ChevronUpIcon from 'pixelarticons/svg/chevron-up.svg?react';
 import JournalIcon from 'pixelarticons/svg/article.svg?react';
+import ChevronLeftIcon from 'pixelarticons/svg/chevron-left.svg?react';
+import ChevronRightIcon from 'pixelarticons/svg/chevron-right.svg?react';
+import RepeatIcon from 'pixelarticons/svg/repeat.svg?react';
 import { apiPost, ApiError, completeOrder as completeOrderApi } from '../services/api';
 import { useToast } from '../services/toast';
 import { disablePush, enablePush, getPushState } from '../services/push';
 import type { PushState } from '../services/push';
 import { useGameData } from '../hooks/useGameData';
-import { COIN_RESOURCE_TYPE_ID, GOLD_RESOURCE_TYPE_ID, canAffordUpgrade, canInstaFinish, computeReceiptView, computeSelectedDomikView, instaFinishCost, isWorkerFree, progressPercent, sortDomiks, workerFitness } from '../utils/game';
+import { COIN_RESOURCE_TYPE_ID, GOLD_RESOURCE_TYPE_ID, canAffordUpgrade, canInstaFinish, computeReceiptView, computeSelectedDomikView, instaFinishCost, isWorkerFree, progressPercent, resourceShortfall, sortDomiks, workerFitness } from '../utils/game';
 import type { DomikSortMode } from '../utils/game';
 import { domikThemedName } from '../utils/domikNames';
 import { formatDuration, remainingSeconds } from '../utils/time';
@@ -39,17 +36,21 @@ import { ProgressBar } from './ProgressBar';
 import { ResourcesBox } from './ResourcesBox';
 import { UpgradeBox } from './UpgradeBox';
 import { OrdersBox } from './OrdersBox';
+import { GoalCard } from './GoalCard';
 import { WorkersBox } from './WorkersBox';
 import { BlueprintsBox } from './BlueprintsBox';
 import { ExpeditionsBox } from './ExpeditionsBox';
 import { DecorBox } from './DecorBox';
 import { TolokaBox } from './TolokaBox';
 import { MarketBox } from './MarketBox';
-import { ResourceChip } from './ResourceChip';
 import { JournalBox } from './JournalBox';
-import { AbstractSprite, DomikSprite, MechanicSprite, WeatherSprite, WorkerSprite } from './sprites';
+import { ShopBox } from './ShopBox';
+import { RecapModal } from './RecapModal';
+import { AbstractSprite, DomikSprite, MechanicSprite, ResourceSprite, WeatherSprite, WorkerSprite } from './sprites';
+import { isSkilledWorker } from '../utils/worker';
 import { AnimatedDomikSprite } from './AnimatedDomikSprite';
 import { HudResource } from './HudResource';
+import { PixelLoader } from './PixelLoader';
 import { DEFAULT_VILLAGE_ICON, VILLAGE_CREST_COLORS, VILLAGE_CREST_ICONS } from '../constants/village';
 import { buildRecapView } from '../utils/recap';
 
@@ -63,22 +64,31 @@ const MECHANIC_TAB: Record<string, string> = {
 type SortModeEntry = { mode: DomikSortMode; label: string; Icon: typeof StoreIcon };
 
 const SORT_MODES: readonly [SortModeEntry, ...SortModeEntry[]] = [
-    { mode: 'attention', label: 'Внимание', Icon: BellIcon },
-    { mode: 'type', label: 'Тип', Icon: GridIcon },
-    { mode: 'level', label: 'Уровень', Icon: ChevronUpIcon },
+    { mode: 'attention', label: 'По важности', Icon: BellIcon },
+    { mode: 'type', label: 'По типу', Icon: GridIcon },
+    { mode: 'level', label: 'По уровню', Icon: ChevronUpIcon },
+];
+
+type RowsPerPage = 2 | 3 | 5 | 'all';
+
+const ROWS_PER_PAGE_OPTIONS: { value: RowsPerPage; label: string }[] = [
+    { value: 2, label: '2 ряда' },
+    { value: 3, label: '3 ряда' },
+    { value: 5, label: '5 рядов' },
+    { value: 'all', label: 'Все' },
 ];
 
 interface GameTab {
     key: string;
     label: string;
-    Icon: typeof StoreIcon;
+    icon: ReactNode;
     visible: boolean;
     node: ReactNode;
 }
 
 export const DomikiPage = () => {
     const toast = useToast();
-    const { domiks, domikTypes, resourceTypes, receipts, resources, orders, reputation, blueprints, village, villageLevel, weather, expeditions, decor, toloka, market, workers, purchaseDomikTypes, now, reload, refreshPurchaseTypes, setVillage, hurryManufacture, setManufactureAutoRepeat, hurryDomik, startExpedition, buyDecor, contributeToloka, postLot, acceptLot, cancelLot, recap, clearRecap, events } =
+    const { domiks, domikTypes, resourceTypes, receipts, resources, orders, reputation, blueprints, village, villageLevel, weather, expeditions, decor, toloka, market, goals, workers, purchaseDomikTypes, now, loading, reload, refreshPurchaseTypes, setVillage, setFeedWorkers, hurryManufacture, setManufactureAutoRepeat, hurryDomik, startExpedition, buyDecor, contributeToloka, postLot, acceptLot, cancelLot, recap, clearRecap, events } =
         useGameData();
 
     const [shopVisible, setShopVisible] = useState(false);
@@ -101,8 +111,9 @@ export const DomikiPage = () => {
     const closeLevelFlyout = () => setLevelFlyout(null);
     const gameTabsRef = useRef<HTMLDivElement>(null);
     const gameTabPanelRef = useRef<HTMLDivElement>(null);
-    const tabAnchorReady = useRef(false);
-    const scrollTabsPending = useRef(false);
+    const hudRef = useRef<HTMLElement>(null);
+    const [hudStickyOffset, setHudStickyOffset] = useState(76);
+    const [tabsOverflow, setTabsOverflow] = useState({ left: false, right: false });
     const hudSentinelRef = useRef<HTMLDivElement>(null);
     const [hudAway, setHudAway] = useState(false);
     const [hudPinnedOpen, setHudPinnedOpen] = useState(false);
@@ -112,14 +123,32 @@ export const DomikiPage = () => {
     const [draftCrestColor, setDraftCrestColor] = useState(0);
     const [sortMode, setSortMode] = useState<DomikSortMode>(() => {
         const saved = localStorage.getItem('domik-sort-mode');
-        return saved === 'type' || saved === 'level' ? saved : 'attention';
+        return saved === 'attention' || saved === 'level' ? saved : 'type';
     });
     const changeSortMode = (mode: DomikSortMode) => {
         setSortMode(mode);
+        setPage(1);
         localStorage.setItem('domik-sort-mode', mode);
     };
     const [sortOpen, setSortOpen] = useState(false);
     const sortRef = useRef<HTMLDivElement>(null);
+    const [rowsPerPage, setRowsPerPage] = useState<RowsPerPage>(() => {
+        const saved = localStorage.getItem('domik-page-size');
+        if (saved === '2') return 2;
+        if (saved === '5') return 5;
+        if (saved === 'all') return 'all';
+        return 3;
+    });
+    const [page, setPage] = useState(1);
+    const [pageSizeOpen, setPageSizeOpen] = useState(false);
+    const pageSizeRef = useRef<HTMLDivElement>(null);
+    const domiksRef = useRef<HTMLDivElement>(null);
+    const [columns, setColumns] = useState(1);
+    const changeRowsPerPage = (rows: RowsPerPage) => {
+        setRowsPerPage(rows);
+        setPage(1);
+        localStorage.setItem('domik-page-size', String(rows));
+    };
     const activeSort = SORT_MODES.find(item => item.mode === sortMode) ?? SORT_MODES[0];
     const [pushState, setPushState] = useState<PushState>('unsupported');
     const [pushBusy, setPushBusy] = useState(false);
@@ -167,18 +196,35 @@ export const DomikiPage = () => {
     }, [sortOpen]);
 
     useEffect(() => {
-        if (!tabAnchorReady.current) {
-            tabAnchorReady.current = true;
+        if (!pageSizeOpen) {
             return;
         }
 
-        if (!scrollTabsPending.current) {
+        const onDown = (event: MouseEvent) => {
+            if (pageSizeRef.current != null && !pageSizeRef.current.contains(event.target as Node)) {
+                setPageSizeOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', onDown);
+        return () => { document.removeEventListener('mousedown', onDown); };
+    }, [pageSizeOpen]);
+
+    useEffect(() => {
+        const grid = domiksRef.current;
+        if (grid == null) {
             return;
         }
 
-        scrollTabsPending.current = false;
-        gameTabsRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
-    }, [activeTab]);
+        const measure = () => {
+            const count = getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length;
+            setColumns(Math.max(1, count));
+        };
+        measure();
+        const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+        observer?.observe(grid);
+        return () => { observer?.disconnect(); };
+    }, []);
 
     useEffect(() => {
         const sentinel = hudSentinelRef.current;
@@ -200,6 +246,18 @@ export const DomikiPage = () => {
 
         observer.observe(sentinel);
         return () => { observer.disconnect(); };
+    }, []);
+
+    useEffect(() => {
+        const hud = hudRef.current;
+        if (hud == null) {
+            return;
+        }
+        const updateOffset = () => setHudStickyOffset(hud.offsetHeight + 16);
+        updateOffset();
+        const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(updateOffset);
+        observer?.observe(hud);
+        return () => { observer?.disconnect(); };
     }, []);
 
     const toggleExpand = (receiptId: number) =>
@@ -265,6 +323,10 @@ export const DomikiPage = () => {
         () => sortDomiks(domiks, domikTypes, resources, sortMode),
         [domiks, domikTypes, resources, sortMode],
     );
+    const perPage = rowsPerPage === 'all' ? Math.max(1, sortedDomiks.length) : Math.max(1, rowsPerPage * columns);
+    const totalPages = Math.max(1, Math.ceil(sortedDomiks.length / perPage));
+    const safePage = Math.min(page, totalPages);
+    const pagedDomiks = sortedDomiks.slice((safePage - 1) * perPage, safePage * perPage);
     const domikOrdinals = useMemo(() => {
         const idsByType = new Map<number, number[]>();
         for (const domik of domiks) {
@@ -283,10 +345,31 @@ export const DomikiPage = () => {
 
         return { ordinalById, countByType };
     }, [domiks]);
-    const domikDisplayName = (typeId: number, id: number, name: string) =>
+    const domikDisplayName = (typeId: number, id: number, name: string, logicName: string) =>
         (domikOrdinals.countByType.get(typeId) ?? 1) > 1
-            ? domikThemedName(name, typeId, domikOrdinals.ordinalById.get(id) ?? 1)
+            ? domikThemedName(name, logicName, domikOrdinals.ordinalById.get(id) ?? 1)
             : name;
+    const upgradeBenefits = selected?.upgrade == null
+        ? null
+        : (() => {
+            const currentLevel = selected.domikType.levels.find(level => level.value === selected.domik.level);
+            const nextLevel = selected.domikType.levels.find(level => level.value === selected.upgrade?.nextLevel);
+            if (currentLevel == null || nextLevel == null) {
+                return null;
+            }
+
+            const plodderDelta = (nextLevel.modificators.find(modificator => modificator.typeId === 1)?.value ?? 0)
+                - (currentLevel.modificators.find(modificator => modificator.typeId === 1)?.value ?? 0);
+            const manufactureDelta = nextLevel.maxManufactureCount - currentLevel.maxManufactureCount;
+            const newReceiptNames = nextLevel.receiptIds
+                .filter(receiptId => !currentLevel.receiptIds.includes(receiptId))
+                .map(receiptId => receipts.find(receipt => receipt.id === receiptId)?.name)
+                .filter((name): name is string => name != null);
+
+            return plodderDelta > 0 || manufactureDelta > 0 || newReceiptNames.length > 0
+                ? { plodderDelta, manufactureDelta, newReceiptNames }
+                : null;
+        })();
     const currentWeather = weather?.current ?? null;
     const hudCollapsed = hudAway && !hudPinnedOpen;
     const coinType = resourceTypes.find(t => t.id === COIN_RESOURCE_TYPE_ID);
@@ -296,7 +379,9 @@ export const DomikiPage = () => {
         : currentWeather?.effects.find(effect => effect.domikTypeId === selected.domikType.id) ?? null;
     const goldValue = resources.find(x => x.typeId === GOLD_RESOURCE_TYPE_ID)?.value ?? 0;
     const goldType = resourceTypes.find(x => x.id === GOLD_RESOURCE_TYPE_ID);
-    const goldIconSrc = goldType == null ? undefined : '/images/resourceTypes/' + goldType.logicName + '.png';
+    const formatShortfall = (cost: { typeId: number; value: number }[]) => resourceShortfall(cost, resources)
+        .map(item => `${resourceTypes.find(type => type.id === item.typeId)?.name ?? `ресурс #${item.typeId}`} ×${item.value}`)
+        .join(', ');
     const recapView = useMemo(() => buildRecapView(recap?.events ?? []), [recap]);
     const recapVisible = recap != null && recap.events.length > 0 && recap.awaySeconds >= 1800;
 
@@ -366,11 +451,16 @@ export const DomikiPage = () => {
 
     const hurryManufactureAction = (manufactureId: number) => runAction(() => hurryManufacture(manufactureId), 'Производство ускорено');
 
-    const toggleManufactureAutoRepeat = (manufactureId: number, next: boolean) => runAction(() => setManufactureAutoRepeat(manufactureId, next));
+    const toggleManufactureAutoRepeat = (manufactureId: number, next: boolean) => runAction(
+        () => setManufactureAutoRepeat(manufactureId, next),
+        next ? 'Автоповтор включён' : 'Повторы остановлены',
+    );
 
     const hurryDomikAction = (domikId: number) => runAction(() => hurryDomik(domikId), 'Улучшение ускорено');
 
-    const startExpeditionAction = (expeditionTypeId: number, workerIds?: number[]) => runAction(() => startExpedition(expeditionTypeId, workerIds), 'Экспедиция отправлена');
+    const startExpeditionAction = (expeditionTypeId: number, workerIds?: number[], provisions?: boolean) => runAction(() => startExpedition(expeditionTypeId, workerIds, provisions), 'Экспедиция отправлена');
+
+    const toggleFeedWorkers = (enabled: boolean) => runAction(() => setFeedWorkers(enabled));
 
     const buyDecorAction = (decorTypeId: number) => runAction(() => buyDecor(decorTypeId), 'Декор куплен');
 
@@ -401,53 +491,110 @@ export const DomikiPage = () => {
         setSelectedDomikId(id);
         const mechTab = MECHANIC_TAB[logicName];
         if (mechTab && mechTab !== activeTab) {
-            scrollTabsPending.current = true;
             setActiveTab(mechTab);
         }
     };
 
     const gameTabs: GameTab[] = [
         {
-            key: 'orders', label: 'Заказы', Icon: ClipboardIcon, visible: true,
+            key: 'orders', label: 'Заказы', icon: <MechanicSprite logicName="orders" size={24} className="game-tab-ico" aria-hidden="true" />, visible: true,
             node: <OrdersBox orders={orders} reputation={reputation} resourceTypes={resourceTypes} resources={resources} now={now} onComplete={completeOrder} />,
         },
         {
-            key: 'blueprints', label: 'Чертежи', Icon: NoteIcon, visible: blueprints.length > 0,
-            node: <BlueprintsBox blueprints={blueprints} domikTypes={domikTypes} />,
+            key: 'blueprints', label: 'Вехи соседей', icon: <MechanicSprite logicName="blueprints" size={24} className="game-tab-ico" aria-hidden="true" />, visible: blueprints.length > 0 || (decor?.types ?? []).some(x => x.neighborId != null),
+            node: <BlueprintsBox blueprints={blueprints} domikTypes={domikTypes} decorTypes={decor?.types ?? []} reputations={reputation} />,
         },
         {
-            key: 'expeditions', label: 'Экспедиции', Icon: BackpackIcon, visible: expeditions != null,
-            node: <ExpeditionsBox expeditions={expeditions} resourceTypes={resourceTypes} resources={resources} workers={workers} now={now} onStart={startExpeditionAction} />,
+            key: 'expeditions', label: 'Экспедиции', icon: <MechanicSprite logicName="expeditions" size={24} className="game-tab-ico" aria-hidden="true" />, visible: expeditions != null,
+            node: <ExpeditionsBox expeditions={expeditions} resourceTypes={resourceTypes} decorTypes={decor?.types ?? []} resources={resources} workers={workers} now={now} onStart={startExpeditionAction} />,
         },
         {
-            key: 'decor', label: 'Декор', Icon: GardenIcon, visible: decor != null,
-            node: <DecorBox decor={decor} resourceTypes={resourceTypes} resources={resources} onBuy={buyDecorAction} />,
+            key: 'decor', label: 'Декор', icon: <MechanicSprite logicName="decor" size={24} className="game-tab-ico" aria-hidden="true" />, visible: decor != null,
+            node: <DecorBox decor={decor} resourceTypes={resourceTypes} resources={resources} reputations={reputation} onBuy={buyDecorAction} />,
         },
         {
-            key: 'toloka', label: 'Толока', Icon: BuildingCommunityIcon, visible: toloka != null,
+            key: 'toloka', label: 'Толока', icon: <MechanicSprite logicName="toloka" size={24} className="game-tab-ico" aria-hidden="true" />, visible: toloka != null,
             node: <TolokaBox toloka={toloka} resourceTypes={resourceTypes} resources={resources} now={now} onContribute={contributeTolokaAction} />,
         },
         {
-            key: 'market', label: 'Ярмарка', Icon: StoreIcon, visible: market != null,
+            key: 'market', label: 'Ярмарка', icon: <MechanicSprite logicName="market" size={24} className="game-tab-ico" aria-hidden="true" />, visible: market != null,
             node: <MarketBox market={market} resourceTypes={resourceTypes} resources={resources} now={now}
                 onPost={postLotAction} onAccept={acceptLotAction} onCancel={cancelLotAction} />,
         },
         {
-            key: 'workers', label: 'Трудяги', Icon: UsersIcon, visible: true,
-            node: <WorkersBox workers={workers} domikTypes={domikTypes} domiks={domiks} expeditions={expeditions} now={now} />,
+            key: 'workers', label: 'Трудяги', icon: <MechanicSprite logicName="workers" size={24} className="game-tab-ico" aria-hidden="true" />, visible: true,
+            node: <WorkersBox workers={workers} domikTypes={domikTypes} domiks={domiks} expeditions={expeditions} feedWorkers={village?.feedWorkers ?? false} now={now} onToggleFeedWorkers={toggleFeedWorkers} />,
         },
         {
-            key: 'journal', label: 'Журнал', Icon: JournalIcon, visible: true,
-            node: <JournalBox events={events} resourceTypes={resourceTypes} domikTypes={domikTypes} now={now} />,
+            key: 'journal', label: 'Журнал', icon: <JournalIcon className="game-tab-ico" aria-hidden="true" />, visible: true,
+            node: <JournalBox events={events} resourceTypes={resourceTypes} domikTypes={domikTypes} decorTypes={decor?.types ?? []} now={now} />,
         },
     ];
     const visibleGameTabs = gameTabs.filter(tab => tab.visible);
     const activeGameTab = visibleGameTabs.find(tab => tab.key === activeTab) ?? visibleGameTabs[0];
+    const activeGameTabKey = activeGameTab?.key;
+    const nextGoal = villageLevel?.upcomingUnlocks.find((unlock): unlock is typeof unlock & { level: number } => unlock.level != null);
+
+    useEffect(() => {
+        const tabs = gameTabsRef.current;
+        if (tabs == null) {
+            return;
+        }
+
+        const updateOverflow = () => {
+            const max = tabs.scrollWidth - tabs.clientWidth;
+            setTabsOverflow({ left: tabs.scrollLeft > 2, right: tabs.scrollLeft < max - 2 });
+        };
+        updateOverflow();
+        tabs.addEventListener('scroll', updateOverflow, { passive: true });
+        const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(updateOverflow);
+        observer?.observe(tabs);
+        return () => {
+            tabs.removeEventListener('scroll', updateOverflow);
+            observer?.disconnect();
+        };
+    }, [visibleGameTabs.length]);
+
+    useEffect(() => {
+        const tabs = gameTabsRef.current;
+        const active = activeGameTabKey == null ? null : tabs?.querySelector<HTMLElement>(`#game-tab-${activeGameTabKey}`);
+        if (tabs == null || active == null) {
+            return;
+        }
+
+        const left = active.offsetLeft;
+        const right = left + active.offsetWidth;
+        if (left < tabs.scrollLeft || right > tabs.scrollLeft + tabs.clientWidth) {
+            tabs.scrollTo({ left: Math.max(0, left - 12), behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        }
+    }, [activeGameTabKey]);
+
+    const activateTabByKeyboard = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+            return;
+        }
+        event.preventDefault();
+        const nextIndex = event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+                ? visibleGameTabs.length - 1
+                : (index + (event.key === 'ArrowRight' ? 1 : -1) + visibleGameTabs.length) % visibleGameTabs.length;
+        const next = visibleGameTabs[nextIndex];
+        if (next != null) {
+            setActiveTab(next.key);
+            requestAnimationFrame(() => document.getElementById(`game-tab-${next.key}`)?.focus());
+        }
+    };
 
     return (
-        <div className="game">
+        <div className="game" style={{ '--hud-sticky-offset': `${hudStickyOffset}px` } as React.CSSProperties}>
+            {loading &&
+                <div className="game-loading">
+                    <PixelLoader label="Загрузка деревни…" />
+                </div>
+            }
             <div className="hud-sentinel" ref={hudSentinelRef} aria-hidden="true" />
-            <header className={'hud pixel-panel' + (hudCollapsed ? ' hud-collapsed' : '')}>
+            <header ref={hudRef} className={'hud pixel-panel' + (hudCollapsed ? ' hud-collapsed' : '')}>
                 <button type="button" className="hud-compact" onClick={() => { setHudPinnedOpen(true); }} title="Развернуть панель">
                     {coinType != null && coinValue != null && <HudResource resourceType={coinType} value={coinValue} />}
                     <div className="resource-box">
@@ -498,20 +645,23 @@ export const DomikiPage = () => {
                                 <span>Жители: {villageLevel.residents}</span>
                                 <span>Репутация: {villageLevel.reputation}</span>
                                 <span>Уют: {villageLevel.comfort}</span>
-                                {villageLevel.upcomingUnlocks.slice(0, 3).map(unlock => (
-                                    <span key={`${unlock.level}-${unlock.label}`} className="village-level-next">
-                                        {unlock.label}: {unlock.level}
+                                {[
+                                    ...villageLevel.upcomingUnlocks.filter(unlock => unlock.level != null).slice(0, 3),
+                                    ...villageLevel.upcomingUnlocks.filter(unlock => unlock.level == null),
+                                ].map(unlock => (
+                                    <span key={`${unlock.label}-${unlock.level ?? unlock.requirement}`} className="village-level-next">
+                                        {unlock.label}: {unlock.level != null ? unlock.level : unlock.requirement}
                                     </span>
                                 ))}
                             </div>,
                             document.body)}
-                        {villageLevel.upcomingUnlocks[0] != null &&
+                        {nextGoal != null &&
                             <div className="hud-goal"
-                                title={`Откроется при обжитости ${villageLevel.upcomingUnlocks[0].level}: ${villageLevel.upcomingUnlocks[0].label}`}>
+                                title={`Откроется при обжитости ${nextGoal.level}: ${nextGoal.label}`}>
                                 <LockIcon className="hud-goal-ico" aria-hidden="true" />
-                                <span className="hud-goal-label">{villageLevel.upcomingUnlocks[0].label}</span>
-                                <ProgressBar value={villageLevel.level} max={villageLevel.upcomingUnlocks[0].level}
-                                    label={`${villageLevel.level}/${villageLevel.upcomingUnlocks[0].level}`} />
+                                <span className="hud-goal-label">{nextGoal.label}</span>
+                                <ProgressBar value={villageLevel.level} max={nextGoal.level}
+                                    label={`${villageLevel.level}/${nextGoal.level}`} />
                             </div>}
                     </>
                 }
@@ -574,6 +724,7 @@ export const DomikiPage = () => {
                         <ChevronUpIcon className="btn-ico" aria-hidden="true" />
                     </button>}
             </header>
+            <GoalCard goals={goals} resourceTypes={resourceTypes} />
             {identityVisible &&
                 <div className="modal-backdrop" role="presentation">
                     <form className="identity-modal pixel-panel" onSubmit={event => { event.preventDefault(); void saveIdentity(); }}>
@@ -619,97 +770,16 @@ export const DomikiPage = () => {
                 </div>
             }
             {recapVisible &&
-                <div className="modal-backdrop" role="presentation">
-                    <section className="recap-modal pixel-panel" role="dialog" aria-modal="true" aria-label="Пока вас не было">
-                        <div className="recap-modal-head">
-                            <h2 className="panel-title">Пока вас не было – {formatDuration(recap.awaySeconds)}</h2>
-                            <button type="button" className="identity-button" title="Закрыть" onClick={clearRecap}>
-                                <CloseIcon className="btn-ico" aria-hidden="true" />
-                            </button>
-                        </div>
-                        {recapView.toloka.length > 0 &&
-                            <div className="recap-section">
-                                <span className="panel-label">Толока завершена</span>
-                                {recapView.toloka.map((event, index) => {
-                                    const name = toloka?.active.tolokaTypeId === event.tolokaTypeId ? toloka.active.name : `Толока #${event.tolokaTypeId}`;
-                                    return <span key={`${event.tolokaTypeId}-${index}`} className="recap-line">{name}</span>;
-                                })}
-                            </div>
-                        }
-                        {recapView.expeditions.length > 0 &&
-                            <div className="recap-section">
-                                <span className="panel-label">Экспедиции</span>
-                                {recapView.expeditions.map((event, index) => {
-                                    const name = expeditions?.types.find(type => type.id === event.expeditionTypeId)?.name ?? `Экспедиция #${event.expeditionTypeId}`;
-                                    return (
-                                        <div key={`${event.expeditionTypeId}-${index}`} className="recap-row">
-                                            <BackpackIcon className="recap-row-ico" aria-hidden="true" />
-                                            <span className="recap-line">{name}</span>
-                                            <div className="recap-chips">
-                                                {event.loot.map((loot, lootIndex) => {
-                                                    const type = resourceTypes.find(resourceType => resourceType.id === loot.typeId);
-                                                    return type == null
-                                                        ? <span key={`${loot.typeId}-${lootIndex}`} className="recap-fallback">Ресурс #{loot.typeId} ×{loot.value}</span>
-                                                        : <ResourceChip key={`${loot.typeId}-${lootIndex}`} resourceType={type} value={loot.value} rare={loot.isRare} />;
-                                                })}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        }
-                        {recapView.market.length > 0 &&
-                            <div className="recap-section">
-                                <span className="panel-label">Ярмарка</span>
-                                {recapView.market.map((event, index) => {
-                                    const give = resourceTypes.find(type => type.id === event.give.typeId);
-                                    const want = event.want == null ? null : resourceTypes.find(type => type.id === event.want?.typeId);
-                                    return (
-                                        <div key={`${event.kind}-${index}`} className="recap-row">
-                                            <StoreIcon className="recap-row-ico" aria-hidden="true" />
-                                            <span className="recap-line">{event.kind === 'sold' ? 'Продано' : 'Лот истёк –'}</span>
-                                            {give == null ? <span className="recap-fallback">Ресурс #{event.give.typeId} ×{event.give.value}</span> : <ResourceChip resourceType={give} value={event.give.value} />}
-                                            {event.kind === 'sold' && event.want != null &&
-                                                <>
-                                                    <span className="recap-arrow">→ получено</span>
-                                                    {want == null ? <span className="recap-fallback">Ресурс #{event.want.typeId} ×{event.want.value}</span> : <ResourceChip resourceType={want} value={event.want.value} />}
-                                                </>
-                                            }
-                                            {event.kind === 'expired' && <span className="recap-line">возвращён</span>}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        }
-                        {recapView.produced.length > 0 &&
-                            <div className="recap-section">
-                                <span className="panel-label">Произведено</span>
-                                <div className="recap-chips">
-                                    {recapView.produced.map(resource => {
-                                        const type = resourceTypes.find(resourceType => resourceType.id === resource.typeId);
-                                        return type == null
-                                            ? <span key={resource.typeId} className="recap-fallback">Ресурс #{resource.typeId} ×{resource.value}</span>
-                                            : <ResourceChip key={resource.typeId} resourceType={type} value={resource.value} />;
-                                    })}
-                                </div>
-                            </div>
-                        }
-                        {recapView.upgrades.length > 0 &&
-                            <div className="recap-section">
-                                <span className="panel-label">Постройки улучшены</span>
-                                {recapView.upgrades.map((event, index) => {
-                                    const type = domikTypes.find(domikType => domikType.id === event.domikTypeId);
-                                    return (
-                                        <div key={`${event.domikTypeId}-${index}`} className="recap-row">
-                                            {type != null && <DomikSprite className="recap-domik-sprite" logicName={type.logicName} level={event.level} />}
-                                            <span className="recap-line">{type?.name ?? `Постройка #${event.domikTypeId}`} → ур. {event.level}</span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        }
-                    </section>
-                </div>
+                <RecapModal
+                    awaySeconds={recap.awaySeconds}
+                    view={recapView}
+                    resourceTypes={resourceTypes}
+                    domikTypes={domikTypes}
+                    decorTypes={decor?.types ?? []}
+                    expeditionTypes={expeditions?.types ?? []}
+                    toloka={toloka}
+                    onClose={clearRecap}
+                />
             }
             <div className="village-header">
                 <div className="village-identity">
@@ -745,7 +815,9 @@ export const DomikiPage = () => {
                         </div>
                     }
                     {pushState !== 'unsupported' &&
-                        <button type="button" className="btn-game btn-ghost" title="Уведомления" aria-label="Уведомления"
+                        <button type="button" className={`btn-game btn-ghost btn-icon push-toggle push-toggle-${pushState}`}
+                            title={pushState === 'on' ? 'Push-уведомления включены' : pushState === 'denied' ? 'Push-уведомления заблокированы браузером' : 'Push-уведомления выключены'}
+                            aria-label={pushState === 'on' ? 'Выключить push-уведомления' : 'Включить push-уведомления'}
                             disabled={pushBusy} onClick={() => void togglePush()}>
                             {pushState === 'on'
                                 ? <BellIcon className="btn-ico" aria-hidden="true" />
@@ -759,7 +831,7 @@ export const DomikiPage = () => {
                     {purchaseDomikTypes != null &&
                         <button className="btn-game" onClick={() => toggleShop()}>
                             <StoreIcon className="btn-ico" aria-hidden="true" />
-                            {shopVisible ? 'Закрыть магазин' : 'Магазин'}
+                            {shopVisible ? 'Закрыть' : 'Плотник'}
                         </button>
                     }
                 </div>
@@ -767,56 +839,45 @@ export const DomikiPage = () => {
             <div className="workspace">
                 <section className="village">
                     {shopVisible && purchaseDomikTypes != null &&
-                        <div className="purchase-box">
-                            {purchaseDomikTypes.length === 0 &&
-                                <span className="hint">Магазин пуст</span>
-                            }
-                            {purchaseDomikTypes.map(purchaseDomikType => {
-                                const firstLevel = purchaseDomikType.levels[0];
-                                const levelLocked = villageLevel != null && purchaseDomikType.unlockLevel > villageLevel.level;
-                                const blueprint = purchaseDomikType.blueprintId == null ? null : blueprints.find(x => x.id === purchaseDomikType.blueprintId) ?? null;
-                                const blueprintLocked = blueprint != null && !blueprint.owned;
-                                const isLocked = levelLocked || blueprintLocked;
-                                const lockTitle = levelLocked
-                                    ? `Откроется при обжитости ${purchaseDomikType.unlockLevel}`
-                                    : blueprintLocked
-                                        ? `Нужен чертёж (репутация ${blueprint.neighborName} ${blueprint.reputationThreshold})`
-                                        : undefined;
-                                return (
-                                    <div key={purchaseDomikType.id} className={'plot plot-shop' + (isLocked ? ' plot-locked' : '')} title={isLocked ? lockTitle : undefined}>
-                                        <DomikSprite className="plot-sprite" logicName={purchaseDomikType.logicName} />
-                                        <span className="plot-name">{purchaseDomikType.name}</span>
-                                        <span className="plot-status">
-                                            {isLocked ? lockTitle : `Доступно: ${purchaseDomikType.availableCount}/${purchaseDomikType.maxCount}`}
-                                        </span>
-                                        <ResourcesBox resources={firstLevel?.resources ?? []} resourceTypes={resourceTypes} />
-                                        <button className="btn-game" disabled={isLocked} title={lockTitle} onClick={() => buy(purchaseDomikType.id)}>
-                                            {blueprintLocked ? <LockIcon className="btn-ico" aria-hidden="true" /> : <BuildingIcon className="btn-ico" aria-hidden="true" />}
-                                            Купить
-                                        </button>
-                                    </div>
-                                );
-                            })
-                            }
-                        </div>
+                        <ShopBox purchaseDomikTypes={purchaseDomikTypes} domikTypes={domikTypes} receipts={receipts}
+                            resourceTypes={resourceTypes} resources={resources} blueprints={blueprints} villageLevel={villageLevel}
+                            onBuy={buy} onClose={() => setShopVisible(false)} />
                     }
-                    <div className="domiks">
+                    <div className="domiks" ref={domiksRef}>
                         {domikTypes.length > 0 &&
-                            sortedDomiks.map(domik => {
+                            pagedDomiks.map(domik => {
                                 const domikType = domikTypes.find(x => x.id === domik.typeId);
                                 if (domikType == null) {
                                     return null;
                                 }
 
                                 const hasManufacture = domik.manufactures != null && domik.manufactures.length > 0;
+                                const repeatedRecipeNames = (domik.manufactures ?? [])
+                                    .filter(manufacture => manufacture.autoRepeat)
+                                    .map(manufacture => receipts.find(receipt => receipt.id === manufacture.receiptId)?.name)
+                                    .filter((name): name is string => name != null);
+                                const repeatTitle = repeatedRecipeNames.length > 0
+                                    ? `Автоповтор: ${repeatedRecipeNames.join(', ')}`
+                                    : null;
                                 const durationSecondsText = domik.finishDate != null
                                     ? formatDuration(remainingSeconds(domik.finishDate, now))
                                     : null;
                                 const cardWeather = currentWeather?.effects.find(
                                     effect => effect.domikTypeId === domik.typeId && effect.outputPercent !== 100) ?? null;
+                                const displayName = domikDisplayName(domik.typeId, domik.id, domikType.name, domikType.logicName);
+                                const upgradeAvailable = canAffordUpgrade(domik, domikType, resources);
+                                const cardStatus = domik.finishDate != null
+                                        ? 'идёт улучшение'
+                                    : hasManufacture
+                                        ? `идёт производство${repeatTitle == null ? '' : `, ${repeatTitle.toLocaleLowerCase()}`}`
+                                        : upgradeAvailable
+                                            ? 'доступно улучшение'
+                                            : 'готов к работе';
                                 return (
                                     <button key={domik.id}
                                         className={'plot' + (selectedDomikId === domik.id ? ' plot-selected' : '')}
+                                        aria-label={`${displayName}, уровень ${domik.level}, ${cardStatus}`}
+                                        aria-pressed={selectedDomikId === domik.id}
                                         onClick={() => selectDomik(domik.id, domikType.logicName)}>
                                         {cardWeather != null &&
                                             <span className={'plot-weather' + (cardWeather.outputPercent > 100 ? ' plot-weather-buff' : ' plot-weather-nerf')}
@@ -825,17 +886,20 @@ export const DomikiPage = () => {
                                             </span>
                                         }
                                         <AnimatedDomikSprite mode="levelup" className="plot-sprite" logicName={domikType.logicName} level={domik.level} working={hasManufacture} />
-                                        <span className="plot-name">{domikDisplayName(domik.typeId, domik.id, domikType.name)}</span>
+                                        <span className="plot-name">{displayName}</span>
                                         <UpgradeBox durationSeconds={durationSecondsText} level={domik.level} />
                                         <span className="plot-status">
-                                            {canAffordUpgrade(domik, domikType, resources) &&
-                                                <img className="status-icon" src="/images/upgrade_available.png" alt="Доступно улучшение" title="Доступно улучшение" />
+                                            {upgradeAvailable &&
+                                                <img className="status-icon" src="/images/upgrade_available.png" alt="" aria-hidden="true" title="Доступно улучшение" />
                                             }
                                             {domik.finishDate != null &&
-                                                <img className="status-icon icon-busy" src="/images/upgrade_in_process.png" alt="Идёт улучшение" title="Идёт улучшение" />
+                                                <img className="status-icon icon-busy" src="/images/upgrade_in_process.png" alt="" aria-hidden="true" title="Идёт улучшение" />
                                             }
                                             {hasManufacture &&
-                                                <AbstractSprite logicName="production_recipe" size={24} className="status-icon" aria-label="Идёт производство" />
+                                                <AbstractSprite logicName="production_recipe" size={24} className="status-icon" aria-hidden="true" />
+                                            }
+                                            {repeatTitle != null &&
+                                                <RepeatIcon className="status-icon status-repeat" aria-hidden="true" title={repeatTitle} />
                                             }
                                         </span>
                                     </button>
@@ -843,6 +907,45 @@ export const DomikiPage = () => {
                             })
                         }
                     </div>
+                    {(totalPages > 1 || domiks.length > 2 * columns) &&
+                        <div className="domik-pager">
+                            {totalPages > 1 &&
+                                <div className="domik-pager-nav">
+                                    <button type="button" className="btn-game btn-ghost btn-icon" disabled={safePage <= 1}
+                                        onClick={() => setPage(safePage - 1)} aria-label="Предыдущая страница">
+                                        <ChevronLeftIcon className="btn-ico" aria-hidden="true" />
+                                    </button>
+                                    <span className="domik-pager-status">Стр. {safePage} из {totalPages}</span>
+                                    <button type="button" className="btn-game btn-ghost btn-icon" disabled={safePage >= totalPages}
+                                        onClick={() => setPage(safePage + 1)} aria-label="Следующая страница">
+                                        <ChevronRightIcon className="btn-ico" aria-hidden="true" />
+                                    </button>
+                                </div>
+                            }
+                            {domiks.length > 2 * columns &&
+                                <div className="domik-sort-menu domik-page-size" ref={pageSizeRef}>
+                                    <button type="button" className="btn-game btn-ghost" aria-expanded={pageSizeOpen}
+                                        title="Рядов домиков на странице"
+                                        onClick={() => setPageSizeOpen(prev => !prev)}>
+                                        <BuildingIcon className="btn-ico" aria-hidden="true" />
+                                        {ROWS_PER_PAGE_OPTIONS.find(opt => opt.value === rowsPerPage)?.label ?? '3 ряда'}
+                                        <ChevronDownIcon className="btn-ico" aria-hidden="true" />
+                                    </button>
+                                    {pageSizeOpen &&
+                                        <div className="domik-sort-pop domik-page-size-pop">
+                                            {ROWS_PER_PAGE_OPTIONS.map(opt =>
+                                                <button key={String(opt.value)} type="button"
+                                                    className={'domik-sort-option' + (rowsPerPage === opt.value ? ' domik-sort-option-active' : '')}
+                                                    onClick={() => { changeRowsPerPage(opt.value); setPageSizeOpen(false); }}>
+                                                    {opt.label}
+                                                </button>,
+                                            )}
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
                 </section>
                 {selected != null && <div className="actions-scrim" role="presentation" onClick={() => { setSelectedDomikId(null); }} />}
                 <aside className={'actions pixel-panel' + (selected == null ? ' actions--empty' : '')}>
@@ -854,8 +957,10 @@ export const DomikiPage = () => {
                     }
                     {selected != null &&
                         <div>
-                            <h3 className="panel-title">{domikDisplayName(selected.domik.typeId, selected.domik.id, selected.domikType.name)}</h3>
-                            <span className="domik-level">ур. {selected.domik.level}</span>
+                            <div className="actions-heading">
+                                <h3 className="panel-title">{domikDisplayName(selected.domik.typeId, selected.domik.id, selected.domikType.name, selected.domikType.logicName)}</h3>
+                                <span className="domik-level">ур. {selected.domik.level}</span>
+                            </div>
                             {domikLore[selected.domikType.logicName] != null &&
                                 <p className="domik-lore">{domikLore[selected.domikType.logicName]}</p>
                             }
@@ -865,13 +970,27 @@ export const DomikiPage = () => {
                                         <span className="panel-label">Улучшение до ур. {selected.upgrade.nextLevel}</span>
                                         <ResourcesBox resources={selected.upgrade.resources} resourceTypes={resourceTypes} have={resources} />
                                     </div>
+                                    {upgradeBenefits != null &&
+                                        <div>
+                                            <span className="panel-label">Что даст ур. {selected.upgrade.nextLevel}</span>
+                                            {upgradeBenefits.plodderDelta > 0 && <div>+{upgradeBenefits.plodderDelta} трудяг</div>}
+                                            {upgradeBenefits.manufactureDelta > 0 && <div>+{upgradeBenefits.manufactureDelta} одновременное производство</div>}
+                                            {upgradeBenefits.newReceiptNames.length > 0 && <div>Новые рецепты: {upgradeBenefits.newReceiptNames.join(', ')}</div>}
+                                        </div>
+                                    }
                                     <button className="btn-game"
                                         disabled={!selected.upgrade.hasResources}
-                                        title={selected.upgrade.hasResources ? undefined : 'Не хватает ресурсов'}
+                                        title={selected.upgrade.hasResources ? undefined : `Не хватает: ${formatShortfall(selected.upgrade.resources)}`}
                                         onClick={() => upgrade(selected.domik.id)}>
                                         <ArrowUpIcon className="btn-ico" aria-hidden="true" />
                                         Улучшить
                                     </button>
+                                    {!selected.upgrade.hasResources &&
+                                        <div className="note-warn resource-shortfall">
+                                            <img src="/images/upgrade_no_resources.png" alt="" />
+                                            <span>Не хватает</span>
+                                            <ResourcesBox resources={resourceShortfall(selected.upgrade.resources, resources)} resourceTypes={resourceTypes} showNames />
+                                        </div>}
                                 </div>
                             }
                             {selected.domik.finishDate != null &&
@@ -880,7 +999,9 @@ export const DomikiPage = () => {
                                         const hurryCost = instaFinishCost(selected.domik.finishDate, now);
                                         const tooFar = !canInstaFinish(selected.domik.finishDate, now);
                                         const notEnoughGold = goldValue < hurryCost;
-                                        const hurryTitle = tooFar ? 'До конца слишком далеко' : notEnoughGold ? 'Не хватает золота' : undefined;
+                                        const hurryTitle = tooFar
+                                            ? `До конца ${selected.remainingText ?? ''}; ускорение доступно в последние 6 ч`
+                                            : notEnoughGold ? `Не хватает золота: ${hurryCost - goldValue}` : undefined;
 
                                         return (
                                             <>
@@ -891,8 +1012,8 @@ export const DomikiPage = () => {
                                                     onClick={() => hurryDomikAction(selected.domik.id)}>
                                                     <ZapIcon className="btn-ico" aria-hidden="true" />
                                                     Поторопить – {Math.max(1, hurryCost)}
-                                                    {goldIconSrc != null &&
-                                                        <img className="hurry-cost-ico" src={goldIconSrc} alt="золота" />
+                                                    {goldType != null &&
+                                                        <ResourceSprite logicName={goldType.logicName} className="hurry-cost-ico" aria-hidden="true" />
                                                     }
                                                 </button>
                                             </>
@@ -908,7 +1029,7 @@ export const DomikiPage = () => {
                                             const hasOptional = receipt.optionalInputResources.length > 0;
                                             const useOptional = optionalReceiptIds.has(receipt.id);
                                             const autoRepeat = autoRepeatReceiptIds.has(receipt.id);
-                                            const view = computeReceiptView(receipt, resources, plodder.free, hasOptional && useOptional);
+                                            const view = computeReceiptView(receipt, resources, plodder.free, hasOptional && useOptional, goals?.zealCharges, selected.domikType);
                                             const expanded = expandedReceiptId === receipt.id;
                                             const isManual = manualReceiptIds.has(receipt.id);
                                             const selectedWorkerIds = selectedWorkerIdsByReceipt[receipt.id] ?? [];
@@ -918,9 +1039,25 @@ export const DomikiPage = () => {
                                                 .sort((a, b) => b.fitness - a.fitness);
                                             const freeIdsForType = new Set(freeWorkersForType.map(({ worker }) => worker.id));
                                             const validSelectedIds = selectedWorkerIds.filter(id => freeIdsForType.has(id));
+                                            const missingResources = resourceShortfall(view.inputs, resources);
+                                            const missingResourcesText = formatShortfall(view.inputs);
+                                            const automaticWorkerShortfall = Math.max(0, receipt.plodderCount - plodder.free);
                                             const canRun = isManual
                                                 ? view.hasResources && validSelectedIds.length === receipt.plodderCount
                                                 : view.canRun;
+                                            const workerBlockReason = isManual
+                                                ? validSelectedIds.length !== receipt.plodderCount
+                                                    ? `Выберите ровно ${receipt.plodderCount} трудяг (сейчас ${validSelectedIds.length})`
+                                                    : null
+                                                : !view.hasPlodders ? `Не хватает свободных трудяг: ${automaticWorkerShortfall}` : null;
+                                            const blockTitle = [
+                                                !view.hasResources ? `Не хватает: ${missingResourcesText}` : null,
+                                                workerBlockReason,
+                                            ].filter(reason => reason != null).join('; ');
+                                            const summaryBlockTitle = [
+                                                !view.hasResources ? `Не хватает: ${missingResourcesText}` : null,
+                                                !view.hasPlodders ? `Не хватает свободных трудяг: ${automaticWorkerShortfall}` : null,
+                                            ].filter(reason => reason != null).join('; ');
                                             return (
                                                 <div key={receipt.id}
                                                     className={'receipt-row' + (expanded ? ' receipt-open' : '') + (view.canRun ? '' : ' receipt-blocked')}>
@@ -931,13 +1068,14 @@ export const DomikiPage = () => {
                                                         <span className="receipt-cost">
                                                             {!view.canRun &&
                                                                 <img className="receipt-warn" src="/images/upgrade_no_resources.png"
-                                                                    alt="" title={!view.hasPlodders ? 'Нет свободных трудяг' : 'Не хватает ресурсов'} />
+                                                                    alt="" title={summaryBlockTitle} />
                                                             }
                                                             <span className="resource-box" title="Трудяги">
                                                                 <img src="/images/modificatorTypes/plodder.png" alt="Трудяги" />
                                                                 <span className="resource-value">{receipt.plodderCount}</span>
                                                             </span>
-                                                            <span className="timer">{formatDuration(view.durationSeconds)}</span>
+                                                            <span className="timer">{formatDuration(view.effectiveDurationSeconds)}</span>
+                                                            {view.zealMultiplier > 1 && <span className="receipt-zeal">×{view.zealMultiplier}</span>}
                                                             <ChevronDownIcon className="receipt-caret" aria-hidden="true" />
                                                         </span>
                                                     </button>
@@ -961,14 +1099,19 @@ export const DomikiPage = () => {
                                                                 <label className="receipt-optional">
                                                                     <input type="checkbox" checked={useOptional}
                                                                         onChange={() => toggleOptional(receipt.id)} />
-                                                                    с инструментом (−{receipt.speedupPercent}%)
+                                                                    с инструментом (+{receipt.outputBonusPercent}% выхода)
                                                                 </label>
                                                             }
                                                             <label className="receipt-optional">
                                                                 <input type="checkbox" checked={autoRepeat}
                                                                     onChange={() => toggleAutoRepeat(receipt.id)} />
-                                                                Повторять
+                                                                Повторять смену автоматически
                                                             </label>
+                                                            {autoRepeat &&
+                                                                <p className="receipt-repeat-hint">
+                                                                    После каждой смены этот рецепт запустится снова, пока хватает ресурсов и трудяги могут работать.
+                                                                </p>
+                                                            }
                                                             {weatherEffect != null &&
                                                                 <p className="weather-modifier">
                                                                     Погода: {weatherEffect.outputPercent >= 100 ? '+' : ''}{weatherEffect.outputPercent - 100} % выход
@@ -996,8 +1139,10 @@ export const DomikiPage = () => {
                                                                         return (
                                                                             <button key={worker.id} type="button"
                                                                                 className={'worker-chip worker-chip-pick' + (isSelected ? ' worker-chip-selected' : '')}
-                                                                                onClick={() => toggleSelectedWorker(receipt.id, worker.id, receipt.plodderCount)}>
-                                                                                <WorkerSprite name={worker.name} className="worker-avatar" aria-hidden="true" />
+                                                                                onClick={() => receipt.plodderCount === 1 && view.hasResources
+                                                                                    ? startManufacture(selected.domik.id, receipt.id, hasOptional && useOptional, autoRepeat, [worker.id])
+                                                                                    : toggleSelectedWorker(receipt.id, worker.id, receipt.plodderCount)}>
+                                                                                <WorkerSprite name={worker.name} skilled={isSkilledWorker(worker)} className="worker-avatar" aria-hidden="true" />
                                                                                 <span className="worker-name">{worker.name}</span>
                                                                                 <span className="worker-effect">{fitness >= 0 ? '+' : ''}{fitness} %</span>
                                                                             </button>
@@ -1007,18 +1152,20 @@ export const DomikiPage = () => {
                                                             }
                                                             <button className="btn-game"
                                                                 disabled={!canRun}
+                                                                title={!canRun ? blockTitle : undefined}
                                                                 onClick={() => startManufacture(selected.domik.id, receipt.id, hasOptional && useOptional, autoRepeat, isManual ? validSelectedIds : undefined)}>
                                                                 <PlayIcon className="btn-ico" aria-hidden="true" />
                                                                 Запустить
                                                             </button>
-                                                            {!canRun &&
-                                                                <p className="note-warn">
+                                                             {!canRun &&
+                                                                <div className="note-warn resource-shortfall">
                                                                     <img src="/images/upgrade_no_resources.png" alt="" />
-                                                                    {isManual
-                                                                        ? !view.hasResources ? 'Не хватает ресурсов' : `Выберите ровно ${receipt.plodderCount} трудяг`
-                                                                        : !view.hasPlodders ? 'Нет свободных трудяг' : 'Не хватает ресурсов'}
-                                                                </p>
-                                                            }
+                                                                    {!view.hasResources
+                                                                        ? <><span>Не хватает</span><ResourcesBox resources={missingResources} resourceTypes={resourceTypes} showNames /></>
+                                                                        : null}
+                                                                    {workerBlockReason != null && <span>{workerBlockReason}</span>}
+                                                                </div>
+                                                             }
                                                         </div>
                                                     }
                                                 </div>
@@ -1039,7 +1186,7 @@ export const DomikiPage = () => {
                                         return (
                                             <ManufactureBox key={manufacture.id} manufacture={manufacture} receipt={receipt}
                                                 now={now} remainingText={formatDuration(remainingSeconds(manufacture.finishDate, now))}
-                                                goldValue={goldValue} goldIconSrc={goldIconSrc} onHurry={hurryManufactureAction}
+                                                goldValue={goldValue} goldType={goldType} onHurry={hurryManufactureAction}
                                                 onToggleAutoRepeat={toggleManufactureAutoRepeat} />
                                         );
                                     })}
@@ -1049,26 +1196,39 @@ export const DomikiPage = () => {
                     }
                 </aside>
             </div>
-            <div className="game-tabs" ref={gameTabsRef}>
+            <nav className={'game-tabs' + (tabsOverflow.left ? ' game-tabs-overflow-left' : '') + (tabsOverflow.right ? ' game-tabs-overflow-right' : '')}
+                ref={gameTabsRef} aria-label="Разделы деревни">
                 <button type="button" className="game-tab game-tab-home" onClick={() => { window.scrollTo({ top: 0 }); }}>
                     <BuildingIcon className="game-tab-ico" aria-hidden="true" />
                     Домики
                 </button>
-                {visibleGameTabs.map(tab => (
-                    <button type="button" key={tab.key}
-                        className={'game-tab' + (tab.key === activeGameTab?.key ? ' game-tab-active' : '')}
-                        onClick={() => {
-                            setActiveTab(tab.key);
-                            if (window.matchMedia('(max-width: 900px)').matches) {
-                                gameTabPanelRef.current?.scrollIntoView({ block: 'start' });
-                            }
-                        }}>
-                        <tab.Icon className="game-tab-ico" aria-hidden="true" />
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
-            <div className="game-tab-panel" ref={gameTabPanelRef}>
+                <div className="game-tabs-list" role="tablist" aria-label="Игровые разделы">
+                    {visibleGameTabs.map((tab, index) => {
+                        const active = tab.key === activeGameTab?.key;
+                        return (
+                            <button type="button" role="tab" key={tab.key} id={`game-tab-${tab.key}`}
+                                data-game-tab={tab.key}
+                                aria-selected={active}
+                                aria-controls="game-tab-panel"
+                                tabIndex={active ? 0 : -1}
+                                className={'game-tab' + (active ? ' game-tab-active' : '')}
+                                onKeyDown={event => activateTabByKeyboard(event, index)}
+                                onClick={() => {
+                                    setActiveTab(tab.key);
+                                    if (window.matchMedia('(max-width: 900px)').matches) {
+                                        gameTabPanelRef.current?.scrollIntoView({ block: 'start' });
+                                    }
+                                }}>
+                                {tab.icon}
+                                {tab.label}
+                            </button>
+                        );
+                    })}
+                </div>
+                <span className="game-tabs-affordance" aria-hidden="true">›</span>
+            </nav>
+            <div className="game-tab-panel" ref={gameTabPanelRef} id="game-tab-panel" role="tabpanel"
+                aria-labelledby={activeGameTab == null ? undefined : `game-tab-${activeGameTab.key}`} tabIndex={0}>
                 {activeGameTab?.node}
             </div>
         </div>

@@ -32,6 +32,7 @@ namespace Domiki.Web.Data
         public DbSet<ReceiptResource> ReceiptResources { get; set; }
 
         public DbSet<DomikType> DomikTypes { get; set; }
+        public DbSet<DomikTypeCountGate> DomikTypeCountGates { get; set; }
         public DbSet<DomikTypeLevel> DomikTypeLevels { get; set; }
         public DbSet<DomikTypeLevelResource> DomikTypeLevelResources { get; set; }
         public DbSet<DomikTypeLevelModificator> DomikTypeLevelModificators { get; set; }
@@ -51,12 +52,15 @@ namespace Domiki.Web.Data
         public DbSet<PlayerDecor> PlayerDecors { get; set; }
 
         public DbSet<TolokaType> TolokaTypes { get; set; }
+        public DbSet<TolokaTypeEffect> TolokaTypeEffects { get; set; }
         public DbSet<Toloka> Tolokas { get; set; }
         public DbSet<TolokaContribution> TolokaContributions { get; set; }
         public DbSet<TradeLot> TradeLots { get; set; }
         public DbSet<SeasonCounter> SeasonCounters { get; set; }
         public DbSet<PlayerEvent> PlayerEvents { get; set; }
         public DbSet<PlayerPushSubscription> PlayerPushSubscriptions { get; set; }
+        public DbSet<StarterGoal> StarterGoals { get; set; }
+        public DbSet<PlayerGoal> PlayerGoals { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -96,11 +100,29 @@ namespace Domiki.Web.Data
                 .HasIndex(p => p.Endpoint)
                 .IsUnique();
 
+            modelBuilder.Entity<PlayerGoal>()
+                .HasKey(p => new
+                {
+                    p.PlayerId,
+                    p.GoalId,
+                });
+
+            modelBuilder.Entity<StarterGoal>().HasData(
+                new StarterGoal { Id = 1, Ordinal = 1, Name = "Поставь копку глины", ConditionType = GoalConditionType.StartAnyManufacture, Param = 0, Param2 = 0, RewardCoins = 10 },
+                new StarterGoal { Id = 2, Ordinal = 2, Name = "Купи Лавку", ConditionType = GoalConditionType.BuildDomikType, Param = 7, Param2 = 0, RewardCoins = 20 },
+                new StarterGoal { Id = 3, Ordinal = 3, Name = "Продай ресурс в Лавке", ConditionType = GoalConditionType.SellAnyResource, Param = 0, Param2 = 0, RewardCoins = 15 },
+                new StarterGoal { Id = 4, Ordinal = 4, Name = "Купи Лесопилку", ConditionType = GoalConditionType.BuildDomikType, Param = 6, Param2 = 0, RewardCoins = 20 },
+                new StarterGoal { Id = 5, Ordinal = 5, Name = "Улучши Артельную избу до уровня 2", ConditionType = GoalConditionType.UpgradeDomikToLevel, Param = 2, Param2 = 2, RewardCoins = 50 },
+                new StarterGoal { Id = 6, Ordinal = 6, Name = "Сдай заказ соседям", ConditionType = GoalConditionType.CompleteAnyOrder, Param = 0, Param2 = 0, RewardCoins = 30 },
+                new StarterGoal { Id = 7, Ordinal = 7, Name = "Поставь смену на 8 часов", ConditionType = GoalConditionType.StartAnyManufacture, Param = 28800, Param2 = 0, RewardCoins = 20 },
+                new StarterGoal { Id = 8, Ordinal = 8, Name = "Купи Каменоломню", ConditionType = GoalConditionType.BuildDomikType, Param = 3, Param2 = 0, RewardCoins = 40 },
+                new StarterGoal { Id = 9, Ordinal = 9, Name = "Достигни обжитости 10", ConditionType = GoalConditionType.ReachVillageLevel, Param = 10, Param2 = 0, RewardCoins = 50 });
+
             modelBuilder.Entity<Trait>().HasData(
                 new Trait { Id = 1, Name = "Обычный", LogicName = "ordinary", DurationPercent = 0, NoFatigue = false, LuckWeightPercent = 0 },
                 new Trait { Id = 2, Name = "Проворный", LogicName = "nimble", DurationPercent = -10, NoFatigue = false, LuckWeightPercent = 0 },
                 new Trait { Id = 3, Name = "Работящий", LogicName = "diligent", DurationPercent = -20, NoFatigue = false, LuckWeightPercent = 0 },
-                new Trait { Id = 4, Name = "Соня", LogicName = "sonya", DurationPercent = 15, NoFatigue = true, LuckWeightPercent = 0 },
+                new Trait { Id = 4, Name = "Соня", LogicName = "sonya", DurationPercent = 25, NoFatigue = true, LuckWeightPercent = 0 },
                 new Trait { Id = 5, Name = "Везучий", LogicName = "lucky", DurationPercent = 0, NoFatigue = false, LuckWeightPercent = 100 });
 
             modelBuilder.Entity<Worker>()
@@ -214,8 +236,8 @@ namespace Domiki.Web.Data
                 .HasForeignKey(e => e.BlueprintId);
 
             modelBuilder.Entity<Neighbor>().HasData(
-                new Neighbor { Id = 1, Name = "Заречье", LogicName = "zarechye", PrimaryResourceTypeId = 6, UnlockLevel = 8 },
-                new Neighbor { Id = 2, Name = "Боровое", LogicName = "borovoe", PrimaryResourceTypeId = 7, UnlockLevel = 8 },
+                new Neighbor { Id = 1, Name = "Заречье", LogicName = "zarechye", PrimaryResourceTypeId = 6, UnlockLevel = 10 },
+                new Neighbor { Id = 2, Name = "Боровое", LogicName = "borovoe", PrimaryResourceTypeId = 7, UnlockLevel = 10 },
                 new Neighbor { Id = 3, Name = "Каменка", LogicName = "kamenka", PrimaryResourceTypeId = 2, UnlockLevel = 3 },
                 new Neighbor { Id = 4, Name = "Глинищи", LogicName = "glinischi", PrimaryResourceTypeId = 4, UnlockLevel = 0 },
                 new Neighbor { Id = 5, Name = "Дубрава", LogicName = "dubrava", PrimaryResourceTypeId = 3, UnlockLevel = 0 });
@@ -299,6 +321,13 @@ namespace Domiki.Web.Data
                 .Navigation(e => e.ResourceType)
                 .UsePropertyAccessMode(PropertyAccessMode.Property);
 
+            modelBuilder.Entity<DomikTypeCountGate>()
+                .HasKey(p => new
+                {
+                    p.DomikTypeId,
+                    p.Ordinal,
+                });
+
             modelBuilder.Entity<WeatherTypeEffect>()
                 .HasKey(p => new
                 {
@@ -315,13 +344,6 @@ namespace Domiki.Web.Data
                 .HasOne(s => s.WeatherType)
                 .WithMany()
                 .HasForeignKey(e => e.WeatherTypeId);
-
-            modelBuilder.Entity<ExpeditionLoot>()
-                .HasKey(p => new
-                {
-                    p.ExpeditionTypeId,
-                    p.ResourceTypeId,
-                });
 
             modelBuilder.Entity<ExpeditionLoot>()
                 .HasOne(s => s.ExpeditionType)
@@ -388,6 +410,18 @@ namespace Domiki.Web.Data
                 .HasOne(s => s.ResourceType)
                 .WithMany()
                 .HasForeignKey(e => e.ResourceTypeId);
+
+            modelBuilder.Entity<TolokaTypeEffect>()
+                .HasKey(p => new
+                {
+                    p.TolokaTypeId,
+                    p.DomikTypeId,
+                });
+
+            modelBuilder.Entity<TolokaTypeEffect>()
+                .HasOne(s => s.TolokaType)
+                .WithMany()
+                .HasForeignKey(e => e.TolokaTypeId);
 
             modelBuilder.Entity<Toloka>()
                 .HasOne(s => s.TolokaType)

@@ -2,6 +2,8 @@
 using System.Text;
 using Domiki.Web.Business.Core;
 using Domiki.Web.Business.Models;
+using GoalConditionType = Domiki.Web.Data.GoalConditionType;
+using StarterGoal = Domiki.Web.Data.StarterGoal;
 
 namespace Domiki.BalanceSim;
 
@@ -35,6 +37,7 @@ public sealed class SimulationData
     public required ExpeditionType[] ExpeditionTypes { get; init; }
     public required Trait[] Traits { get; init; }
     public required ModificatorType[] ModificatorTypes { get; init; }
+    public required StarterGoal[] StarterGoals { get; init; }
     public required Dictionary<int, DomikType> DomikTypeById { get; init; }
     public required Dictionary<int, Receipt> ReceiptById { get; init; }
     public required Dictionary<int, ResourceType> ResourceTypeById { get; init; }
@@ -54,6 +57,7 @@ public sealed class SimulationData
         var expeditionTypes = resourceManager.GetExpeditionTypes().OrderBy(x => x.Id).ToArray();
         var traits = resourceManager.GetTraits().OrderBy(x => x.Id).ToArray();
         var modificatorTypes = resourceManager.GetModificatorTypes().OrderBy(x => x.Id).ToArray();
+        var starterGoals = resourceManager.GetStarterGoals().OrderBy(x => x.Ordinal).ToArray();
         var plodder = modificatorTypes.Single(x => x.LogicName == "plodder").Id;
 
         return new SimulationData
@@ -67,6 +71,7 @@ public sealed class SimulationData
             ExpeditionTypes = expeditionTypes,
             Traits = traits,
             ModificatorTypes = modificatorTypes,
+            StarterGoals = starterGoals,
             DomikTypeById = domikTypes.ToDictionary(x => x.Id),
             ReceiptById = receipts.ToDictionary(x => x.Id),
             ResourceTypeById = resourceTypes.ToDictionary(x => x.Id),
@@ -99,6 +104,13 @@ public sealed class BalanceSimulator
 
         return new SimulationReport(runs);
     }
+
+    public IReadOnlyList<SimulationRunResult> RunFtue()
+    {
+        return Enumerable.Range(1, 7)
+            .Select(seed => new SimulationRun(_data, ScenarioKind.Casual, seed, ftue: true).Run())
+            .ToArray();
+    }
 }
 
 public sealed class SimulationReport
@@ -125,16 +137,26 @@ public sealed class SimulationRunResult
     public double IdleShare { get; set; }
     public double RestShare { get; set; }
     public int LongestStallSeconds { get; set; }
+    public int? FirstIncomeSeconds { get; set; }
+    public int? FirstUpgradeStartSeconds { get; set; }
+    public int ActionsFirst15Min { get; set; }
+    public int InfeasibleOrdersDay1 { get; set; }
+    public int GoalsCompleted48h { get; set; }
 }
 
 internal sealed class SimulationRun
 {
-    private const int HorizonSeconds = 45 * 24 * 60 * 60;
+    private const int DefaultHorizonSeconds = 45 * 24 * 60 * 60;
+    private const int FtueHorizonSeconds = 48 * 60 * 60;
     private const int StallWarningSeconds = 24 * 60 * 60;
     private const int BuyResourceCoinReserveMultiplier = 20;
+    private const int StartingBarracksTypeId = 2;
+    private const int StartingClayMineTypeId = 5;
 
     private readonly SimulationData _data;
     private readonly ScenarioKind _scenario;
+    private readonly bool _ftue;
+    private readonly int _horizonSeconds;
     private readonly Random _random;
     private readonly PriorityQueue<SimulationEvent, EventPriority> _events = new();
     private readonly SimulationState _state = new();
@@ -144,10 +166,12 @@ internal sealed class SimulationRun
     private int _lastActionTime;
     private bool _finished;
 
-    public SimulationRun(SimulationData data, ScenarioKind scenario, int seed)
+    public SimulationRun(SimulationData data, ScenarioKind scenario, int seed, bool ftue = false)
     {
         _data = data;
         _scenario = scenario;
+        _ftue = ftue;
+        _horizonSeconds = ftue ? FtueHorizonSeconds : DefaultHorizonSeconds;
         _random = new Random(seed);
         _result = new SimulationRunResult
         {
@@ -164,6 +188,9 @@ internal sealed class SimulationRun
     public SimulationRunResult Run()
     {
         AddResource(1, DomikManager.StartingCoins);
+        AddStartingDomik(StartingBarracksTypeId);
+        AddStartingDomik(StartingClayMineTypeId);
+        EnsureWorkers();
         _state.CurrentWeatherTypeId = PickWeatherType().Id;
         ObserveVillageLevel();
         Schedule(SimulationEventKind.WeatherBoundary, WeatherManager.WeatherPeriodSeconds, null);
@@ -182,8 +209,8 @@ internal sealed class SimulationRun
 
         if (!_finished)
         {
-            AdvanceTo(HorizonSeconds);
-            _now = HorizonSeconds;
+            AdvanceTo(_horizonSeconds);
+            _now = _horizonSeconds;
         }
 
         FinishResult();
@@ -192,6 +219,16 @@ internal sealed class SimulationRun
 
     private void ScheduleLogins()
     {
+        if (_ftue)
+        {
+            foreach (var time in GetFtueLoginSeconds())
+            {
+                Schedule(SimulationEventKind.Login, time, null);
+            }
+
+            return;
+        }
+
         for (var day = 0; day < 45; day++)
         {
             foreach (var secondOfDay in GetLoginSeconds())
@@ -199,6 +236,14 @@ internal sealed class SimulationRun
                 Schedule(SimulationEventKind.Login, day * 24 * 60 * 60 + secondOfDay, null);
             }
         }
+    }
+
+    private static IEnumerable<int> GetFtueLoginSeconds()
+    {
+        return Enumerable.Range(0, 46).Select(x => x * 60)
+            .Concat(Enumerable.Range(12 * 60, 16).Select(x => x * 60))
+            .Concat(Enumerable.Range(32 * 60, 16).Select(x => x * 60))
+            .Concat(Enumerable.Range(44 * 60 + 30, 16).Select(x => x * 60));
     }
 
     private IEnumerable<int> GetLoginSeconds()
@@ -214,7 +259,7 @@ internal sealed class SimulationRun
 
     private void Schedule(SimulationEventKind kind, int time, object? target)
     {
-        if (time > HorizonSeconds)
+        if (time > _horizonSeconds)
         {
             return;
         }
@@ -289,6 +334,7 @@ internal sealed class SimulationRun
 
     private void Login()
     {
+        AdvanceGoals(null);
         EnsureOrderBoard();
         var actions = CompleteOrders();
         EnsureBlueprints();
@@ -311,6 +357,44 @@ internal sealed class SimulationRun
         {
             RecordAction();
         }
+    }
+
+    private void AdvanceGoals(Func<StarterGoal, bool>? actionMatch)
+    {
+        var actionAvailable = actionMatch != null;
+        while (true)
+        {
+            var goal = _data.StarterGoals.FirstOrDefault(x => !_state.CompletedGoalIds.Contains(x.Id));
+            if (goal == null)
+            {
+                return;
+            }
+
+            var actionCompleted = actionAvailable && actionMatch!(goal);
+            if (!actionCompleted && !IsGoalStateConditionMet(goal))
+            {
+                return;
+            }
+
+            AddResource(1, goal.RewardCoins);
+            _state.CompletedGoalIds.Add(goal.Id);
+            CountFtueAction();
+            if (actionCompleted)
+            {
+                actionAvailable = false;
+            }
+        }
+    }
+
+    private bool IsGoalStateConditionMet(StarterGoal goal)
+    {
+        return goal.ConditionType switch
+        {
+            GoalConditionType.BuildDomikType => _state.Domiks.Any(x => x.Type.Id == goal.Param),
+            GoalConditionType.UpgradeDomikToLevel => _state.Domiks.Any(x => x.Level >= goal.Param && (goal.Param2 == 0 || x.Type.Id == goal.Param2)),
+            GoalConditionType.ReachVillageLevel => GetVillageLevel() >= goal.Param,
+            _ => false,
+        };
     }
 
     private bool CompleteOrders()
@@ -336,6 +420,8 @@ internal sealed class SimulationRun
             EnsureOrderBoard();
             EnsureBlueprints();
             ObserveVillageLevel();
+            CountFtueAction();
+            AdvanceGoals(goal => goal.ConditionType == GoalConditionType.CompleteAnyOrder);
             completed = true;
         }
 
@@ -364,21 +450,42 @@ internal sealed class SimulationRun
                 return;
             }
 
-            var neighbor = openNeighbors[_random.Next(openNeighbors.Length)];
+            var producible = GetProducibleResourceTypeIds();
+            var pairs = openNeighbors
+                .SelectMany(n => new[] { (Neighbor: n, ResourceTypeId: n.PrimaryResourceTypeId), (Neighbor: n, ResourceTypeId: n.SecondaryResourceTypeId ?? 0) })
+                .Where(x => x.ResourceTypeId != 0 && producible.Contains(x.ResourceTypeId))
+                .ToArray();
+            Neighbor neighbor;
+            int resourceTypeId;
+            if (pairs.Length > 0)
+            {
+                (neighbor, resourceTypeId) = pairs[_random.Next(pairs.Length)];
+            }
+            else
+            {
+                neighbor = openNeighbors[_random.Next(openNeighbors.Length)];
+                resourceTypeId = neighbor.PrimaryResourceTypeId;
+            }
+
             var tier = OrderManager.Tiers[_random.Next(OrderManager.Tiers.Length)];
-            var quantity = OrderManager.GetOrderQuantity(tier, neighbor.PrimaryResourceTypeId);
+            var capacity = GetOrderCapacity(resourceTypeId);
+            var quantity = OrderManager.GetEffectiveQuantity(tier, resourceTypeId, capacity);
             var order = new SimOrder
             {
                 Id = ++_state.NextOrderId,
                 Neighbor = neighbor,
-                ResourceTypeId = neighbor.PrimaryResourceTypeId,
+                ResourceTypeId = resourceTypeId,
                 Quantity = quantity,
-                RewardCoins = (int)Math.Round(quantity * ResourceManager.GetMarketValue(neighbor.PrimaryResourceTypeId) * tier.DemandMultiplier, MidpointRounding.AwayFromZero),
+                RewardCoins = (int)Math.Round(quantity * ResourceManager.GetMarketValue(resourceTypeId) * tier.DemandMultiplier, MidpointRounding.AwayFromZero),
                 RewardGold = tier.RewardGold,
                 RewardReputation = tier.RewardReputation,
                 ExpireAt = _now + tier.DurationSeconds,
             };
             _state.Orders.Add(order);
+            if (_now < 24 * 60 * 60 && quantity > capacity * (tier.DurationSeconds / 3600.0))
+            {
+                _result.InfeasibleOrdersDay1++;
+            }
             Schedule(SimulationEventKind.OrderExpired, order.ExpireAt, order);
         }
     }
@@ -433,10 +540,12 @@ internal sealed class SimulationRun
         }
         else
         {
+            _result.FirstUpgradeStartSeconds ??= _now;
             candidate.Domik.UpgradeFinishAt = _now + candidate.Level.UpgradeSeconds;
             Schedule(SimulationEventKind.DomikFinished, candidate.Domik.UpgradeFinishAt.Value, candidate.Domik);
         }
 
+        CountFtueAction();
         return true;
     }
 
@@ -730,6 +839,12 @@ internal sealed class SimulationRun
 
         DeductResources(inputs);
         var duration = CalculateDuration(domik.Type.Id, receipt, useOptional, workers);
+        if (receipt.DurationSeconds <= DomikManager.ZealMaxRecipeSeconds && domik.Type.LogicName != "market" && _state.ZealCharges > 0)
+        {
+            var mult = _state.ZealCharges > DomikManager.ZealX4Threshold ? 4 : 2;
+            duration = Math.Max(1, duration / mult);
+            _state.ZealCharges--;
+        }
         var manufacture = new SimManufacture
         {
             Domik = domik,
@@ -738,7 +853,8 @@ internal sealed class SimulationRun
             UseOptional = useOptional && receipt.OptionalInputResources.Length > 0,
             AutoRepeat = true,
             FinishAt = _now + duration,
-            OutputPercent = GetWeatherOutputPercent(domik.Type.Id),
+            DurationSeconds = duration,
+            OutputPercent = GetWeatherOutputPercent(domik.Type.Id) + (useOptional && receipt.OptionalInputResources.Length > 0 ? receipt.OutputBonusPercent : 0),
         };
         domik.Manufactures.Add(manufacture);
         foreach (var worker in workers)
@@ -747,6 +863,13 @@ internal sealed class SimulationRun
         }
 
         Schedule(SimulationEventKind.ManufactureFinished, manufacture.FinishAt, manufacture);
+        CountFtueAction();
+        AdvanceGoals(goal => goal.ConditionType switch
+        {
+            GoalConditionType.StartAnyManufacture => receipt.DurationSeconds >= goal.Param,
+            GoalConditionType.SellAnyResource => receipt.LogicName?.StartsWith("sell_") == true,
+            _ => false,
+        });
         return true;
     }
 
@@ -768,10 +891,6 @@ internal sealed class SimulationRun
     private int CalculateDuration(int domikTypeId, Receipt receipt, bool useOptional, IReadOnlyList<SimWorker> workers)
     {
         var duration = receipt.DurationSeconds;
-        if (useOptional && receipt.OptionalInputResources.Length > 0)
-        {
-            duration = receipt.DurationSeconds * (100 - receipt.SpeedupPercent) / 100;
-        }
 
         var averageTraitSpeedup = workers.Average(x => -x.Trait.DurationPercent);
         duration = (int)Math.Ceiling(duration * (100 - averageTraitSpeedup) / 100);
@@ -789,7 +908,20 @@ internal sealed class SimulationRun
 
         foreach (var output in manufacture.Receipt.OutputResources)
         {
-            AddResource(output.Type.Id, Math.Max(1, (int)Math.Round(output.Value * manufacture.OutputPercent / 100.0)));
+            var granted = Math.Max(1, (int)Math.Round(output.Value * manufacture.OutputPercent / 100.0));
+            if (output.Type.Id == 5)
+            {
+                var day = _now / 86400;
+                if (_state.GoldMinedDay != day)
+                {
+                    _state.GoldMinedDay = day;
+                    _state.GoldMinedToday = 0;
+                }
+                var allowed = Math.Max(0, manufacture.Domik.Level - _state.GoldMinedToday);
+                granted = Math.Min(granted, allowed);
+                _state.GoldMinedToday += granted;
+            }
+            AddResource(output.Type.Id, granted);
         }
 
         foreach (var worker in manufacture.Workers)
@@ -797,7 +929,7 @@ internal sealed class SimulationRun
             worker.Skills[manufacture.Domik.Type.Id] = worker.Skills.GetValueOrDefault(manufacture.Domik.Type.Id) + 1;
             if (!worker.Trait.NoFatigue)
             {
-                worker.WorkedSeconds += manufacture.Receipt.DurationSeconds;
+                worker.WorkedSeconds += manufacture.DurationSeconds;
                 if (worker.WorkedSeconds >= DomikManager.FatigueThresholdSeconds)
                 {
                     worker.RestUntil = _now + DomikManager.RestSeconds * (100 - Math.Min(DomikManager.RestComfortMaxPercent, 0)) / 100;
@@ -939,7 +1071,10 @@ internal sealed class SimulationRun
 
             var loot = PickLoot(pool, groupLuck);
             gotRare |= loot.IsRare;
-            AddResource(loot.ResourceTypeId, _random.Next(loot.MinValue, loot.MaxValue + 1));
+            if (loot.Kind == Domiki.Web.Data.ExpeditionLootKind.Resource)
+            {
+                AddResource(loot.ResourceTypeId.Value, _random.Next(loot.MinValue, loot.MaxValue + 1));
+            }
         }
 
         _state.ExpeditionsSincePity = gotRare ? 0 : _state.ExpeditionsSincePity + 1;
@@ -987,8 +1122,8 @@ internal sealed class SimulationRun
     private static double GetLootEv(ExpeditionLoot[] loot, int luckPercent)
     {
         var totalWeight = loot.Sum(x => ExpeditionManager.ScaleWeight(x.IsRare, x.Weight, luckPercent));
-        return loot.Sum(x => ExpeditionManager.ScaleWeight(x.IsRare, x.Weight, luckPercent) / (double)totalWeight
-            * ((x.MinValue + x.MaxValue) / 2.0) * ResourceManager.GetMarketValue(x.ResourceTypeId));
+        return loot.Where(x => x.Kind == Domiki.Web.Data.ExpeditionLootKind.Resource).Sum(x => ExpeditionManager.ScaleWeight(x.IsRare, x.Weight, luckPercent) / (double)totalWeight
+            * ((x.MinValue + x.MaxValue) / 2.0) * ResourceManager.GetMarketValue(x.ResourceTypeId.Value));
     }
 
     private IEnumerable<Resource> GetExpeditionCost(ExpeditionType type)
@@ -1043,12 +1178,18 @@ internal sealed class SimulationRun
             useOptional = false;
         }
 
-        var output = receipt.OutputResources.Sum(x => Math.Max(1, (int)Math.Round(x.Value * outputPercent / 100.0)) * ResourceManager.GetMarketValue(x.Type.Id));
+        var effectiveOutputPercent = useOptional && receipt.OptionalInputResources.Length > 0 ? outputPercent + receipt.OutputBonusPercent : outputPercent;
+        var output = receipt.OutputResources.Sum(x => Math.Max(1, (int)Math.Round(x.Value * effectiveOutputPercent / 100.0)) * ResourceManager.GetMarketValue(x.Type.Id));
         var input = GetInputs(receipt, useOptional).Sum(x => x.Value * ResourceManager.GetMarketValue(x.Type.Id));
-        var duration = useOptional
-            ? receipt.DurationSeconds * (100 - receipt.SpeedupPercent) / 100
-            : receipt.DurationSeconds;
+        var duration = receipt.DurationSeconds;
         return (output - input) / (duration / 3600.0);
+    }
+
+    private void AddStartingDomik(int typeId)
+    {
+        var domik = new SimDomik { Id = ++_state.NextDomikId, Type = _data.DomikTypeById[typeId], Level = 1 };
+        _state.Domiks.Add(domik);
+        _result.FirstDomikTimes.TryAdd(domik.Type.Id, _now);
     }
 
     private void EnsureWorkers()
@@ -1074,6 +1215,26 @@ internal sealed class SimulationRun
     private int GetCapacity()
     {
         return _state.Domiks.Where(x => x.Level > 0).Sum(x => GetCapacity(x.Type, GetDomikLevel(x)));
+    }
+
+    private HashSet<int> GetProducibleResourceTypeIds()
+    {
+        return _state.Domiks
+            .Where(x => x.Level >= 1)
+            .SelectMany(x => GetDomikLevel(x).Receipts)
+            .SelectMany(r => _data.ReceiptById[r.Id].OutputResources)
+            .Select(r => r.Type.Id)
+            .ToHashSet();
+    }
+
+    private int GetOrderCapacity(int resourceTypeId)
+    {
+        var slots = _state.Domiks
+            .Where(x => x.Level >= 1)
+            .Select(GetDomikLevel)
+            .Where(level => level.Receipts.Any(r => _data.ReceiptById[r.Id].OutputResources.Any(o => o.Type.Id == resourceTypeId)))
+            .Sum(level => level.MaxManufactureCount);
+        return Math.Min(GetCapacity(), slots);
     }
 
     private int GetCapacity(DomikType type, UpgradeLevel level)
@@ -1118,6 +1279,7 @@ internal sealed class SimulationRun
 
     private void FinishResult()
     {
+        _result.GoalsCompleted48h = _state.CompletedGoalIds.Count;
         if (_result.ContentCompleteTime == null && _now - _lastActionTime > StallWarningSeconds)
         {
             _result.LongestStallSeconds = Math.Max(_result.LongestStallSeconds, _now - _lastActionTime);
@@ -1201,6 +1363,18 @@ internal sealed class SimulationRun
     private void AddResource(int resourceTypeId, int value)
     {
         _state.Resources[resourceTypeId] = GetResource(resourceTypeId) + value;
+        if (resourceTypeId == 1 && value > 0 && _now > 0)
+        {
+            _result.FirstIncomeSeconds ??= _now;
+        }
+    }
+
+    private void CountFtueAction()
+    {
+        if (_now <= 15 * 60)
+        {
+            _result.ActionsFirst15Min++;
+        }
     }
 
     private void RemoveResource(int resourceTypeId, int value)
@@ -1213,16 +1387,20 @@ internal sealed class SimulationRun
         public Dictionary<int, int> Resources { get; } = [];
         public Dictionary<int, int> Reputation { get; } = [];
         public HashSet<int> OwnedBlueprints { get; } = [];
+        public HashSet<int> CompletedGoalIds { get; } = [];
         public List<SimDomik> Domiks { get; } = [];
         public List<SimWorker> Workers { get; } = [];
         public List<SimOrder> Orders { get; } = [];
         public List<SimExpedition> Expeditions { get; } = [];
         public int CurrentWeatherTypeId { get; set; }
+        public int ZealCharges { get; set; } = DomikManager.ZealStartCharges;
         public int ExpeditionsSincePity { get; set; }
         public int NextDomikId { get; set; }
         public int NextWorkerId { get; set; }
         public int NextOrderId { get; set; }
         public int NextExpeditionId { get; set; }
+        public int GoldMinedToday { get; set; }
+        public int GoldMinedDay { get; set; } = -1;
         public long TotalWorkerSeconds { get; set; }
         public long FreeWorkerSeconds { get; set; }
         public long RestWorkerSeconds { get; set; }
@@ -1257,6 +1435,7 @@ internal sealed class SimulationRun
         public required bool UseOptional { get; init; }
         public required bool AutoRepeat { get; init; }
         public required int FinishAt { get; init; }
+        public required int DurationSeconds { get; init; }
         public required int OutputPercent { get; init; }
     }
 
@@ -1476,5 +1655,58 @@ public sealed class BalanceReport
         }
 
         return (numerator.Value / (double)denominator.Value).ToString("F2", RussianCulture) + "×";
+    }
+}
+
+public sealed class FtueReport
+{
+    private readonly IReadOnlyList<SimulationRunResult> _runs;
+
+    public FtueReport(IReadOnlyList<SimulationRunResult> runs)
+    {
+        _runs = runs;
+    }
+
+    public string Render()
+    {
+        var output = new StringBuilder();
+        output.AppendLine("FTUE-симулятор: казуальный сценарий, 48 ч, сиды 1–7.");
+        output.AppendLine("  Метрика                         Медиана      Min/max       Цель");
+        RenderTime(output, "Первое подкрепление", _runs.Select(x => x.FirstIncomeSeconds), 300);
+        RenderTime(output, "Первый старт улучшения", _runs.Select(x => x.FirstUpgradeStartSeconds), 2700);
+        RenderInt(output, "Действия за первые 15 мин", _runs.Select(x => x.ActionsFirst15Min), value => value >= 8, ">= 8");
+        RenderInt(output, "Невыполнимые заказы, день 1", _runs.Select(x => x.InfeasibleOrdersDay1), value => value == 0, "= 0");
+        RenderInt(output, "Наказов выполнено за 48 ч", _runs.Select(x => x.GoalsCompleted48h), null, "—");
+        return output.ToString().TrimEnd();
+    }
+
+    private static void RenderTime(StringBuilder output, string name, IEnumerable<int?> values, int target)
+    {
+        var all = values.ToArray();
+        var median = all.OrderBy(x => x ?? int.MaxValue).ElementAt(all.Length / 2);
+        var min = all.Min(x => x ?? int.MaxValue);
+        var max = all.Max(x => x ?? int.MaxValue);
+        var targetText = $"<= {target} с";
+        var status = median != null && median <= target ? "OK" : "FAIL";
+        output.AppendLine($"  {name.PadRight(31)}  {FormatTime(median).PadLeft(9)}  {FormatRange(min, max).PadLeft(11)}  {targetText} {status}");
+    }
+
+    private static void RenderInt(StringBuilder output, string name, IEnumerable<int> values, Func<int, bool>? success, string targetText)
+    {
+        var all = values.OrderBy(x => x).ToArray();
+        var median = all[all.Length / 2];
+        var status = success == null ? string.Empty : (success(median) ? " OK" : " FAIL");
+        var range = $"{all[0]}–{all[^1]}";
+        output.AppendLine($"  {name.PadRight(31)}  {median,9}  {range.PadLeft(11)}  {targetText}{status}");
+    }
+
+    private static string FormatTime(int? seconds)
+    {
+        return seconds == null ? "не достигнуто" : seconds.Value + " с";
+    }
+
+    private static string FormatRange(int min, int max)
+    {
+        return min == int.MaxValue ? "—" : min == max ? min + " с" : $"{min}–{max} с";
     }
 }

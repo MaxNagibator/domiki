@@ -1,20 +1,15 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ApiError, getGameState } from '../services/api';
 import { useToast } from '../services/toast';
 import { formatDuration } from '../utils/time';
 import { domikLore } from '../utils/domikLore';
-import type { DecorStateDto, DomikTypeDto, ReceiptDto, ResourceDto, ResourceTypeDto, WeatherStateDto } from '../types/api';
-import { DomikSprite, MechanicSprite } from './sprites';
+import { resourceLore } from '../utils/resourceLore';
+import type { DecorStateDto, DomikTypeDto, ReceiptDto, ResourceDto, ResourceTypeDto, VillageLevelDto, WeatherStateDto } from '../types/api';
+import { DecorSprite, DomikSprite, MechanicSprite, ResourceSprite, WeatherSprite } from './sprites';
 import { AnimatedDomikSprite } from './AnimatedDomikSprite';
 import { PixelLoader } from './PixelLoader';
 import ChevronDownIcon from 'pixelarticons/svg/chevron-down.svg?react';
-import CloudSunIcon from 'pixelarticons/svg/cloud-sun.svg?react';
-import CloudIcon from 'pixelarticons/svg/cloud.svg?react';
-import FireIcon from 'pixelarticons/svg/fire.svg?react';
-import GardenIcon from 'pixelarticons/svg/tree.svg?react';
-import FenceIcon from 'pixelarticons/svg/grid-3x2.svg?react';
-import FlowerIcon from 'pixelarticons/svg/heart.svg?react';
-import FountainIcon from 'pixelarticons/svg/home.svg?react';
 
 interface Catalog {
     domikTypes: DomikTypeDto[];
@@ -22,20 +17,8 @@ interface Catalog {
     receipts: ReceiptDto[];
     weather: WeatherStateDto;
     decor: DecorStateDto;
+    villageLevel: VillageLevelDto;
 }
-
-const WEATHER_ICONS: Record<string, typeof CloudSunIcon> = {
-    clear: CloudSunIcon,
-    rain: CloudIcon,
-    drought: FireIcon,
-};
-
-const DECOR_ICONS: Record<string, typeof FenceIcon> = {
-    fence: FenceIcon,
-    flowerbed: FlowerIcon,
-    garden: GardenIcon,
-    fountain: FountainIcon,
-};
 
 interface Mechanic {
     key: string;
@@ -51,7 +34,7 @@ const MECHANICS: Mechanic[] = [
         logic: 'obzhitost',
         name: 'Обжитость',
         teaser: 'уровень деревни, открывает контент',
-        description: 'Уровень деревни – не опыт, а производная от её состояния: сумма уровней построек ×1, жители ×2, вехи репутации ×5, очки уюта. Нафармить дёшево нельзя. Пороги обжитости открывают новые постройки, соседей, приросты и здания механик.',
+        description: 'Уровень деревни – не опыт, а производная от её состояния: сумма уровней построек ×1, жители ×2, вехи репутации ×5, очки уюта. Нафармить дёшево нельзя. Ниже – твоя обжитость сейчас и ближайшие открытия.',
     },
     {
         key: 'orders',
@@ -100,7 +83,7 @@ const MECHANICS: Mechanic[] = [
         logic: 'toloka',
         name: 'Толока',
         teaser: 'общий проект деревни',
-        description: 'Толока – общий проект всех игроков: «на мост нужно 5000 камня со всех». Каждый вкладывает в общий счётчик, и при достижении цели все участники получают временный бафф и отметку. Кооперация без риска. Открывается зданием «Сходня».',
+        description: 'Толока – общий проект всех игроков: мост, амбар или печь. Каждый вкладывает своё сырьё в общий счётчик; цель растёт с числом вкладчиков. При достижении цели все участники получают временный тематический бафф +40 %: амбар ускоряет добычу дерева и глины, печь – переделы в кузнице и мастерской, мост добавляет монет к наградам заказов. Выбор проекта – решение, а не фон. Кооперация без риска. Открывается зданием «Сборня».',
     },
     {
         key: 'decor',
@@ -109,6 +92,14 @@ const MECHANICS: Mechanic[] = [
         teaser: 'уют ускоряет отдых',
         description: 'Заборы, фонтаны, сады – сток излишков ресурсов. Каждый предмет даёт очки уюта, а чем уютнее деревня, тем быстрее трудяги отдыхают в бараке.',
     },
+];
+
+const RES_POP_WIDTH = 260;
+
+const METAL_CHAIN: { logicName: string; name: string; where: string }[] = [
+    { logicName: 'ore', name: 'Руда', where: 'Рудник' },
+    { logicName: 'iron', name: 'Железо', where: 'Кузница' },
+    { logicName: 'tool', name: 'Инструмент', where: 'Кузница + доски' },
 ];
 
 interface ResChipsProps {
@@ -125,7 +116,7 @@ const ResChips = ({ items, resourceTypes }: ResChipsProps) => (
             }
             return (
                 <span key={res.typeId} className="wiki-chip" title={type.name}>
-                    <img src={'/images/resourceTypes/' + type.logicName + '.png'} alt={type.name} />
+                    <ResourceSprite logicName={type.logicName} aria-hidden="true" />
                     {res.value}
                 </span>
             );
@@ -149,7 +140,7 @@ const RecipeCard = ({ receipt, resourceTypes }: RecipeCardProps) => (
         {receipt.optionalInputResources.length > 0 && (
             <div className="wiki-recipe-opt">
                 ускорение: <ResChips items={receipt.optionalInputResources} resourceTypes={resourceTypes} />
-                {receipt.speedupPercent > 0 && <span> (−{receipt.speedupPercent}% времени)</span>}
+                {receipt.outputBonusPercent > 0 && <span> (+{receipt.outputBonusPercent}% выхода)</span>}
             </div>
         )}
         <div className="wiki-recipe-meta">
@@ -172,6 +163,16 @@ export const Wiki = () => {
         }
         return next;
     });
+    const [resFlyout, setResFlyout] = useState<{ type: ResourceTypeDto; top: number; left: number } | null>(null);
+    const openResFlyout = (type: ResourceTypeDto, el: HTMLElement) => {
+        if (resourceLore[type.logicName] == null) {
+            return;
+        }
+        const rect = el.getBoundingClientRect();
+        const left = Math.max(12, Math.min(rect.left, window.innerWidth - RES_POP_WIDTH - 12));
+        setResFlyout({ type, top: rect.bottom + 6, left });
+    };
+    const closeResFlyout = () => setResFlyout(null);
     const [openMechanics, setOpenMechanics] = useState<ReadonlySet<string>>(new Set());
     const toggleMechanic = (key: string) => setOpenMechanics(prev => {
         const next = new Set(prev);
@@ -195,6 +196,7 @@ export const Wiki = () => {
                     receipts: state.receipts,
                     weather: state.weather,
                     decor: state.decor,
+                    villageLevel: state.villageLevel,
                 });
             } catch (err) {
                 if (err instanceof DOMException && err.name === 'AbortError') {
@@ -213,7 +215,7 @@ export const Wiki = () => {
         return <div className="wiki"><PixelLoader label="Загрузка справочника…" /></div>;
     }
 
-    const { domikTypes, resourceTypes, receipts, weather, decor } = catalog;
+    const { domikTypes, resourceTypes, receipts, weather, decor, villageLevel } = catalog;
     const receiptById = (id: number) => receipts.find(x => x.id === id);
     const buildings = [...domikTypes].sort((a, b) => a.unlockLevel - b.unlockLevel || a.id - b.id);
 
@@ -227,14 +229,44 @@ export const Wiki = () => {
 
             <section className="wiki-section">
                 <h2 className="section-head">Ресурсы</h2>
+                <p className="wiki-res-hint">Наведи на ресурс – всплывёт карточка: что это, откуда берётся и зачем нужен.</p>
                 <div className="wiki-res-grid">
                     {resourceTypes.map(type => (
-                        <div key={type.id} className="wiki-res-cell pixel-panel" title={type.name}>
-                            <img src={'/images/resourceTypes/' + type.logicName + '.png'} alt={type.name} />
+                        <button
+                            key={type.id}
+                            type="button"
+                            className={'wiki-res-cell pixel-panel' + (resFlyout?.type.id === type.id ? ' active' : '')}
+                            onMouseEnter={e => { openResFlyout(type, e.currentTarget); }}
+                            onMouseLeave={closeResFlyout}
+                            onFocus={e => { openResFlyout(type, e.currentTarget); }}
+                            onBlur={closeResFlyout}
+                        >
+                            <ResourceSprite logicName={type.logicName} aria-hidden="true" />
                             <span>{type.name}</span>
-                        </div>
+                        </button>
                     ))}
                 </div>
+                {resFlyout != null && (() => {
+                    const lore = resourceLore[resFlyout.type.logicName];
+                    if (lore == null) {
+                        return null;
+                    }
+                    return createPortal(
+                        <div className="wiki-res-pop pixel-panel" role="tooltip" style={{ top: resFlyout.top, left: resFlyout.left, width: RES_POP_WIDTH }}>
+                            <div className="wiki-res-pop-head">
+                                <ResourceSprite logicName={resFlyout.type.logicName} size={40} aria-hidden="true" />
+                                <span className="wiki-res-pop-name">{resFlyout.type.name}</span>
+                            </div>
+                            <p className="wiki-res-pop-flavor">{lore.flavor}</p>
+                            <dl className="wiki-res-facts">
+                                <dt>Откуда</dt>
+                                <dd>{lore.source}</dd>
+                                <dt>Зачем</dt>
+                                <dd>{lore.use}</dd>
+                            </dl>
+                        </div>,
+                        document.body);
+                })()}
             </section>
 
             <section className="wiki-section">
@@ -269,7 +301,7 @@ export const Wiki = () => {
                                                     if (rt == null) {
                                                         return null;
                                                     }
-                                                    return <img key={tid} src={'/images/resourceTypes/' + rt.logicName + '.png'} alt={rt.name} title={rt.name} />;
+                                                    return <ResourceSprite key={tid} logicName={rt.logicName} aria-label={rt.name} />;
                                                 })}
                                             </span>
                                         )}
@@ -289,7 +321,7 @@ export const Wiki = () => {
                                                     <div className="wiki-level-head">
                                                         <span className="wiki-level-badge">Ур. {level.value}</span>
                                                         {level.resources.length > 0 && (
-                                                            <span className="wiki-level-cost">апгрейд: <ResChips items={level.resources} resourceTypes={resourceTypes} /></span>
+                                                            <span className="wiki-level-cost">{level.value === 1 ? 'постройка' : 'апгрейд'}: <ResChips items={level.resources} resourceTypes={resourceTypes} /></span>
                                                         )}
                                                     </div>
                                                     {levelReceipts.map(receipt => (
@@ -303,6 +335,25 @@ export const Wiki = () => {
                             </div>
                         );
                     })}
+                </div>
+            </section>
+
+            <section className="wiki-section">
+                <h2 className="section-head">Переделы</h2>
+                <div className="wiki-chain pixel-panel">
+                    <div className="wiki-chain-flow">
+                        {METAL_CHAIN.map((step, i) => (
+                            <Fragment key={step.logicName}>
+                                {i > 0 && <span className="wiki-chain-arrow" aria-hidden="true">→</span>}
+                                <div className="wiki-chain-node">
+                                    <ResourceSprite logicName={step.logicName} size={48} aria-hidden="true" />
+                                    <span className="wiki-chain-name">{step.name}</span>
+                                    <span className="wiki-chain-where">{step.where}</span>
+                                </div>
+                            </Fragment>
+                        ))}
+                    </div>
+                    <p className="wiki-chain-note">Сырьё сначала перерабатывают: руда груба, а в паре переделов становится добротным инструментом. До обжитости 20 инструмент достаётся только из экспедиций.</p>
                 </div>
             </section>
 
@@ -327,11 +378,47 @@ export const Wiki = () => {
                                 {open && (
                                     <div className="wiki-mechanic-body">
                                         <p>{m.description}</p>
+                                        {m.key === 'village' && (
+                                            <div className="wiki-mechanic-live">
+                                                <span className="wiki-mechanic-live-label wiki-village-level">
+                                                    <MechanicSprite logicName="obzhitost" size={32} className="weather-chip-ico" aria-hidden="true" />
+                                                    Текущая обжитость: {villageLevel.level}
+                                                </span>
+                                                <dl className="wiki-res-facts">
+                                                    <dt>Постройки</dt>
+                                                    <dd>{villageLevel.buildings} × 1 = {villageLevel.buildings}</dd>
+                                                    <dt>Жители</dt>
+                                                    <dd>{villageLevel.residents} × 2 = {villageLevel.residents * 2}</dd>
+                                                    <dt>Вехи репутации</dt>
+                                                    <dd>{villageLevel.reputation} × 5 = {villageLevel.reputation * 5}</dd>
+                                                    <dt>Уют</dt>
+                                                    <dd>{Math.min(villageLevel.comfort, 50)} × 1 = {Math.min(villageLevel.comfort, 50)}</dd>
+                                                    <dt>Итого</dt>
+                                                    <dd>{villageLevel.level}</dd>
+                                                </dl>
+                                                {villageLevel.upcomingUnlocks.length > 0 && (
+                                                    <>
+                                                        <span className="wiki-mechanic-live-label">Ближайшие открытия:</span>
+                                                        <dl className="wiki-res-facts">
+                                                            {villageLevel.upcomingUnlocks.slice(0, 5).map(unlock => (
+                                                                <Fragment key={`${unlock.label}-${unlock.level ?? unlock.requirement}`}>
+                                                                    <dt>{unlock.label}</dt>
+                                                                    <dd>{unlock.level != null ? `при обжитости ${unlock.level}` : unlock.requirement}</dd>
+                                                                </Fragment>
+                                                            ))}
+                                                        </dl>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
                                         {m.key === 'weather' && (
                                             <div className="wiki-mechanic-live">
                                                 {weather.current != null && (
                                                     <>
-                                                        <span className="wiki-mechanic-live-label">Сейчас: {weather.current.weatherName}</span>
+                                                        <span className="wiki-mechanic-live-label">
+                                                            <WeatherSprite logicName={weather.current.logicName} size={24} className="weather-chip-ico" aria-hidden="true" />
+                                                            Сейчас: {weather.current.weatherName}
+                                                        </span>
                                                         {weather.current.effects.some(e => e.outputPercent !== 100) && (
                                                             <div className="weather-effects">
                                                                 {weather.current.effects.filter(e => e.outputPercent !== 100).map(e => {
@@ -357,7 +444,6 @@ export const Wiki = () => {
                                                         <span className="wiki-mechanic-live-label">Прогноз:</span>
                                                         <div className="weather-effects">
                                                             {weather.forecast.map(period => {
-                                                                const ForecastIcon = WEATHER_ICONS[period.logicName] ?? CloudSunIcon;
                                                                 const hint = period.effects
                                                                     .filter(e => e.outputPercent !== 100)
                                                                     .flatMap(e => {
@@ -367,7 +453,7 @@ export const Wiki = () => {
                                                                     .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))[0];
                                                                 return (
                                                                     <span key={period.startDate} className="weather-chip" title={period.weatherName}>
-                                                                        <ForecastIcon className="weather-chip-ico" aria-hidden="true" />
+                                                                        <WeatherSprite logicName={period.logicName} size={24} className="weather-chip-ico" aria-hidden="true" />
                                                                         {period.weatherName}
                                                                         {hint != null && (
                                                                             <span className={'weather-effect' + (hint.delta > 0 ? ' weather-effect-buff' : ' weather-effect-nerf')} title={`${hint.domikType.name}: ${hint.delta > 0 ? '+' : ''}${hint.delta}% выход`}>
@@ -386,10 +472,9 @@ export const Wiki = () => {
                                         {m.key === 'decor' && decor.types.length > 0 && (
                                             <div className="wiki-res-grid">
                                                 {decor.types.map(type => {
-                                                    const DecorIcon = DECOR_ICONS[type.logicName] ?? GardenIcon;
                                                     return (
                                                         <div key={type.id} className="wiki-res-cell pixel-panel" title={type.name}>
-                                                            <DecorIcon aria-hidden="true" />
+                                                            <DecorSprite logicName={type.logicName} size={32} aria-hidden="true" />
                                                             <span>{type.name} · уют +{type.comfortPoints}</span>
                                                         </div>
                                                     );

@@ -18,7 +18,7 @@ namespace Domiki.Web.Tests
         }
 
         [Test]
-        public void CompleteOrderWithEnoughResourcesWritesOffRewardsAndRefillsTest()
+        public void CompleteOrderWithEnoughResourcesWritesOffRewardsAndHoldsSlotTest()
         {
             var playerId = GetPlayerId();
             var order = GetOrders(playerId).First();
@@ -37,8 +37,38 @@ namespace Domiki.Web.Tests
             Assert.That(afterReputation - beforeReputation, Is.EqualTo(order.RewardReputation));
 
             var orders = GetOrders(playerId);
-            Assert.That(orders.Length, Is.EqualTo(3));
+            Assert.That(orders.Length, Is.EqualTo(2));
             Assert.That(orders.Any(x => x.Id == order.Id), Is.False);
+        }
+
+        [Test]
+        public void CompleteOrderHoldsSlotOnRepeatedFetchTest()
+        {
+            var playerId = GetPlayerId();
+            var order = GetOrders(playerId).First();
+            var need = order.Resources.Single();
+            GrantResource(playerId, need.Type.Id, need.Value);
+
+            CompleteOrder(playerId, order.Id);
+
+            var orders = GetOrders(playerId);
+            Assert.That(orders.Length, Is.EqualTo(2));
+            Assert.That(orders.Any(x => x.Id == order.Id), Is.False);
+        }
+
+        [Test]
+        public void OrderBoardRefillsAfterDelayElapsesTest()
+        {
+            var playerId = GetPlayerId();
+            var order = GetOrders(playerId).First();
+            var need = order.Resources.Single();
+            GrantResource(playerId, need.Type.Id, need.Value);
+
+            CompleteOrder(playerId, order.Id);
+            SetOrderRefillAt(playerId, DateTimeHelper.GetNowDate().AddSeconds(-1));
+
+            var orders = GetOrders(playerId);
+            Assert.That(orders.Length, Is.EqualTo(3));
         }
 
         [Test]
@@ -83,7 +113,7 @@ namespace Domiki.Web.Tests
         }
 
         [Test]
-        public void FinishOrderRemovesExpiredOrderAndRefillsTest()
+        public void FinishOrderRemovesExpiredOrderAndHoldsSlotTest()
         {
             var playerId = GetPlayerId();
             var order = GetOrders(playerId).First();
@@ -91,7 +121,7 @@ namespace Domiki.Web.Tests
             FinishOrder(playerId, order.Id, order.ExpireDate.AddSeconds(1));
 
             var orders = GetOrders(playerId);
-            Assert.That(orders.Length, Is.EqualTo(3));
+            Assert.That(orders.Length, Is.EqualTo(2));
             Assert.That(orders.Any(x => x.Id == order.Id), Is.False);
         }
 
@@ -110,6 +140,34 @@ namespace Domiki.Web.Tests
 
             var reputation = GetReputation(playerId).First(x => x.Neighbor.Id == neighborId);
             Assert.That(reputation.Points, Is.EqualTo(7));
+        }
+
+        [Test]
+        public void OrdersOnlyAskProducibleResourcesTest()
+        {
+            var playerId = GetPlayerId();
+            GrantResource(playerId, 1, 10000);
+            RaiseVillageLevelTo(playerId, 10);
+            BuyDomik(playerId, 5);
+            BuyDomik(playerId, 6);
+
+            for (var i = 0; i < 15; i++)
+            {
+                var orders = GetOrders(playerId).ToArray();
+                var resourceTypeIds = orders.SelectMany(x => x.Resources).Select(x => x.Type.Id).Distinct().ToArray();
+                Assert.That(resourceTypeIds, Is.SubsetOf(new[] { 3, 4 }));
+                DeleteAllOrders(playerId);
+            }
+        }
+
+        [Test]
+        public void NewPlayerWithoutBuildingsStillGetsOrdersTest()
+        {
+            var playerId = GetPlayerId();
+
+            var orders = GetOrders(playerId).ToArray();
+
+            Assert.That(orders.Length, Is.EqualTo(3));
         }
 
         [Test]
@@ -193,6 +251,78 @@ namespace Domiki.Web.Tests
                     Type = CalculateTypes.OrderExpire,
                 });
                 Assert.That(result, Is.True);
+                uow.Commit();
+            }
+        }
+
+        private void BuyDomik(int playerId, int domikTypeId)
+        {
+            using (var uow = GetUow())
+            {
+                var domikManager = GetDomikManager(uow);
+                domikManager.BuyDomik(playerId, domikTypeId);
+                uow.Commit();
+            }
+        }
+
+        private VillageLevel GetVillageLevel(int playerId)
+        {
+            using (var uow = GetUow())
+            {
+                var calculator = GetVillageLevelCalculator(uow);
+                var level = calculator.GetLevel(playerId);
+                uow.Commit();
+                return level;
+            }
+        }
+
+        private void RaiseVillageLevelTo(int playerId, int targetLevel)
+        {
+            var current = GetVillageLevel(playerId).Level;
+            if (current >= targetLevel)
+            {
+                return;
+            }
+
+            var milestones = (int)Math.Ceiling((targetLevel - current) / (double)VillageLevelCalculator.ReputationWeight);
+            GrantReputation(playerId, 1, milestones * VillageLevelCalculator.ReputationPointsPerMilestone);
+        }
+
+        private void GrantReputation(int playerId, int neighborId, int points)
+        {
+            using (var uow = GetUow())
+            {
+                var reputation = uow.Context.NeighborReputations.SingleOrDefault(x => x.PlayerId == playerId && x.NeighborId == neighborId);
+                if (reputation == null)
+                {
+                    reputation = new Domiki.Web.Data.NeighborReputation { PlayerId = playerId, NeighborId = neighborId };
+                    uow.Context.NeighborReputations.Add(reputation);
+                }
+
+                reputation.Points += points;
+                uow.Context.SaveChanges();
+                uow.Commit();
+            }
+        }
+
+        private void DeleteAllOrders(int playerId)
+        {
+            using (var uow = GetUow())
+            {
+                var dbOrders = uow.Context.Orders.Where(x => x.PlayerId == playerId).ToArray();
+                uow.Context.Orders.RemoveRange(dbOrders);
+                uow.Context.SaveChanges();
+                uow.Commit();
+            }
+        }
+
+        private void SetOrderRefillAt(int playerId, DateTime value)
+        {
+            using (var uow = GetUow())
+            {
+                var player = uow.Context.Players.Single(x => x.Id == playerId);
+                player.NextOrderRefillAt = value;
+                uow.Context.SaveChanges();
                 uow.Commit();
             }
         }

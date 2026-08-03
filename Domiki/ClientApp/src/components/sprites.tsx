@@ -1,6 +1,7 @@
 import type { FC, SVGProps } from 'react';
 import BarracksSprite from '../assets/domikTypes/barracks.svg?react';
 import ClayMineSprite from '../assets/domikTypes/clay_mine.svg?react';
+import FieldSprite from '../assets/domikTypes/field.svg?react';
 import FairSprite from '../assets/domikTypes/fair.svg?react';
 import ForgeSprite from '../assets/domikTypes/forge.svg?react';
 import GatheringSprite from '../assets/domikTypes/gathering.svg?react';
@@ -8,16 +9,32 @@ import GoldMineSprite from '../assets/domikTypes/gold_mine.svg?react';
 import LumberMillSprite from '../assets/domikTypes/lumber_mill.svg?react';
 import MarketSprite from '../assets/domikTypes/market.svg?react';
 import MarketYardSprite from '../assets/domikTypes/market_yard.svg?react';
+import MillSprite from '../assets/domikTypes/mill.svg?react';
+import PotterySprite from '../assets/domikTypes/pottery.svg?react';
+import BakerySprite from '../assets/domikTypes/bakery.svg?react';
 import ScoutHutSprite from '../assets/domikTypes/scout_hut.svg?react';
 import StoneMineSprite from '../assets/domikTypes/stone_mine.svg?react';
+import StonecutterSprite from '../assets/domikTypes/stonecutter.svg?react';
 import WorkshopSprite from '../assets/domikTypes/workshop.svg?react';
 import BridgeSprite from '../assets/tolokaTypes/bridge.svg?react';
 import GranarySprite from '../assets/tolokaTypes/granary.svg?react';
+import KilnSprite from '../assets/tolokaTypes/kiln.svg?react';
 import WorkerPortrait from '../assets/workers/portrait.svg?react';
 import WeatherClearSprite from '../assets/weather/clear.svg?react';
 import WeatherRainSprite from '../assets/weather/rain.svg?react';
 import WeatherDroughtSprite from '../assets/weather/drought.svg?react';
 import WeatherFairDaySprite from '../assets/weather/fair_day.svg?react';
+import WeatherFrostSprite from '../assets/weather/frost.svg?react';
+import WeatherWindSprite from '../assets/weather/wind.svg?react';
+import DecorBenchSprite from '../assets/decorTypes/bench.svg?react';
+import DecorFenceSprite from '../assets/decorTypes/fence.svg?react';
+import DecorFlagSprite from '../assets/decorTypes/flag.svg?react';
+import DecorFlowersSprite from '../assets/decorTypes/flowers.svg?react';
+import DecorFountainSprite from '../assets/decorTypes/fountain.svg?react';
+import DecorGardenSprite from '../assets/decorTypes/garden.svg?react';
+import DecorTrophySprite from '../assets/decorTypes/trophy.svg?react';
+import DecorBrickArchSprite from '../assets/decorTypes/brick_arch.svg?react';
+import DecorLanternSprite from '../assets/decorTypes/lantern.svg?react';
 import TraitOrdinarySprite from '../assets/traits/ordinary.svg?react';
 import TraitNimbleSprite from '../assets/traits/nimble.svg?react';
 import TraitDiligentSprite from '../assets/traits/diligent.svg?react';
@@ -35,6 +52,13 @@ import WorkerSkillSprite from '../assets/abstract/worker_skill.svg?react';
 import FatigueRestSprite from '../assets/abstract/fatigue_rest.svg?react';
 import PrestigeSprite from '../assets/abstract/prestige_new_valley.svg?react';
 import ProductionRecipeSprite from '../assets/abstract/production_recipe.svg?react';
+import NearSortieSprite from '../assets/abstract/near_sortie.svg?react';
+import LongExpeditionSprite from '../assets/abstract/long_expedition.svg?react';
+import WalkingSortieSprite from '../assets/abstract/walking_sortie.svg?react';
+import RareExpeditionFindSprite from '../assets/abstract/rare_expedition_find.svg?react';
+import ExpeditionHardeningSprite from '../assets/abstract/expedition_hardening.svg?react';
+import BlueprintSprite from '../assets/abstract/blueprint.svg?react';
+import UntouchedDepositsSprite from '../assets/abstract/untouched_deposits.svg?react';
 import MechObzhitostSprite from '../assets/mechanics/obzhitost.svg?react';
 import MechOrdersSprite from '../assets/mechanics/orders.svg?react';
 import MechWorkersSprite from '../assets/mechanics/workers.svg?react';
@@ -44,12 +68,51 @@ import MechExpeditionsSprite from '../assets/mechanics/expeditions.svg?react';
 import MechMarketSprite from '../assets/mechanics/market.svg?react';
 import MechTolokaSprite from '../assets/mechanics/toloka.svg?react';
 import MechDecorSprite from '../assets/mechanics/decor.svg?react';
+import ClayResSprite from '../assets/resourceTypes/clay.svg?react';
+import CoinResSprite from '../assets/resourceTypes/coin.svg?react';
+import GoldResSprite from '../assets/resourceTypes/gold.svg?react';
+import StoneResSprite from '../assets/resourceTypes/stone.svg?react';
+import WoodResSprite from '../assets/resourceTypes/wood.svg?react';
+import BrickResSprite from '../assets/resourceTypes/brick.svg?react';
+import BoardResSprite from '../assets/resourceTypes/board.svg?react';
+import ToolResSprite from '../assets/resourceTypes/tool.svg?react';
+import FurnitureResSprite from '../assets/resourceTypes/furniture.svg?react';
+import BlockResSprite from '../assets/resourceTypes/block.svg?react';
+import MillstoneResSprite from '../assets/resourceTypes/millstone.svg?react';
+import DishesResSprite from '../assets/resourceTypes/dishes.svg?react';
+import GrainResSprite from '../assets/resourceTypes/grain.svg?react';
+import FlourResSprite from '../assets/resourceTypes/flour.svg?react';
+import BreadResSprite from '../assets/resourceTypes/bread.svg?react';
+import OreResSprite from '../assets/resourceTypes/ore.svg?react';
+import IronResSprite from '../assets/resourceTypes/iron.svg?react';
 
 type SpriteComponent = FC<SVGProps<SVGSVGElement>>;
 
+const prepareInlineSprite = (node: SVGSVGElement | null) => {
+    if (node == null) {
+        return;
+    }
+
+    node.querySelectorAll('title, desc').forEach(element => element.remove());
+};
+
+const cleanSpriteProps = (props: SVGProps<SVGSVGElement>): SVGProps<SVGSVGElement> => {
+    const hidden = props['aria-hidden'] ?? (props['aria-label'] == null ? true : undefined);
+    return {
+        ...props,
+        ref: prepareInlineSprite,
+        role: hidden ? undefined : (props.role ?? 'img'),
+        'aria-hidden': hidden,
+        'aria-labelledby': undefined,
+        focusable: 'false',
+    };
+};
+
 const domikSprites: Record<string, SpriteComponent> = {
+    bakery: BakerySprite,
     barracks: BarracksSprite,
     clay_mine: ClayMineSprite,
+    field: FieldSprite,
     fair: FairSprite,
     forge: ForgeSprite,
     gathering: GatheringSprite,
@@ -57,21 +120,39 @@ const domikSprites: Record<string, SpriteComponent> = {
     lumber_mill: LumberMillSprite,
     market: MarketSprite,
     market_yard: MarketYardSprite,
+    mill: MillSprite,
+    pottery: PotterySprite,
     scout_hut: ScoutHutSprite,
     stone_mine: StoneMineSprite,
+    stonecutter: StonecutterSprite,
     workshop: WorkshopSprite,
 };
 
 const tolokaSprites: Record<string, SpriteComponent> = {
     bridge: BridgeSprite,
     granary: GranarySprite,
+    kiln: KilnSprite,
 };
 
 const weatherSprites: Record<string, SpriteComponent> = {
     clear: WeatherClearSprite,
     rain: WeatherRainSprite,
     drought: WeatherDroughtSprite,
+    frost: WeatherFrostSprite,
+    wind: WeatherWindSprite,
     fair_day: WeatherFairDaySprite,
+};
+
+const decorSprites: Record<string, SpriteComponent> = {
+    fence: DecorFenceSprite,
+    flowerbed: DecorFlowersSprite,
+    garden: DecorGardenSprite,
+    fountain: DecorFountainSprite,
+    bench: DecorBenchSprite,
+    trail_idol: DecorTrophySprite,
+    wanderer_banner: DecorFlagSprite,
+    brick_arch: DecorBrickArchSprite,
+    lantern: DecorLanternSprite,
 };
 
 const traitSprites: Record<string, SpriteComponent> = {
@@ -98,17 +179,62 @@ const abstractSprites: Record<string, SpriteComponent> = {
     fatigue_rest: FatigueRestSprite,
     prestige_new_valley: PrestigeSprite,
     production_recipe: ProductionRecipeSprite,
+    near_sortie: NearSortieSprite,
+    long_expedition: LongExpeditionSprite,
+    walking_sortie: WalkingSortieSprite,
+    rare_expedition_find: RareExpeditionFindSprite,
+    expedition_hardening: ExpeditionHardeningSprite,
+    blueprint: BlueprintSprite,
+    untouched_deposits: UntouchedDepositsSprite,
+};
+
+const resourceSprites: Record<string, SpriteComponent> = {
+    clay: ClayResSprite,
+    coin: CoinResSprite,
+    gold: GoldResSprite,
+    stone: StoneResSprite,
+    wood: WoodResSprite,
+    brick: BrickResSprite,
+    board: BoardResSprite,
+    tool: ToolResSprite,
+    furniture: FurnitureResSprite,
+    block: BlockResSprite,
+    millstone: MillstoneResSprite,
+    dishes: DishesResSprite,
+    grain: GrainResSprite,
+    flour: FlourResSprite,
+    bread: BreadResSprite,
+    ore: OreResSprite,
+    iron: IronResSprite,
 };
 
 interface IconSpriteProps extends SVGProps<SVGSVGElement> {
     logicName: string;
-    size?: 24 | 32 | 64;
+    size?: 24 | 32 | 40 | 48 | 64;
 }
 
-const makeIconSprite = (sprites: Record<string, SpriteComponent>, fallback?: SpriteComponent) =>
+const warnedUnknownSprites = new Set<string>();
+
+const warnUnknownSprite = (kind: string, logicName: string) => {
+    if (!import.meta.env.DEV) {
+        return;
+    }
+
+    const key = `${kind}:${logicName}`;
+    if (!warnedUnknownSprites.has(key)) {
+        warnedUnknownSprites.add(key);
+        console.warn(`[sprites] Unknown ${kind} logicName: "${logicName}"`);
+    }
+};
+
+const makeIconSprite = (kind: string, sprites: Record<string, SpriteComponent>, fallback?: SpriteComponent) =>
     ({ logicName, size = 32, ...props }: IconSpriteProps) => {
-        const Sprite = sprites[logicName] ?? fallback;
-        return Sprite == null ? null : <Sprite data-size={size} {...props} />;
+        const mappedSprite = sprites[logicName];
+        if (mappedSprite == null) {
+            warnUnknownSprite(kind, logicName);
+        }
+        const Sprite = mappedSprite ?? fallback;
+        return Sprite == null ? null : <Sprite data-size={size} {...cleanSpriteProps(props)} />;
     };
 
 const mechanicSprites: Record<string, SpriteComponent> = {
@@ -123,11 +249,13 @@ const mechanicSprites: Record<string, SpriteComponent> = {
     decor: MechDecorSprite,
 };
 
-export const MechanicSprite = makeIconSprite(mechanicSprites);
-export const WeatherSprite = makeIconSprite(weatherSprites);
-export const TraitSprite = makeIconSprite(traitSprites, TraitOrdinarySprite);
-export const NeighborSprite = makeIconSprite(neighborSprites, NeighborGenericSprite);
-export const AbstractSprite = makeIconSprite(abstractSprites);
+export const MechanicSprite = makeIconSprite('mechanic', mechanicSprites);
+export const WeatherSprite = makeIconSprite('weather', weatherSprites);
+export const DecorSprite = makeIconSprite('decor', decorSprites);
+export const TraitSprite = makeIconSprite('trait', traitSprites, TraitOrdinarySprite);
+export const NeighborSprite = makeIconSprite('neighbor', neighborSprites, NeighborGenericSprite);
+export const AbstractSprite = makeIconSprite('abstract', abstractSprites);
+export const ResourceSprite = makeIconSprite('resource', resourceSprites);
 
 interface SpriteProps extends SVGProps<SVGSVGElement> {
     logicName: string;
@@ -139,12 +267,18 @@ const clampLevel = (level: number) => Math.min(5, Math.max(1, Math.floor(level))
 
 export const DomikSprite = ({ logicName, level = 1, working = false, ...props }: SpriteProps) => {
     const Sprite = domikSprites[logicName];
-    return Sprite == null ? null : <Sprite data-level={clampLevel(level)} data-working={working ? 'true' : 'false'} {...props} />;
+    if (Sprite == null) {
+        warnUnknownSprite('domik', logicName);
+    }
+    return Sprite == null ? null : <Sprite data-level={clampLevel(level)} data-working={working ? 'true' : 'false'} {...cleanSpriteProps(props)} />;
 };
 
 export const TolokaSprite = ({ logicName, level = 1, ...props }: SpriteProps) => {
     const Sprite = tolokaSprites[logicName];
-    return Sprite == null ? null : <Sprite data-level={clampLevel(level)} {...props} />;
+    if (Sprite == null) {
+        warnUnknownSprite('toloka', logicName);
+    }
+    return Sprite == null ? null : <Sprite data-level={clampLevel(level)} {...cleanSpriteProps(props)} />;
 };
 
 type WorkerLook = [skin: number, hair: number, style: string, beard: number, hat: number, shirt: number, extra: number];
@@ -196,12 +330,14 @@ const fallbackLook = (name: string): WorkerLook => {
 interface WorkerSpriteProps extends SVGProps<SVGSVGElement> {
     name: string;
     state?: 'idle' | 'working' | 'resting';
+    skilled?: boolean;
 }
 
-export const WorkerSprite = ({ name, state = 'idle', ...props }: WorkerSpriteProps) => {
+export const WorkerSprite = ({ name, state = 'idle', skilled = false, ...props }: WorkerSpriteProps) => {
     const [skin, hair, style, beard, hat, shirt, extra] = workerLooks[name] ?? fallbackLook(name);
     return (
         <WorkerPortrait data-skin={skin} data-hair={hair} data-style={style} data-state={state}
-            data-beard={beard} data-hat={hat} data-shirt={shirt} data-extra={extra} {...props} />
+            data-skilled={skilled ? 'true' : 'false'}
+            data-beard={beard} data-hat={hat} data-shirt={shirt} data-extra={extra} {...cleanSpriteProps(props)} />
     );
 };

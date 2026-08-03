@@ -12,25 +12,25 @@ namespace Domiki.Web.Tests
         public void AutoRepeatRerunsUntilResourcesRunOutTest()
         {
             var playerId = GetPlayerId();
-            BuyForgeWithWorker(playerId);
+            BuyPotteryWithWorker(playerId);
             GrantResource(playerId, 4, 4);
 
-            StartManufacture(playerId, 2, 22, true);
+            StartManufacture(playerId, 4, 43, true);
 
-            Assert.That(GetManufactureCount(playerId, 2), Is.Zero);
+            Assert.That(GetManufactureCount(playerId, 4), Is.Zero);
             Assert.That(GetWorkers(playerId).All(x => x.ManufactureId == null), Is.True);
             Assert.That(GetResourceValue(playerId, 4), Is.Zero);
-            Assert.That(GetResourceValue(playerId, 6), Is.EqualTo(2));
+            Assert.That(GetResourceValue(playerId, 12), Is.EqualTo(2));
         }
 
         [Test]
         public void AutoRepeatMergesManufactureFinishedEventsTest()
         {
             var playerId = GetPlayerId();
-            BuyForgeWithWorker(playerId);
+            BuyPotteryWithWorker(playerId);
             GrantResource(playerId, 4, 4);
 
-            StartManufacture(playerId, 2, 22, true);
+            StartManufacture(playerId, 4, 43, true);
 
             using (var uow = GetUow())
             {
@@ -39,7 +39,7 @@ namespace Domiki.Web.Tests
 
                 using var data = JsonDocument.Parse(events[0].Data);
                 Assert.That(data.RootElement.GetProperty("cycles").GetInt32(), Is.EqualTo(2));
-                var resource = data.RootElement.GetProperty("resources").EnumerateArray().Single(x => x.GetProperty("resourceTypeId").GetInt32() == 6);
+                var resource = data.RootElement.GetProperty("resources").EnumerateArray().Single(x => x.GetProperty("resourceTypeId").GetInt32() == 12);
                 Assert.That(resource.GetProperty("value").GetInt32(), Is.EqualTo(2));
                 uow.Commit();
             }
@@ -72,16 +72,59 @@ namespace Domiki.Web.Tests
         {
             var playerId = GetPlayerId();
             BuyForgeWithWorker(playerId);
-            GrantResource(playerId, 6, 2);
+            GrantResource(playerId, 17, 2);
             GrantResource(playerId, 7, 1);
 
-            StartManufacture(playerId, 2, 24, true);
+            StartManufacture(playerId, 4, 24, true);
 
-            Assert.That(GetManufactureCount(playerId, 2), Is.Zero);
+            Assert.That(GetManufactureCount(playerId, 4), Is.Zero);
             Assert.That(GetWorkers(playerId).All(x => x.ManufactureId == null), Is.True);
-            Assert.That(GetResourceValue(playerId, 6), Is.EqualTo(1));
+            Assert.That(GetResourceValue(playerId, 17), Is.EqualTo(1));
             Assert.That(GetResourceValue(playerId, 7), Is.Zero);
             Assert.That(GetResourceValue(playerId, 8), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void AutoRepeatSurvivesRecipeMissingFromLevelTest()
+        {
+            var playerId = GetPlayerId();
+            GrantDomik(playerId, 4, 1, 3);
+
+            int manufactureId;
+            using (var uow = GetUow())
+            {
+                var manufacture = new Domiki.Web.Data.Manufacture
+                {
+                    DomikId = 4,
+                    DomikPlayerId = playerId,
+                    ReceiptId = 22,
+                    PlodderCount = 1,
+                    FinishDate = DateTimeHelper.GetNowDate().AddSeconds(-3600),
+                    DurationSeconds = 1800,
+                    OutputPercent = 100,
+                    AutoRepeat = true,
+                    UseOptional = false,
+                };
+                uow.Context.Manufactures.Add(manufacture);
+                uow.Context.SaveChanges();
+                manufactureId = manufacture.Id;
+                uow.Commit();
+            }
+
+            using (var uow = GetUow())
+            {
+                var domikManager = GetDomikManager(uow);
+                var calcInfo = new CalculateInfo { PlayerId = playerId, ObjectId = manufactureId, Type = CalculateTypes.Manufacture };
+                Assert.DoesNotThrow(() => domikManager.FinishManufacture(DateTimeHelper.GetNowDate(), calcInfo));
+                uow.Commit();
+            }
+
+            Assert.That(GetManufactureCount(playerId, 4), Is.Zero);
+            using (var uow = GetUow())
+            {
+                Assert.That(uow.Context.Manufactures.Any(x => x.Id == manufactureId), Is.False);
+                uow.Commit();
+            }
         }
 
         private int GetPlayerId()
@@ -96,13 +139,13 @@ namespace Domiki.Web.Tests
 
         private void BuyForgeWithWorker(int playerId)
         {
-            BuyDomik(playerId, 2);
             using (var uow = GetUow())
             {
+                uow.Context.Domiks.Add(new Domiki.Web.Data.Domik { PlayerId = playerId, Id = 3, TypeId = 2, Level = 1 });
                 uow.Context.Domiks.Add(new Domiki.Web.Data.Domik
                 {
                     PlayerId = playerId,
-                    Id = 2,
+                    Id = 4,
                     TypeId = 1,
                     Level = 3,
                 });
@@ -110,11 +153,18 @@ namespace Domiki.Web.Tests
             }
         }
 
-        private void BuyDomik(int playerId, int domikTypeId)
+        private void BuyPotteryWithWorker(int playerId)
         {
             using (var uow = GetUow())
             {
-                GetDomikManager(uow).BuyDomik(playerId, domikTypeId);
+                uow.Context.Domiks.Add(new Domiki.Web.Data.Domik { PlayerId = playerId, Id = 3, TypeId = 2, Level = 1 });
+                uow.Context.Domiks.Add(new Domiki.Web.Data.Domik
+                {
+                    PlayerId = playerId,
+                    Id = 4,
+                    TypeId = 13,
+                    Level = 3,
+                });
                 uow.Commit();
             }
         }

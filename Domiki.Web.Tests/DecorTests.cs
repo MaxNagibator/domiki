@@ -10,13 +10,16 @@ namespace Domiki.Web.Tests
         private const int FlowerbedDecorTypeId = 2;
         private const int GardenDecorTypeId = 3;
         private const int FountainDecorTypeId = 4;
+        private const int TrailIdolDecorTypeId = 6;
+        private const int BrickArchDecorTypeId = 8;
         private const int WoodResourceTypeId = 3;
         private const int StoneResourceTypeId = 2;
         private const int ClayResourceTypeId = 4;
         private const int BrickResourceTypeId = 6;
         private const int BoardResourceTypeId = 7;
         private const int ToolResourceTypeId = 8;
-        private const int BarracksDomikTypeId = 2;
+        private const int BlockResourceTypeId = 10;
+        private const int ZarechieNeighborId = 1;
         private const int LumberMillDomikTypeId = 6;
         private const int WoodDig8hReceiptId = 16;
         private const int FatigueThresholdSeconds = 8 * 3600;
@@ -29,7 +32,9 @@ namespace Domiki.Web.Tests
 
             var decor = GetDecor(playerId);
 
-            Assert.That(decor.Types.Select(x => x.LogicName), Is.EquivalentTo(new[] { "fence", "flowerbed", "garden", "fountain" }));
+            Assert.That(decor.Types.Select(x => x.LogicName), Is.EquivalentTo(new[] { "fence", "flowerbed", "garden", "fountain", "bench", "trail_idol", "wanderer_banner", "brick_arch", "lantern" }));
+            Assert.That(decor.Types.Where(x => x.LogicName is "trail_idol" or "wanderer_banner").All(x => !x.IsPurchasable), Is.True);
+            Assert.That(decor.Types.Where(x => x.LogicName is not ("trail_idol" or "wanderer_banner")).All(x => x.IsPurchasable), Is.True);
             Assert.That(decor.Owned, Is.Empty);
             Assert.That(decor.Comfort, Is.EqualTo(0));
         }
@@ -83,6 +88,54 @@ namespace Domiki.Web.Tests
         }
 
         [Test]
+        public void BuyNonPurchasableDecorThrowsAndDoesNotChangeOwnedTest()
+        {
+            var playerId = GetPlayerId();
+
+            var ex = Assert.Throws<BusinessException>(() => BuyDecor(playerId, TrailIdolDecorTypeId));
+
+            Assert.That(ex.Message, Is.EqualTo("Этот декор нельзя купить"));
+            Assert.That(GetDecor(playerId).Owned, Is.Empty);
+        }
+
+        [Test]
+        public void BuyGatedDecorWithoutReputationThrowsTest()
+        {
+            var playerId = GetPlayerId();
+            GrantResource(playerId, BrickResourceTypeId, 20);
+            GrantResource(playerId, BlockResourceTypeId, 10);
+
+            var ex = Assert.Throws<BusinessException>(() => BuyDecor(playerId, BrickArchDecorTypeId));
+
+            Assert.That(ex.Message, Does.Contain("репутац"));
+        }
+
+        [Test]
+        public void BuyGatedDecorWithReputationSucceedsTest()
+        {
+            var playerId = GetPlayerId();
+            GrantResource(playerId, BrickResourceTypeId, 20);
+            GrantResource(playerId, BlockResourceTypeId, 10);
+            GrantReputation(playerId, ZarechieNeighborId, 30);
+
+            BuyDecor(playerId, BrickArchDecorTypeId);
+
+            Assert.That(GetDecor(playerId).Owned.Single(x => x.DecorTypeId == BrickArchDecorTypeId).Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void GrantDecorViaManagerIncrementsPlayerDecorTest()
+        {
+            var playerId = GetPlayerId();
+
+            GrantDecorViaManager(playerId, TrailIdolDecorTypeId, 1);
+            GrantDecorViaManager(playerId, TrailIdolDecorTypeId, 2);
+
+            var decor = GetDecor(playerId);
+            Assert.That(decor.Owned.Single(x => x.DecorTypeId == TrailIdolDecorTypeId).Count, Is.EqualTo(3));
+        }
+
+        [Test]
         public void ComfortIncreasesVillageLevelTest()
         {
             var playerId = GetPlayerId();
@@ -99,15 +152,14 @@ namespace Domiki.Web.Tests
         public void ComfortShortensWorkerRestTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, BarracksDomikTypeId);
             BuyDomik(playerId, LumberMillDomikTypeId);
             var worker = GetWorkers(playerId).Single();
             SetWorkerTrait(worker.Id, 1);
             GrantDecor(playerId, FountainDecorTypeId, 1);
             SetWorkerWorked(worker.Id, FatigueThresholdSeconds - RestSeconds);
 
-            StartManufacture(playerId, 2, WoodDig8hReceiptId);
-            var manufacture = GetDomiks(playerId).Single(x => x.Id == 2).Manufactures.Single();
+            StartManufacture(playerId, 3, WoodDig8hReceiptId);
+            var manufacture = GetDomiks(playerId).Single(x => x.Id == 3).Manufactures.Single();
             var finishDate = manufacture.FinishDate.AddSeconds(1);
             FinishManufacture(playerId, manufacture.Id, finishDate);
 
@@ -119,15 +171,14 @@ namespace Domiki.Web.Tests
         public void ComfortRestReductionIsCappedAtHalfTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, BarracksDomikTypeId);
             BuyDomik(playerId, LumberMillDomikTypeId);
             var worker = GetWorkers(playerId).Single();
             SetWorkerTrait(worker.Id, 1);
             GrantDecor(playerId, FountainDecorTypeId, 10);
             SetWorkerWorked(worker.Id, FatigueThresholdSeconds - RestSeconds);
 
-            StartManufacture(playerId, 2, WoodDig8hReceiptId);
-            var manufacture = GetDomiks(playerId).Single(x => x.Id == 2).Manufactures.Single();
+            StartManufacture(playerId, 3, WoodDig8hReceiptId);
+            var manufacture = GetDomiks(playerId).Single(x => x.Id == 3).Manufactures.Single();
             var finishDate = manufacture.FinishDate.AddSeconds(1);
             FinishManufacture(playerId, manufacture.Id, finishDate);
 
@@ -139,15 +190,14 @@ namespace Domiki.Web.Tests
         public void NoFatigueWorkerDoesNotRestRegardlessComfortTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, BarracksDomikTypeId);
             BuyDomik(playerId, LumberMillDomikTypeId);
             var worker = GetWorkers(playerId).Single();
             SetWorkerTrait(worker.Id, 4);
             GrantDecor(playerId, FountainDecorTypeId, 10);
             SetWorkerWorked(worker.Id, FatigueThresholdSeconds);
 
-            StartManufacture(playerId, 2, WoodDig8hReceiptId);
-            var manufacture = GetDomiks(playerId).Single(x => x.Id == 2).Manufactures.Single();
+            StartManufacture(playerId, 3, WoodDig8hReceiptId);
+            var manufacture = GetDomiks(playerId).Single(x => x.Id == 3).Manufactures.Single();
             FinishManufacture(playerId, manufacture.Id, manufacture.FinishDate.AddSeconds(1));
 
             worker = GetWorkers(playerId).Single();
@@ -277,6 +327,18 @@ namespace Domiki.Web.Tests
             }
         }
 
+        private void GrantReputation(int playerId, int neighborId, int points)
+        {
+            using (var uow = GetUow())
+            {
+                var resourceManager = GetResourceManager(uow);
+                var playerResourceManager = new PlayerResourceManager(uow.Context, resourceManager);
+                playerResourceManager.GrantReputation(playerId, neighborId, points);
+                uow.Context.SaveChanges();
+                uow.Commit();
+            }
+        }
+
         private void GrantResource(int playerId, int resourceTypeId, int value)
         {
             using (var uow = GetUow())
@@ -290,6 +352,16 @@ namespace Domiki.Web.Tests
 
                 resource.Value += value;
                 uow.Context.SaveChanges();
+                uow.Commit();
+            }
+        }
+
+        private void GrantDecorViaManager(int playerId, int decorTypeId, int count)
+        {
+            using (var uow = GetUow())
+            {
+                var manager = GetDecorManager(uow);
+                manager.GrantDecor(playerId, decorTypeId, count);
                 uow.Commit();
             }
         }

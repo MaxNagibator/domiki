@@ -80,13 +80,13 @@ namespace Domiki.Web.Tests
         public void HurryDomikInCapFinishesAndWritesOffGoldTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 5, false);
+            BuyDomik(playerId, 7, false);
             GrantResource(playerId, GoldResourceTypeId, 3);
-            SetDomikUpgradeFinish(playerId, 1, DateTimeHelper.GetNowDate().AddHours(2));
+            SetDomikUpgradeFinish(playerId, 3, DateTimeHelper.GetNowDate().AddHours(2));
 
-            HurryDomik(playerId, 1);
+            HurryDomik(playerId, 3);
 
-            var domik = GetDomiks(playerId).Single();
+            var domik = GetDomiks(playerId).Single(x => x.Id == 3);
             Assert.That(domik.Level, Is.EqualTo(1));
             Assert.That(domik.FinishDate, Is.Null);
             Assert.That(ResourceValue(GetResources(playerId), GoldResourceTypeId), Is.EqualTo(1));
@@ -96,7 +96,6 @@ namespace Domiki.Web.Tests
         public void HurryDomikNotUpgradingThrowsTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 5);
 
             var ex = Assert.Throws<BusinessException>(() => HurryDomik(playerId, 1));
 
@@ -107,7 +106,6 @@ namespace Domiki.Web.Tests
         public void HurryDomikMissingOrForeignThrowsTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 5, false);
             var otherPlayerId = GetPlayerId();
 
             Assert.Throws<BusinessException>(() => HurryDomik(playerId, int.MaxValue));
@@ -129,8 +127,6 @@ namespace Domiki.Web.Tests
         private int CreatePlayerWithManufacture(out int manufactureId)
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
             StartManufacture(playerId, 2, 1, false);
             manufactureId = GetDomiks(playerId).Single(x => x.Id == 2).Manufactures.Single().Id;
             return playerId;

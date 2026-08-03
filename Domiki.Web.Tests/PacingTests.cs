@@ -34,17 +34,17 @@ namespace Domiki.Web.Tests
         public void BuyReceiptWritesOffCoinsAndProducesResourceTest(int receiptId, int resourceTypeId)
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
             BuyDomik(playerId, 7);
-            UpgradeDomik(playerId, 2);
-            GrantResource(playerId, 1, 305);
+            GrantResource(playerId, 1, 20);
+            UpgradeDomik(playerId, 3);
+            GrantResource(playerId, 1, 505);
             GrantResource(playerId, 2, 15);
             GrantResource(playerId, 3, 15);
-            UpgradeDomik(playerId, 2);
+            UpgradeDomik(playerId, 3);
             var coinsBefore = GetResource(playerId, 1);
             var resourceBefore = GetResource(playerId, resourceTypeId);
 
-            StartManufacture(playerId, 2, receiptId);
+            StartManufacture(playerId, 3, receiptId);
 
             Assert.That(coinsBefore - GetResource(playerId, 1), Is.EqualTo(35));
             Assert.That(GetResource(playerId, resourceTypeId) - resourceBefore, Is.EqualTo(1));
@@ -55,6 +55,9 @@ namespace Domiki.Web.Tests
         {
             var playerId = GetPlayerId();
             GrantDecor(playerId, 4, 4);
+            GrantBlueprint(playerId, 3);
+            GrantResource(playerId, 1, 600);
+            BuyDomik(playerId, 13);
             for (var attempt = 0; attempt < 25; attempt++)
             {
                 EnsureOrderBoard(playerId);
@@ -62,7 +65,8 @@ namespace Domiki.Web.Tests
                 foreach (var (order, resource) in orders)
                 {
                     var tier = OrderManager.Tiers.Single(candidate => candidate.RewardReputation == order.RewardReputation);
-                    var expectedQuantity = OrderManager.GetOrderQuantity(tier, resource.ResourceTypeId);
+                    var capacity = GetCapacity(playerId, resource.ResourceTypeId);
+                    var expectedQuantity = OrderManager.GetEffectiveQuantity(tier, resource.ResourceTypeId, capacity);
                     var expectedReward = (int)Math.Round(expectedQuantity * ResourceManager.GetMarketValue(resource.ResourceTypeId) * tier.DemandMultiplier, MidpointRounding.AwayFromZero);
                     Assert.That(resource.Value, Is.EqualTo(expectedQuantity));
                     Assert.That(order.RewardCoins, Is.EqualTo(expectedReward));
@@ -84,6 +88,7 @@ namespace Domiki.Web.Tests
             using var uow = GetUow();
             var playerId = GetDomikManager(uow).GetPlayerId("testUser_" + Guid.NewGuid());
             uow.Commit();
+            MuteFtue(playerId);
             return playerId;
         }
 
@@ -141,6 +146,14 @@ namespace Domiki.Web.Tests
             return order.Id;
         }
 
+        private void GrantBlueprint(int playerId, int blueprintId)
+        {
+            using var uow = GetUow();
+            uow.Context.PlayerBlueprints.Add(new Domiki.Web.Data.PlayerBlueprint { PlayerId = playerId, BlueprintId = blueprintId });
+            uow.Context.SaveChanges();
+            uow.Commit();
+        }
+
         private void GrantDecor(int playerId, int decorTypeId, int count)
         {
             using var uow = GetUow();
@@ -154,6 +167,14 @@ namespace Domiki.Web.Tests
             decor.Count += count;
             uow.Context.SaveChanges();
             uow.Commit();
+        }
+
+        private int GetCapacity(int playerId, int resourceTypeId)
+        {
+            using var uow = GetUow();
+            var capacity = GetOrderManager(uow).GetCapacity(playerId, resourceTypeId);
+            uow.Commit();
+            return capacity;
         }
 
         private void EnsureOrderBoard(int playerId)

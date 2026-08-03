@@ -11,33 +11,31 @@ namespace Domiki.Web.Tests
         {
             var playerId = GetPlayerId();
 
-            Assert.That(GetWorkers(playerId).Length, Is.EqualTo(0));
+            Assert.That(GetWorkers(playerId).Length, Is.EqualTo(1));
 
-            BuyDomik(playerId, 2);
+            GrantDomik(playerId, 3, 2);
 
             var workers = GetWorkers(playerId);
-            Assert.That(workers.Length, Is.EqualTo(1));
-            Assert.That(workers.Single().ManufactureId, Is.Null);
+            Assert.That(workers.Length, Is.EqualTo(2));
+            Assert.That(workers.All(x => x.ManufactureId == null), Is.True);
         }
 
         [Test]
         public void UpgradeBarracksAddsWorkerTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            Assert.That(GetWorkers(playerId).Length, Is.EqualTo(1));
+            GrantDomik(playerId, 3, 2);
+            Assert.That(GetWorkers(playerId).Length, Is.EqualTo(2));
 
             UpgradeDomik(playerId, 1);
 
-            Assert.That(GetWorkers(playerId).Length, Is.EqualTo(2));
+            Assert.That(GetWorkers(playerId).Length, Is.EqualTo(3));
         }
 
         [Test]
         public void StartManufactureAssignsAndFinishReleasesWorkerTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
 
             StartManufacture(playerId, 2, 1, false);
 
@@ -54,9 +52,7 @@ namespace Domiki.Web.Tests
         public void StartManufactureWithoutFreeWorkersThrowsTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
-            BuyDomik(playerId, 5);
+            GrantDomik(playerId, 3, 5);
             StartManufacture(playerId, 2, 1, false);
 
             var ex = Assert.Throws<BusinessException>(() => StartManufacture(playerId, 3, 1, false));
@@ -67,8 +63,6 @@ namespace Domiki.Web.Tests
         public void WorkerTraitShortensManufactureDurationTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
             var worker = GetWorkers(playerId).Single();
             SetWorkerTrait(worker.Id, 3);
 
@@ -84,16 +78,16 @@ namespace Domiki.Web.Tests
         {
             var playerId = GetPlayerId();
             GrantResource(playerId, 1, 100);
-            for (var i = 0; i < 5; i++)
+            for (var i = 0; i < 4; i++)
             {
-                BuyDomik(playerId, 2);
+                GrantDomik(playerId, 3 + i, 2);
             }
-            BuyDomik(playerId, 5);
-            UpgradeDomik(playerId, 6);
+            GrantDomik(playerId, 7, 5);
+            UpgradeDomik(playerId, 7);
 
-            StartManufacture(playerId, 6, 2, false);
+            StartManufacture(playerId, 7, 2, false);
 
-            var manufacture = GetDomiks(playerId).First(x => x.Id == 6).Manufactures.Single();
+            var manufacture = GetDomiks(playerId).First(x => x.Id == 7).Manufactures.Single();
             var workers = GetWorkers(playerId);
             Assert.That(workers.Count(x => x.ManufactureId == manufacture.Id), Is.EqualTo(5));
             Assert.That(workers.Count(x => x.ManufactureId == null), Is.EqualTo(0));
@@ -103,7 +97,6 @@ namespace Domiki.Web.Tests
         public void ConcurrentGetWorkersDoesNotThrowTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
             Assert.That(GetWorkers(playerId).Length, Is.EqualTo(1));
 
             var errorCount = 0;
@@ -126,8 +119,6 @@ namespace Domiki.Web.Tests
         public void FinishManufactureIncrementsWorkerSkillUsesTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
 
             StartManufacture(playerId, 2, 1, false);
             var manufacture = GetDomiks(playerId).First(x => x.Id == 2).Manufactures.Single();
@@ -143,8 +134,6 @@ namespace Domiki.Web.Tests
         public void WorkerSkillShortensManufactureDurationTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
             var worker = GetWorkers(playerId).Single();
             SetWorkerTrait(worker.Id, 1);
             SetWorkerSkill(worker.Id, 5, 10);
@@ -175,16 +164,15 @@ namespace Domiki.Web.Tests
         public void WorkerSkillForOtherDomikTypeDoesNotShortenManufactureDurationTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
             BuyDomik(playerId, 6);
             var worker = GetWorkers(playerId).Single();
             SetWorkerTrait(worker.Id, 1);
             SetWorkerSkill(worker.Id, 5, 10);
 
             var start = DateTimeHelper.GetNowDate();
-            StartManufacture(playerId, 2, 16, false);
+            StartManufacture(playerId, 3, 16, false);
 
-            var manufacture = GetDomiks(playerId).First(x => x.Id == 2).Manufactures.Single();
+            var manufacture = GetDomiks(playerId).First(x => x.Id == 3).Manufactures.Single();
             Assert.That((manufacture.FinishDate - start).TotalSeconds, Is.EqualTo(28800).Within(2));
         }
 
@@ -192,8 +180,6 @@ namespace Domiki.Web.Tests
         public void WorkerTraitAndSkillStackMultiplicativelyTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
             var worker = GetWorkers(playerId).Single();
             SetWorkerTrait(worker.Id, 3);
             SetWorkerSkill(worker.Id, 5, 10);
@@ -206,20 +192,33 @@ namespace Domiki.Web.Tests
         }
 
 
-        [TestCase(25, 60)]
-        public void FinishManufactureAccumulatesWorkerWorkedSecondsTest(int receiptId, int expectedWorkedSeconds)
+        [Test]
+        public void TradeManufactureDoesNotAccumulateFatigueTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
             BuyDomik(playerId, 7);
             GrantResource(playerId, 6, 1);
             var worker = GetWorkers(playerId).Single();
             SetWorkerTrait(worker.Id, 1);
 
-            StartManufacture(playerId, 2, receiptId, true);
+            StartManufacture(playerId, 3, 25, true);
 
             worker = GetWorkers(playerId).Single();
-            Assert.That(worker.WorkedSeconds, Is.EqualTo(expectedWorkedSeconds));
+            Assert.That(worker.WorkedSeconds, Is.EqualTo(0));
+            Assert.That(worker.RestUntil, Is.Null);
+        }
+
+        [Test]
+        public void FinishManufactureAccumulatesActualWorkerWorkedSecondsTest()
+        {
+            var playerId = GetPlayerId();
+            var worker = GetWorkers(playerId).Single();
+            SetWorkerTrait(worker.Id, 3);
+
+            StartManufacture(playerId, 2, 14, true);
+
+            worker = GetWorkers(playerId).Single();
+            Assert.That(worker.WorkedSeconds, Is.EqualTo(23040));
             Assert.That(worker.RestUntil, Is.Null);
         }
 
@@ -227,8 +226,6 @@ namespace Domiki.Web.Tests
         public void FinishManufactureFatigueThresholdSendsWorkerToRestTest(int receiptId)
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
             var worker = GetWorkers(playerId).Single();
             SetWorkerTrait(worker.Id, 1);
 
@@ -244,8 +241,6 @@ namespace Domiki.Web.Tests
         public void RestingWorkerDoesNotStartManufactureTest(int receiptId)
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
             var worker = GetWorkers(playerId).Single();
             SetWorkerRest(worker.Id, DateTimeHelper.GetNowDate().AddHours(1));
 
@@ -257,8 +252,6 @@ namespace Domiki.Web.Tests
         public void WorkerWithExpiredRestUntilStartsManufactureTest(int receiptId)
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
             var worker = GetWorkers(playerId).Single();
             SetWorkerRest(worker.Id, DateTimeHelper.GetNowDate().AddSeconds(-1));
 
@@ -272,8 +265,6 @@ namespace Domiki.Web.Tests
         public void SonyaWorkerDoesNotAccumulateFatigueTest(int receiptId)
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
             var worker = GetWorkers(playerId).Single();
             SetWorkerTrait(worker.Id, 4);
             SetWorkerWorked(worker.Id, 0);
@@ -286,13 +277,26 @@ namespace Domiki.Web.Tests
         }
 
         [Test]
+        public void SonyaTraitLengthensManufactureDurationByTwentyFivePercentTest()
+        {
+            var playerId = GetPlayerId();
+            var worker = GetWorkers(playerId).Single();
+            SetWorkerTrait(worker.Id, 4);
+
+            var start = DateTimeHelper.GetNowDate();
+            StartManufacture(playerId, 2, 14, false);
+
+            var manufacture = GetDomiks(playerId).First(x => x.Id == 2).Manufactures.Single();
+            Assert.That((manufacture.FinishDate - start).TotalSeconds, Is.EqualTo(36000).Within(2));
+        }
+
+        [Test]
         public void AutoSelectsWorkerWithBestFitnessOverFirstByIdTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
+            GrantDomik(playerId, 3, 2);
+            GrantDomik(playerId, 4, 2);
+            GrantDomik(playerId, 5, 5);
 
             var workers = GetWorkers(playerId);
             var weakWorker = workers[0];
@@ -300,7 +304,7 @@ namespace Domiki.Web.Tests
             SetWorkerTrait(weakWorker.Id, 1);
             SetWorkerTrait(strongWorker.Id, 3);
 
-            StartManufacture(playerId, 4, 1, false);
+            StartManufacture(playerId, 5, 1, false);
 
             var busyWorker = GetWorkers(playerId).Single(x => x.ManufactureId != null);
             Assert.That(busyWorker.Id, Is.EqualTo(strongWorker.Id));
@@ -310,9 +314,8 @@ namespace Domiki.Web.Tests
         public void ManualSelectionAssignsExplicitWorkerTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
+            GrantDomik(playerId, 3, 2);
+            GrantDomik(playerId, 4, 5);
 
             var workers = GetWorkers(playerId);
             var weakWorker = workers[0];
@@ -320,7 +323,7 @@ namespace Domiki.Web.Tests
             SetWorkerTrait(weakWorker.Id, 1);
             SetWorkerTrait(strongWorker.Id, 3);
 
-            StartManufacture(playerId, 3, 1, false, new[] { weakWorker.Id });
+            StartManufacture(playerId, 4, 1, false, new[] { weakWorker.Id });
 
             var busyWorker = GetWorkers(playerId).Single(x => x.ManufactureId != null);
             Assert.That(busyWorker.Id, Is.EqualTo(weakWorker.Id));
@@ -330,8 +333,6 @@ namespace Domiki.Web.Tests
         public void EmptyManualSelectionFallsBackToAutoTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
 
             StartManufacture(playerId, 2, 1, false, Array.Empty<int>());
 
@@ -343,13 +344,12 @@ namespace Domiki.Web.Tests
         public void ManualSelectionWithWrongCountThrowsTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
+            GrantDomik(playerId, 3, 2);
+            GrantDomik(playerId, 4, 5);
 
             var workerIds = GetWorkers(playerId).Select(x => x.Id).ToArray();
 
-            var ex = Assert.Throws<BusinessException>(() => StartManufacture(playerId, 3, 1, false, workerIds));
+            var ex = Assert.Throws<BusinessException>(() => StartManufacture(playerId, 4, 1, false, workerIds));
             Assert.That(ex.Message, Is.EqualTo("Неверное число трудяг"));
         }
 
@@ -358,17 +358,17 @@ namespace Domiki.Web.Tests
         {
             var playerId = GetPlayerId();
             GrantResource(playerId, 1, 100);
-            for (var i = 0; i < 5; i++)
+            for (var i = 0; i < 4; i++)
             {
-                BuyDomik(playerId, 2);
+                GrantDomik(playerId, 3 + i, 2);
             }
-            BuyDomik(playerId, 5);
-            UpgradeDomik(playerId, 6);
+            GrantDomik(playerId, 7, 5);
+            UpgradeDomik(playerId, 7);
 
             var workerId = GetWorkers(playerId).First().Id;
             var workerIds = Enumerable.Repeat(workerId, 5).ToArray();
 
-            var ex = Assert.Throws<BusinessException>(() => StartManufacture(playerId, 6, 2, false, workerIds));
+            var ex = Assert.Throws<BusinessException>(() => StartManufacture(playerId, 7, 2, false, workerIds));
             Assert.That(ex.Message, Is.EqualTo("Дублирующиеся трудяги"));
         }
 
@@ -377,19 +377,19 @@ namespace Domiki.Web.Tests
         {
             var playerId = GetPlayerId();
             GrantResource(playerId, 1, 200);
-            for (var i = 0; i < 5; i++)
+            for (var i = 0; i < 4; i++)
             {
-                BuyDomik(playerId, 2);
+                GrantDomik(playerId, 3 + i, 2);
             }
             UpgradeDomik(playerId, 1);
-            BuyDomik(playerId, 5);
-            UpgradeDomik(playerId, 6);
+            GrantDomik(playerId, 7, 5);
+            UpgradeDomik(playerId, 7);
 
             var workers = GetWorkers(playerId);
             var chosen = workers.Take(5).Select(x => x.Id).ToArray();
             var excludedWorkerId = workers[5].Id;
 
-            StartManufacture(playerId, 6, 2, false, chosen);
+            StartManufacture(playerId, 7, 2, false, chosen);
 
             var updatedWorkers = GetWorkers(playerId);
             Assert.That(updatedWorkers.Where(x => chosen.Contains(x.Id)).All(x => x.ManufactureId != null), Is.True);
@@ -400,11 +400,8 @@ namespace Domiki.Web.Tests
         public void ManualSelectionWithForeignWorkerThrowsTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
 
             var otherPlayerId = GetPlayerId();
-            BuyDomik(otherPlayerId, 2);
             var foreignWorkerId = GetWorkers(otherPlayerId).Single().Id;
 
             var ex = Assert.Throws<BusinessException>(() => StartManufacture(playerId, 2, 1, false, new[] { foreignWorkerId }));
@@ -415,13 +412,11 @@ namespace Domiki.Web.Tests
         public void ManualSelectionWithBusyWorkerThrowsTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
-            BuyDomik(playerId, 5);
+            GrantDomik(playerId, 3, 2);
+            GrantDomik(playerId, 4, 5);
 
             var busyWorkerId = GetWorkers(playerId)[0].Id;
-            StartManufacture(playerId, 3, 1, false, new[] { busyWorkerId });
+            StartManufacture(playerId, 2, 1, false, new[] { busyWorkerId });
 
             var ex = Assert.Throws<BusinessException>(() => StartManufacture(playerId, 4, 1, false, new[] { busyWorkerId }));
             Assert.That(ex.Message, Is.EqualTo("Трудяга недоступен"));
@@ -431,14 +426,12 @@ namespace Domiki.Web.Tests
         public void ManualSelectionWithRestingWorkerThrowsTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
+            GrantDomik(playerId, 3, 2);
 
             var restingWorkerId = GetWorkers(playerId)[0].Id;
             SetWorkerRest(restingWorkerId, DateTimeHelper.GetNowDate().AddHours(1));
 
-            var ex = Assert.Throws<BusinessException>(() => StartManufacture(playerId, 3, 1, false, new[] { restingWorkerId }));
+            var ex = Assert.Throws<BusinessException>(() => StartManufacture(playerId, 2, 1, false, new[] { restingWorkerId }));
             Assert.That(ex.Message, Is.EqualTo("Трудяга недоступен"));
         }
 

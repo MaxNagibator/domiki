@@ -1,12 +1,14 @@
 import type { ResourceDto, ResourceTypeDto } from '../types/api';
+import { ResourceSprite } from './sprites';
 
 interface ResourcesBoxProps {
     resources: ResourceDto[];
     resourceTypes: ResourceTypeDto[];
     have?: ResourceDto[];
+    showNames?: boolean;
 }
 
-export const ResourcesBox = ({ resources, resourceTypes, have }: ResourcesBoxProps) => {
+export const ResourcesBox = ({ resources, resourceTypes, have, showNames = false }: ResourcesBoxProps) => {
     return (
         <div className="resources">
             {resources.map(res => {
@@ -17,10 +19,10 @@ export const ResourcesBox = ({ resources, resourceTypes, have }: ResourcesBoxPro
 
                 const owned = have?.find(x => x.typeId === res.typeId);
                 const lacking = have != null && (owned == null || owned.value < res.value);
-                const resImage = '/images/resourceTypes/' + resourceType.logicName + '.png';
                 return (
                     <div key={res.typeId} className={'resource-box' + (lacking ? ' resource-lack' : '')} title={resourceType.name}>
-                        <img src={resImage} alt={resourceType.name} />
+                        <ResourceSprite logicName={resourceType.logicName} aria-hidden="true" />
+                        {showNames && <span className="resource-name">{resourceType.name}</span>}
                         <span className="resource-value">{res.value}</span>
                     </div>
                 );

@@ -13,6 +13,7 @@ namespace Domiki.Web.Business.Core
         private static ResourceType[] _resourceTypes;
         private static Receipt[] _receipts;
         private static DomikType[] _domikTypes;
+        private static DomikTypeCountGate[] _domikTypeCountGates;
         private static Neighbor[] _neighbors;
         private static Trait[] _traits;
         private static WeatherType[] _weatherTypes;
@@ -20,16 +21,26 @@ namespace Domiki.Web.Business.Core
         private static ExpeditionType[] _expeditionTypes;
         private static DecorType[] _decorTypes;
         private static TolokaType[] _tolokaTypes;
+        private static Data.StarterGoal[] _starterGoals;
 
         public ResourceManager(Data.ApplicationDbContext context)
         {
             _context = context;
         }
 
-        public static int GetMarketValue(int resourceTypeId)
+        public static int GetMarketValue(int resourceTypeId) => resourceTypeId switch
         {
-            return resourceTypeId == 6 || resourceTypeId == 7 ? 35 : BaseMarketValue;
-        }
+            5 => 100,
+            6 or 7 or 10 or 14 or 17 => 35,
+            8 => 55,
+            9 => 95,
+            11 => 150,
+            12 => 45,
+            13 => 10,
+            16 => 10,
+            15 => 20,
+            _ => BaseMarketValue,
+        };
 
         public ModificatorType[] GetModificatorTypes()
         {
@@ -75,6 +86,16 @@ namespace Domiki.Web.Business.Core
             return _resourceTypes;
         }
 
+        public Data.StarterGoal[] GetStarterGoals()
+        {
+            if (_starterGoals == null)
+            {
+                _starterGoals = _context.StarterGoals.AsNoTracking().OrderBy(x => x.Ordinal).ToArray();
+            }
+
+            return _starterGoals;
+        }
+
         public Receipt[] GetReceipts()
         {
             if (_receipts == null)
@@ -86,7 +107,7 @@ namespace Domiki.Web.Business.Core
                     Name = x.Name,
                     PlodderCount = x.PlodderCount,
                     DurationSeconds = x.DurationSeconds,
-                    SpeedupPercent = x.SpeedupPercent,
+                    OutputBonusPercent = x.OutputBonusPercent,
                     InputResources = x.Resources.Where(x => x.IsInput && !x.IsOptional)
                         .Select(x => new Resource
                         {
@@ -120,6 +141,7 @@ namespace Domiki.Web.Business.Core
                     Name = x.Name,
                     LogicName = x.LogicName,
                     PrimaryResourceTypeId = x.PrimaryResourceTypeId,
+                    SecondaryResourceTypeId = x.SecondaryResourceTypeId,
                     UnlockLevel = x.UnlockLevel,
                 }).ToArray();
             }
@@ -193,7 +215,10 @@ namespace Domiki.Web.Business.Core
                         .Where(x => x.ExpeditionTypeId == expeditionType.Id)
                         .Select(x => new ExpeditionLoot
                         {
+                            Kind = x.Kind,
                             ResourceTypeId = x.ResourceTypeId,
+                            DecorTypeId = x.DecorTypeId,
+                            BlueprintId = x.BlueprintId,
                             MinValue = x.MinValue,
                             MaxValue = x.MaxValue,
                             Weight = x.Weight,
@@ -206,6 +231,7 @@ namespace Domiki.Web.Business.Core
                         {
                             ResourceTypeId = x.ResourceTypeId,
                             Value = x.Value,
+                            IsOptional = x.IsOptional,
                         })
                         .ToArray();
                 }
@@ -218,7 +244,8 @@ namespace Domiki.Web.Business.Core
         {
             if (_tolokaTypes == null)
             {
-                _tolokaTypes = _context.TolokaTypes.Select(x => new TolokaType
+                var effects = _context.TolokaTypeEffects.ToArray();
+                var tolokaTypes = _context.TolokaTypes.Select(x => new TolokaType
                 {
                     Id = x.Id,
                     Name = x.Name,
@@ -227,6 +254,16 @@ namespace Domiki.Web.Business.Core
                     Goal = x.Goal,
                     RotationWeight = x.RotationWeight,
                 }).ToArray();
+
+                foreach (var tolokaType in tolokaTypes)
+                {
+                    tolokaType.Effects = effects
+                        .Where(x => x.TolokaTypeId == tolokaType.Id)
+                        .Select(x => new Data.TolokaTypeEffect { DomikTypeId = x.DomikTypeId, OutputPercent = x.OutputPercent })
+                        .ToArray();
+                }
+
+                _tolokaTypes = tolokaTypes;
             }
 
             return _tolokaTypes;
@@ -243,6 +280,9 @@ namespace Domiki.Web.Business.Core
                     Name = x.Name,
                     LogicName = x.LogicName,
                     ComfortPoints = x.ComfortPoints,
+                    IsPurchasable = x.IsPurchasable,
+                    NeighborId = x.NeighborId,
+                    ReputationThreshold = x.ReputationThreshold,
                 }).ToArray();
 
                 foreach (var decorType in _decorTypes)
@@ -268,14 +308,14 @@ namespace Domiki.Web.Business.Core
                 var modificators = _context.DomikTypeLevelModificators.ToArray();
                 var recepts = _context.DomikTypeLevelRecepts.ToArray();
                 var resources = _context.DomikTypeLevelResources.ToArray();
-                _domikTypes = _context.DomikTypes.Include(x => x.Levels).ToArray().Select(domikType => new DomikType
+                _domikTypes = _context.DomikTypes.Include(x => x.Levels).ToArray().OrderBy(x => x.Id).Select(domikType => new DomikType
                 {
                     Id = domikType.Id,
                     LogicName = domikType.LogicName,
                     Name = domikType.Name,
                     MaxCount = domikType.MaxCount,
                     UnlockLevel = domikType.UnlockLevel,
-                    Levels = domikType.Levels.Select(level => new UpgradeLevel
+                    Levels = domikType.Levels.OrderBy(level => level.Value).Select(level => new UpgradeLevel
                     {
                         Value = level.Value,
                         UpgradeSeconds = level.UpgradeSeconds,
@@ -283,19 +323,36 @@ namespace Domiki.Web.Business.Core
                         Modificators = modificators
                             .Where(m => m.DomikTypeLevelDomikTypeId == domikType.Id
                                 && m.DomikTypeLevelValue == level.Value)
+                            .OrderBy(m => m.ModificatorTypeId)
                             .Select(x => new Modificator { Type = new ModificatorType { Id = x.ModificatorTypeId }, Value = x.Value }).ToArray(),
                         Receipts = recepts
                             .Where(m => m.DomikTypeLevelDomikTypeId == domikType.Id
                                 && m.DomikTypeLevelValue == level.Value)
+                            .OrderBy(m => m.ReceiptId)
                             .Select(x => new Receipt { Id = x.ReceiptId }).ToArray(),
                         Resources = resources
                             .Where(m => m.DomikTypeLevelDomikTypeId == domikType.Id
                                 && m.DomikTypeLevelValue == level.Value)
+                            .OrderBy(m => m.ResourceTypeId)
                             .Select(x => new Resource { Type = new ResourceType { Id = x.ResourceTypeId }, Value = x.Value }).ToArray(),
                     }).ToArray(),
                 }).ToArray();
             }
             return _domikTypes;
+        }
+
+        public DomikTypeCountGate[] GetDomikTypeCountGates()
+        {
+            if (_domikTypeCountGates == null)
+            {
+                _domikTypeCountGates = _context.DomikTypeCountGates.Select(x => new DomikTypeCountGate
+                {
+                    DomikTypeId = x.DomikTypeId,
+                    Ordinal = x.Ordinal,
+                    UnlockLevel = x.UnlockLevel,
+                }).ToArray();
+            }
+            return _domikTypeCountGates;
         }
     }
 }

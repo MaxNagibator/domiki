@@ -8,17 +8,21 @@ namespace Domiki.Web.Tests
     {
         private const int ShortScoutId = 1;
         private const int LongJourneyId = 2;
+        private const int FootScoutId = 3;
         private const int BarracksTypeId = 2;
         private const int ScoutHutDomikTypeId = 11;
         private const int ProducerDomikTypeId = 5;
         private const int GoldResourceTypeId = 5;
         private const int PlankResourceTypeId = 7;
         private const int OrdinaryTraitId = 1;
+        private const int NimbleTraitId = 2;
         private const int StoneResourceTypeId = 2;
         private const int WoodResourceTypeId = 3;
         private const int ClayResourceTypeId = 4;
         private const int ToolResourceTypeId = 8;
         private const int FurnitureResourceTypeId = 9;
+        private const int TrailIdolDecorTypeId = 6;
+        private const int WandererBannerDecorTypeId = 7;
 
         [Test]
         public void GetExpeditionsNewPlayerReturnsNullTest()
@@ -39,7 +43,7 @@ namespace Domiki.Web.Tests
 
             var state = GetExpeditions(playerId);
 
-            Assert.That(state.Types.Select(x => x.Id), Is.EquivalentTo(new[] { ShortScoutId, LongJourneyId }));
+            Assert.That(state.Types.Select(x => x.Id), Is.EquivalentTo(new[] { ShortScoutId, LongJourneyId, FootScoutId }));
             Assert.That(state.Active, Is.Empty);
             Assert.That(state.ExpeditionsSincePity, Is.EqualTo(0));
             Assert.That(state.PityThreshold, Is.EqualTo(ExpeditionManager.ExpeditionPityThreshold));
@@ -60,6 +64,25 @@ namespace Domiki.Web.Tests
         }
 
         [Test]
+        public void FootScoutStartsWithoutGoldRowTest()
+        {
+            var playerId = GetPlayerId();
+            GrantResource(playerId, 1, 500);
+            BuyBarracks(playerId, 1);
+            BuyDomik(playerId, ScoutHutDomikTypeId);
+            var start = DateTimeHelper.GetNowDate();
+
+            StartExpedition(playerId, FootScoutId);
+
+            var state = GetExpeditions(playerId);
+            var expedition = state.Active.Single();
+            Assert.That(expedition.ExpeditionType.Id, Is.EqualTo(FootScoutId));
+            Assert.That((expedition.FinishDate - start).TotalSeconds, Is.EqualTo(7200).Within(2));
+            Assert.That(GetWorkers(playerId).Count(x => x.ExpeditionId == expedition.Id), Is.EqualTo(1));
+            Assert.That(ResourceValue(GetResources(playerId), GoldResourceTypeId), Is.EqualTo(0));
+        }
+
+        [Test]
         public void StartExpeditionWithoutBuildingThrowsTest()
         {
             var playerId = GetPlayerId();
@@ -74,7 +97,7 @@ namespace Domiki.Web.Tests
         public void StartExpeditionAssignsWorkersAndWritesOffGoldTest(int expeditionTypeId, int workerCount, int goldCost, int durationSeconds)
         {
             var playerId = GetPlayerId();
-            BuyBarracks(playerId, workerCount);
+            BuyBarracks(playerId, workerCount - 1);
             GrantResource(playerId, GoldResourceTypeId, goldCost);
             GrantResource(playerId, PlankResourceTypeId, EquipmentCost(expeditionTypeId));
             var start = DateTimeHelper.GetNowDate();
@@ -143,11 +166,11 @@ namespace Domiki.Web.Tests
         {
             var playerId = GetPlayerId();
             BuyBarracks(playerId, 3);
-            BuyDomik(playerId, ProducerDomikTypeId);
+            GrantBuiltDomik(playerId, ProducerDomikTypeId);
             GrantResource(playerId, GoldResourceTypeId, 1);
             GrantResource(playerId, PlankResourceTypeId, EquipmentCost(ShortScoutId));
             var workerIds = GetWorkers(playerId).OrderBy(x => x.Id).Select(x => x.Id).ToArray();
-            StartManufacture(playerId, 4, 1, new[] { workerIds[0] });
+            StartManufacture(playerId, 6, 1, new[] { workerIds[0] });
 
             var ex = Assert.Throws<BusinessException>(() => StartExpedition(playerId, ShortScoutId, new[] { workerIds[0], workerIds[1] }));
 
@@ -158,7 +181,7 @@ namespace Domiki.Web.Tests
         {
             yield return new TestCaseData(new Action<ExpeditionTests, int, int[]>((test, playerId, workerIds) =>
             {
-                test.StartManufacture(playerId, 4, 1, new[] { workerIds[0] });
+                test.StartManufacture(playerId, 2, 1, new[] { workerIds[0] });
                 test.StartManufacture(playerId, 5, 1, new[] { workerIds[1] });
             })).SetName("BusyWithManufacture");
             yield return new TestCaseData(new Action<ExpeditionTests, int, int[]>((test, playerId, workerIds) =>
@@ -177,9 +200,8 @@ namespace Domiki.Web.Tests
         public void StartExpeditionWithoutEnoughFreeWorkersThrowsTest(Action<ExpeditionTests, int, int[]> occupy)
         {
             var playerId = GetPlayerId();
-            BuyBarracks(playerId, 3);
-            BuyDomik(playerId, ProducerDomikTypeId);
-            BuyDomik(playerId, ProducerDomikTypeId);
+            BuyBarracks(playerId, 2);
+            GrantBuiltDomik(playerId, ProducerDomikTypeId);
             GrantResource(playerId, GoldResourceTypeId, 3);
             GrantResource(playerId, PlankResourceTypeId, 2);
             var workerIds = GetWorkers(playerId).Select(x => x.Id).ToArray();
@@ -234,14 +256,14 @@ namespace Domiki.Web.Tests
         public void WorkerOnExpeditionIsNotSelectedForManufactureTest()
         {
             var playerId = GetPlayerId();
-            BuyBarracks(playerId, 2);
-            BuyDomik(playerId, ProducerDomikTypeId);
+            BuyBarracks(playerId, 1);
+            GrantBuiltDomik(playerId, ProducerDomikTypeId);
             GrantResource(playerId, GoldResourceTypeId, 1);
             GrantResource(playerId, PlankResourceTypeId, 2);
 
             StartExpedition(playerId, ShortScoutId);
 
-            var ex = Assert.Throws<BusinessException>(() => StartManufacture(playerId, 3, 1));
+            var ex = Assert.Throws<BusinessException>(() => StartManufacture(playerId, 4, 1));
             Assert.That(ex.Message, Is.EqualTo("Недостаточно трудяг"));
         }
 
@@ -266,7 +288,7 @@ namespace Domiki.Web.Tests
         public void FinishExpeditionGrantsLootWithinTableRangesTest()
         {
             var playerId = GetPlayerId();
-            BuyBarracks(playerId, 5);
+            BuyBarracks(playerId, 4);
             GrantResource(playerId, GoldResourceTypeId, 2);
             GrantResource(playerId, PlankResourceTypeId, 6);
             StartExpedition(playerId, LongJourneyId);
@@ -284,11 +306,11 @@ namespace Domiki.Web.Tests
             var furnitureDelta = ResourceValue(after, FurnitureResourceTypeId) - ResourceValue(before, FurnitureResourceTypeId);
 
             Assert.That(woodDelta + stoneDelta + clayDelta + toolDelta + furnitureDelta, Is.GreaterThan(0));
-            Assert.That(woodDelta, Is.InRange(0, 25 * 3));
-            Assert.That(stoneDelta, Is.InRange(0, 25 * 3));
-            Assert.That(clayDelta, Is.InRange(0, 25 * 3));
-            Assert.That(toolDelta, Is.InRange(0, 4 * 3));
-            Assert.That(furnitureDelta, Is.InRange(0, 3 * 3));
+            Assert.That(woodDelta, Is.InRange(0, 70 * 3));
+            Assert.That(stoneDelta, Is.InRange(0, 70 * 3));
+            Assert.That(clayDelta, Is.InRange(0, 70 * 3));
+            Assert.That(toolDelta, Is.InRange(0, 5 * 3));
+            Assert.That(furnitureDelta, Is.InRange(0, 4 * 3));
         }
 
         [Test]
@@ -307,20 +329,21 @@ namespace Domiki.Web.Tests
 
             var after = GetResources(playerId);
             var toolGranted = ResourceValue(after, ToolResourceTypeId) - ResourceValue(before, ToolResourceTypeId) > 0;
+            var decorGranted = GetDecor(playerId).Owned.Any(x => x.DecorTypeId == TrailIdolDecorTypeId);
+            var blueprintGranted = HasAnyBlueprint(playerId);
             var pity = GetPityCounter(playerId);
-            Assert.That(pity, Is.EqualTo(toolGranted ? 0 : 1));
+            Assert.That(pity, Is.EqualTo(toolGranted || decorGranted || blueprintGranted ? 0 : 1));
         }
 
-        [TestCase(ShortScoutId, 2, 1, ToolResourceTypeId, 1, 2)]
-        [TestCase(LongJourneyId, 5, 2, FurnitureResourceTypeId, 1, 9)]
-        public void PityThresholdForcesRareLootAndResetsCounterTest(int expeditionTypeId, int workerCount, int goldCost, int rareResourceTypeId, int minGranted, int maxGranted)
+        [Test]
+        public void PityThresholdForcesRareLootOnShortScoutAndResetsCounterTest()
         {
             var playerId = GetPlayerId();
-            BuyBarracks(playerId, workerCount);
-            GrantResource(playerId, GoldResourceTypeId, goldCost);
-            GrantResource(playerId, PlankResourceTypeId, EquipmentCost(expeditionTypeId));
+            BuyBarracks(playerId, 2);
+            GrantResource(playerId, GoldResourceTypeId, 1);
+            GrantResource(playerId, PlankResourceTypeId, EquipmentCost(ShortScoutId));
             SetPityCounter(playerId, ExpeditionManager.ExpeditionPityThreshold);
-            StartExpedition(playerId, expeditionTypeId);
+            StartExpedition(playerId, ShortScoutId);
             var expedition = GetExpeditions(playerId).Active.Single();
             var before = GetResources(playerId);
 
@@ -328,8 +351,159 @@ namespace Domiki.Web.Tests
             FinishExpedition(playerId, expedition.Id, DateTimeHelper.GetNowDate());
 
             var after = GetResources(playerId);
-            Assert.That(ResourceValue(after, rareResourceTypeId) - ResourceValue(before, rareResourceTypeId), Is.InRange(minGranted, maxGranted));
+            var toolGranted = ResourceValue(after, ToolResourceTypeId) - ResourceValue(before, ToolResourceTypeId) is >= 2 and <= 3;
+            var decorGranted = GetDecor(playerId).Owned.Any(x => x.DecorTypeId == TrailIdolDecorTypeId);
+            var blueprintGranted = HasAnyBlueprint(playerId);
+            Assert.That(toolGranted || decorGranted || blueprintGranted, Is.True);
             Assert.That(GetPityCounter(playerId), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void PityThresholdForcesRareLootOnLongJourneyAndResetsCounterTest()
+        {
+            var playerId = GetPlayerId();
+            BuyBarracks(playerId, 4);
+            GrantResource(playerId, GoldResourceTypeId, 2);
+            GrantResource(playerId, PlankResourceTypeId, EquipmentCost(LongJourneyId));
+            SetPityCounter(playerId, ExpeditionManager.ExpeditionPityThreshold);
+            StartExpedition(playerId, LongJourneyId);
+            var expedition = GetExpeditions(playerId).Active.Single();
+            var before = GetResources(playerId);
+            var squadBeforeTraits = GetWorkers(playerId).Where(x => x.ExpeditionId == expedition.Id).ToDictionary(x => x.Id, x => x.Trait.LogicName);
+
+            SetExpeditionFinish(expedition.Id, DateTimeHelper.GetNowDate().AddSeconds(-1));
+            FinishExpedition(playerId, expedition.Id, DateTimeHelper.GetNowDate());
+
+            var after = GetResources(playerId);
+            var furnitureGranted = ResourceValue(after, FurnitureResourceTypeId) - ResourceValue(before, FurnitureResourceTypeId) > 0;
+            var decorGranted = GetDecor(playerId).Owned.Any(x => x.DecorTypeId == WandererBannerDecorTypeId);
+            var traitUpgraded = GetWorkers(playerId).Any(x => squadBeforeTraits.TryGetValue(x.Id, out var trait) && trait == "ordinary" && x.Trait.LogicName != "ordinary");
+            var blueprintGranted = HasAnyBlueprint(playerId);
+            Assert.That(furnitureGranted || decorGranted || traitUpgraded || blueprintGranted, Is.True);
+            Assert.That(GetPityCounter(playerId), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void ApplyLootEntryDecorGrantsPlayerDecorTest()
+        {
+            var playerId = GetPlayerId();
+            using (var uow = GetUow())
+            {
+                var resourceManager = GetResourceManager(uow);
+                var manager = GetExpeditionManager(uow);
+                var type = resourceManager.GetExpeditionTypes().Single(x => x.Id == ShortScoutId);
+                var traits = resourceManager.GetTraits().ToDictionary(x => x.Id, x => x);
+                var entry = type.Loot.First(x => x.Kind == Domiki.Web.Data.ExpeditionLootKind.Decor);
+
+                manager.ApplyLootEntry(playerId, type, entry, Array.Empty<Domiki.Web.Data.Worker>(), traits, 0);
+                uow.Commit();
+            }
+
+            var decor = GetDecor(playerId);
+            Assert.That(decor.Owned.Single(x => x.DecorTypeId == TrailIdolDecorTypeId).Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ApplyLootEntryTraitUpgradeChangesOrdinaryWorkerTraitTest()
+        {
+            var playerId = GetPlayerId();
+            BuyBarracks(playerId, 2);
+            GetWorkers(playerId);
+            SetAllWorkerTraits(playerId, OrdinaryTraitId);
+            var workerIds = GetWorkers(playerId).Select(x => x.Id).ToArray();
+
+            using (var uow = GetUow())
+            {
+                var resourceManager = GetResourceManager(uow);
+                var manager = GetExpeditionManager(uow);
+                var type = resourceManager.GetExpeditionTypes().Single(x => x.Id == LongJourneyId);
+                var traits = resourceManager.GetTraits().ToDictionary(x => x.Id, x => x);
+                var entry = type.Loot.First(x => x.Kind == Domiki.Web.Data.ExpeditionLootKind.TraitUpgrade);
+                var squad = uow.Context.Workers.Where(x => workerIds.Contains(x.Id)).ToArray();
+
+                manager.ApplyLootEntry(playerId, type, entry, squad, traits, 0);
+                uow.Commit();
+            }
+
+            Assert.That(GetWorkers(playerId).Count(x => x.Trait.LogicName != "ordinary"), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ApplyLootEntryTraitUpgradeFallsBackWithoutOrdinaryWorkerTest()
+        {
+            var playerId = GetPlayerId();
+            BuyBarracks(playerId, 2);
+            GetWorkers(playerId);
+            SetAllWorkerTraits(playerId, NimbleTraitId);
+            var workerIds = GetWorkers(playerId).Select(x => x.Id).ToArray();
+            var before = GetResources(playerId);
+
+            using (var uow = GetUow())
+            {
+                var resourceManager = GetResourceManager(uow);
+                var manager = GetExpeditionManager(uow);
+                var type = resourceManager.GetExpeditionTypes().Single(x => x.Id == LongJourneyId);
+                var traits = resourceManager.GetTraits().ToDictionary(x => x.Id, x => x);
+                var entry = type.Loot.First(x => x.Kind == Domiki.Web.Data.ExpeditionLootKind.TraitUpgrade);
+                var squad = uow.Context.Workers.Where(x => workerIds.Contains(x.Id)).ToArray();
+
+                manager.ApplyLootEntry(playerId, type, entry, squad, traits, 0);
+                uow.Commit();
+            }
+
+            var after = GetResources(playerId);
+            var furnitureGranted = ResourceValue(after, FurnitureResourceTypeId) - ResourceValue(before, FurnitureResourceTypeId) > 0;
+            var decorGranted = GetDecor(playerId).Owned.Any(x => x.DecorTypeId == WandererBannerDecorTypeId);
+            var blueprintGranted = HasAnyBlueprint(playerId);
+            Assert.That(furnitureGranted || decorGranted || blueprintGranted, Is.True);
+            Assert.That(GetWorkers(playerId).All(x => x.Trait.LogicName == "nimble"), Is.True);
+        }
+
+        [Test]
+        public void ApplyBlueprintLootGrantsUnownedBlueprintTest()
+        {
+            var playerId = GetPlayerId();
+            using (var uow = GetUow())
+            {
+                var resourceManager = GetResourceManager(uow);
+                var manager = GetExpeditionManager(uow);
+                var blueprintManager = GetBlueprintManager(uow);
+                var type = resourceManager.GetExpeditionTypes().First(x => x.Id == ShortScoutId);
+                var entry = type.Loot.First(x => x.Kind == Domiki.Web.Data.ExpeditionLootKind.Blueprint);
+                var traits = resourceManager.GetTraits().ToDictionary(x => x.Id, x => x);
+
+                var result = manager.ApplyLootEntry(playerId, type, entry, Array.Empty<Domiki.Web.Data.Worker>(), traits, 0);
+                uow.Commit();
+
+                Assert.That(blueprintManager.GetBlueprints(playerId).Count(x => x.Owned), Is.EqualTo(1));
+                Assert.That(result.ToString(), Does.Contain("blueprintId"));
+            }
+        }
+
+        [Test]
+        public void ApplyBlueprintLootFallsBackWhenAllOwnedTest()
+        {
+            var playerId = GetPlayerId();
+            using (var uow = GetUow())
+            {
+                var resourceManager = GetResourceManager(uow);
+                var blueprintManager = GetBlueprintManager(uow);
+                foreach (var blueprint in resourceManager.GetBlueprints())
+                {
+                    blueprintManager.GrantBlueprint(playerId, blueprint.Id);
+                }
+
+                var manager = GetExpeditionManager(uow);
+                var type = resourceManager.GetExpeditionTypes().First(x => x.Id == ShortScoutId);
+                var entry = type.Loot.First(x => x.Kind == Domiki.Web.Data.ExpeditionLootKind.Blueprint);
+                var traits = resourceManager.GetTraits().ToDictionary(x => x.Id, x => x);
+
+                var result = manager.ApplyLootEntry(playerId, type, entry, Array.Empty<Domiki.Web.Data.Worker>(), traits, 0);
+                uow.Commit();
+
+                Assert.That(result, Is.Not.Null);
+                Assert.That(result.ToString(), Does.Not.Contain("blueprintId"));
+            }
         }
 
         [Test]
@@ -365,7 +539,7 @@ namespace Domiki.Web.Tests
             {
                 var type = GetResourceManager(uow).GetExpeditionTypes().Single(x => x.Id == expeditionTypeId);
 
-                Assert.That(type.Equipment.Select(x => x.ResourceTypeId).Intersect(type.Loot.Select(x => x.ResourceTypeId)), Is.Empty);
+                Assert.That(type.Equipment.Select(x => x.ResourceTypeId).Intersect(type.Loot.Where(x => x.ResourceTypeId.HasValue).Select(x => x.ResourceTypeId!.Value)), Is.Empty);
                 uow.Commit();
             }
         }
@@ -394,7 +568,17 @@ namespace Domiki.Web.Tests
         {
             for (var i = 0; i < count; i++)
             {
-                BuyDomik(playerId, BarracksTypeId);
+                GrantBuiltDomik(playerId, BarracksTypeId);
+            }
+        }
+
+        private void GrantBuiltDomik(int playerId, int typeId)
+        {
+            using (var uow = GetUow())
+            {
+                var nextId = (uow.Context.Domiks.Where(x => x.PlayerId == playerId).Max(x => (int?)x.Id) ?? 0) + 1;
+                uow.Context.Domiks.Add(new Domiki.Web.Data.Domik { PlayerId = playerId, Id = nextId, TypeId = typeId, Level = 1 });
+                uow.Commit();
             }
         }
 
@@ -507,6 +691,25 @@ namespace Domiki.Web.Tests
                 resource.Value += value;
                 uow.Context.SaveChanges();
                 uow.Commit();
+            }
+        }
+
+        private bool HasAnyBlueprint(int playerId)
+        {
+            using (var uow = GetUow())
+            {
+                return uow.Context.PlayerBlueprints.Any(x => x.PlayerId == playerId);
+            }
+        }
+
+        private DecorState GetDecor(int playerId)
+        {
+            using (var uow = GetUow())
+            {
+                var manager = GetDecorManager(uow);
+                var decor = manager.GetDecor(playerId);
+                uow.Commit();
+                return decor;
             }
         }
 

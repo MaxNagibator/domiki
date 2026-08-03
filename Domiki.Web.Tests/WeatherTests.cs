@@ -1,4 +1,4 @@
-using Domiki.Web.Business;
+﻿using Domiki.Web.Business;
 using Domiki.Web.Business.Core;
 using Domiki.Web.Business.Models;
 
@@ -36,9 +36,9 @@ namespace Domiki.Web.Tests
             BuyDomik(playerId, domikTypeId);
             SetWeather(weatherTypeId);
 
-            StartManufacture(playerId, 2, receiptId, false);
+            StartManufacture(playerId, 4, receiptId, false);
 
-            var manufacture = GetDomiks(playerId).First(x => x.Id == 2).Manufactures.Single();
+            var manufacture = GetDomiks(playerId).First(x => x.Id == 4).Manufactures.Single();
             Assert.That(GetManufactureOutputPercent(manufacture.Id), Is.EqualTo(expectedOutputPercent));
         }
 
@@ -50,12 +50,13 @@ namespace Domiki.Web.Tests
         {
             var playerId = GetPlayerId();
             BuyDomik(playerId, 2);
+            BuyDomik(playerId, 2);
             BuyDomik(playerId, domikTypeId);
             SetWeather(weatherTypeId);
 
-            StartManufacture(playerId, 2, receiptId, false);
+            StartManufacture(playerId, 5, receiptId, false);
 
-            var manufacture = GetDomiks(playerId).First(x => x.Id == 2).Manufactures.Single();
+            var manufacture = GetDomiks(playerId).First(x => x.Id == 5).Manufactures.Single();
             Assert.That(GetManufactureOutputPercent(manufacture.Id), Is.EqualTo(100));
         }
 
@@ -83,8 +84,8 @@ namespace Domiki.Web.Tests
             BuyDomik(playerId, LumberMillDomikTypeId);
             SetWeather(RainWeatherTypeId);
 
-            StartManufacture(playerId, 2, WoodDig8hReceiptId, false);
-            var manufacture = GetDomiks(playerId).First(x => x.Id == 2).Manufactures.Single();
+            StartManufacture(playerId, 4, WoodDig8hReceiptId, false);
+            var manufacture = GetDomiks(playerId).First(x => x.Id == 4).Manufactures.Single();
             FinishManufacture(playerId, manufacture.Id, manufacture.FinishDate.AddSeconds(1));
 
             var wood = GetResources(playerId).First(x => x.Type.Id == WoodResourceTypeId);
@@ -228,8 +229,8 @@ namespace Domiki.Web.Tests
         {
             using (var uow = GetUow())
             {
-                var domikManager = GetDomikManager(uow);
-                domikManager.BuyDomik(playerId, domikTypeId);
+                var nextId = (uow.Context.Domiks.Where(x => x.PlayerId == playerId).Max(x => (int?)x.Id) ?? 0) + 1;
+                uow.Context.Domiks.Add(new Domiki.Web.Data.Domik { PlayerId = playerId, Id = nextId, TypeId = domikTypeId, Level = 1 });
                 uow.Commit();
             }
         }

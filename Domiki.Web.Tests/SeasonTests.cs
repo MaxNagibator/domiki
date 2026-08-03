@@ -284,9 +284,14 @@ namespace Domiki.Web.Tests
 
         private void BuyBarracks(int playerId, int count)
         {
-            for (var i = 0; i < count; i++)
+            using (var uow = GetUow())
             {
-                BuyDomik(playerId, BarracksTypeId);
+                var nextId = (uow.Context.Domiks.Where(x => x.PlayerId == playerId).Max(x => (int?)x.Id) ?? 0) + 1;
+                for (var i = 0; i < count; i++)
+                {
+                    uow.Context.Domiks.Add(new Domiki.Web.Data.Domik { PlayerId = playerId, Id = nextId + i, TypeId = BarracksTypeId, Level = 1 });
+                }
+                uow.Commit();
             }
         }
 
@@ -434,6 +439,7 @@ namespace Domiki.Web.Tests
                 {
                     TolokaTypeId = BridgeTolokaTypeId,
                     Collected = 0,
+                    Goal = 2000,
                     StartDate = DateTimeHelper.GetNowDate(),
                     CompletedDate = null,
                 });

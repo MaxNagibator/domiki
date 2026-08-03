@@ -1,4 +1,6 @@
-﻿namespace Domiki.Web.Business.Models
+﻿using Domiki.Web.Data;
+
+namespace Domiki.Web.Business.Models
 {
     public class ExpeditionType
     {
@@ -17,11 +19,15 @@
     {
         public int ResourceTypeId { get; set; }
         public int Value { get; set; }
+        public bool IsOptional { get; set; }
     }
 
     public class ExpeditionLoot
     {
-        public int ResourceTypeId { get; set; }
+        public ExpeditionLootKind Kind { get; set; }
+        public int? ResourceTypeId { get; set; }
+        public int? DecorTypeId { get; set; }
+        public int? BlueprintId { get; set; }
         public int MinValue { get; set; }
         public int MaxValue { get; set; }
         public int Weight { get; set; }

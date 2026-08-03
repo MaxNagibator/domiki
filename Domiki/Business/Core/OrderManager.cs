@@ -6,6 +6,7 @@ namespace Domiki.Web.Business.Core
     public class OrderManager
     {
         public const int BoardSize = 3;
+        public const int OrderRefillDelaySeconds = 30 * 60;
         private const int CoinResourceTypeId = 1;
         private const int GoldResourceTypeId = 5;
 
@@ -14,8 +15,11 @@ namespace Domiki.Web.Business.Core
         private Data.UnitOfWork _uow;
         private ResourceManager _resourceManager;
         private PlayerResourceManager _playerResourceManager;
+        private WorkerManager _workerManager;
         private VillageLevelCalculator _villageLevelCalculator;
         private SeasonManager _seasonManager;
+        private TolokaManager _tolokaManager;
+        private GoalManager _goalManager;
 
         public static readonly OrderTier[] Tiers =
         {
@@ -29,27 +33,57 @@ namespace Domiki.Web.Business.Core
             return Math.Max(1, (int)Math.Round(tier.Quantity * (double)ResourceManager.BaseMarketValue / ResourceManager.GetMarketValue(resourceTypeId), MidpointRounding.AwayFromZero));
         }
 
+        public static int GetEffectiveQuantity(OrderTier tier, int resourceTypeId, int capacity)
+        {
+            var quantity = GetOrderQuantity(tier, resourceTypeId);
+            var capacityLimit = Math.Max(2, (int)Math.Floor(capacity * tier.DurationSeconds / 3600.0 / 1.5));
+            return Math.Min(quantity, capacityLimit);
+        }
+
         public OrderManager(
             Data.UnitOfWork uow,
             Data.ApplicationDbContext context,
             ICalculator calculator,
             ResourceManager resourceManager,
             PlayerResourceManager playerResourceManager,
+            WorkerManager workerManager,
             VillageLevelCalculator villageLevelCalculator,
-            SeasonManager seasonManager)
+            SeasonManager seasonManager,
+            TolokaManager tolokaManager,
+            GoalManager goalManager)
         {
             _context = context;
             _calculator = calculator;
             _uow = uow;
             _resourceManager = resourceManager;
             _playerResourceManager = playerResourceManager;
+            _workerManager = workerManager;
             _villageLevelCalculator = villageLevelCalculator;
             _seasonManager = seasonManager;
+            _tolokaManager = tolokaManager;
+            _goalManager = goalManager;
         }
 
         public void EnsureOrderBoard(int playerId)
         {
             var count = _context.Orders.Count(x => x.PlayerId == playerId);
+            var player = _context.Players.First(x => x.Id == playerId);
+            if (count >= BoardSize)
+            {
+                if (player.NextOrderRefillAt != null)
+                {
+                    player.NextOrderRefillAt = null;
+                    _context.SaveChanges();
+                }
+
+                return;
+            }
+
+            if (player.NextOrderRefillAt != null && DateTimeHelper.GetNowDate() < player.NextOrderRefillAt)
+            {
+                return;
+            }
+
             var villageLevel = _villageLevelCalculator.GetLevel(playerId).Level;
             var created = new List<CalculateInfo>();
 
@@ -60,10 +94,8 @@ namespace Domiki.Web.Business.Core
                 count++;
             }
 
-            if (created.Count == 0)
-            {
-                return;
-            }
+            player.NextOrderRefillAt = null;
+            _context.SaveChanges();
 
             var afterEventAction = _uow.AfterEventAction;
             _uow.AfterEventAction = () =>
@@ -106,15 +138,25 @@ namespace Domiki.Web.Business.Core
             }).ToArray();
 
             _playerResourceManager.WriteOffResources(playerId, resources);
-            _playerResourceManager.GrantResource(playerId, CoinResourceTypeId, dbOrder.RewardCoins);
+            var orderBonus = _tolokaManager.GetOrderRewardBonusPercent(playerId, DateTimeHelper.GetNowDate());
+            var rewardCoins = (int)Math.Round(dbOrder.RewardCoins * (100 + orderBonus) / 100.0, MidpointRounding.AwayFromZero);
+            _playerResourceManager.GrantResource(playerId, CoinResourceTypeId, rewardCoins);
             _playerResourceManager.GrantResource(playerId, GoldResourceTypeId, dbOrder.RewardGold);
             _playerResourceManager.GrantReputation(playerId, dbOrder.NeighborId, dbOrder.RewardReputation);
-            _seasonManager.IncrementCounter(playerId, SeasonMetric.Orders, dbOrder.RewardCoins, DateTimeHelper.GetNowDate());
+            _seasonManager.IncrementCounter(playerId, SeasonMetric.Orders, rewardCoins, DateTimeHelper.GetNowDate());
 
             _context.Orders.Remove(dbOrder);
             _context.SaveChanges();
 
+            var player = _context.Players.First(x => x.Id == playerId);
+            if (player.NextOrderRefillAt == null)
+            {
+                player.NextOrderRefillAt = DateTimeHelper.GetNowDate().AddSeconds(OrderRefillDelaySeconds);
+                _context.SaveChanges();
+            }
+
             EnsureOrderBoard(playerId);
+            _goalManager.OnOrderCompleted(playerId);
         }
 
         public bool FinishOrder(DateTime date, CalculateInfo calcInfo)
@@ -131,6 +173,14 @@ namespace Domiki.Web.Business.Core
             {
                 _context.Orders.Remove(dbOrder);
                 _context.SaveChanges();
+
+                var player = _context.Players.First(x => x.Id == calcInfo.PlayerId);
+                if (player.NextOrderRefillAt == null)
+                {
+                    player.NextOrderRefillAt = DateTimeHelper.GetNowDate().AddSeconds(OrderRefillDelaySeconds);
+                    _context.SaveChanges();
+                }
+
                 EnsureOrderBoard(calcInfo.PlayerId);
                 return true;
             }
@@ -148,15 +198,62 @@ namespace Domiki.Web.Business.Core
             }).ToArray();
         }
 
+        private int[] GetProducibleResourceTypeIds(int playerId)
+        {
+            var domikTypes = _resourceManager.GetDomikTypes().ToDictionary(x => x.Id);
+            var receipts = _resourceManager.GetReceipts().ToDictionary(x => x.Id);
+            return _context.Domiks
+                .Where(x => x.PlayerId == playerId && x.Level >= 1)
+                .Select(x => new { x.TypeId, x.Level })
+                .ToArray()
+                .SelectMany(d => domikTypes[d.TypeId].Levels.First(l => l.Value == d.Level).Receipts)
+                .SelectMany(r => receipts[r.Id].OutputResources)
+                .Select(r => r.Type.Id)
+                .Distinct()
+                .ToArray();
+        }
+
+        public int GetCapacity(int playerId, int resourceTypeId)
+        {
+            var domikTypes = _resourceManager.GetDomikTypes().ToDictionary(x => x.Id);
+            var receipts = _resourceManager.GetReceipts().ToDictionary(x => x.Id);
+            var slots = _context.Domiks
+                .Where(x => x.PlayerId == playerId && x.Level >= 1)
+                .Select(x => new { x.TypeId, x.Level })
+                .ToArray()
+                .Select(d => domikTypes[d.TypeId].Levels.First(l => l.Value == d.Level))
+                .Where(level => level.Receipts.Any(r => receipts[r.Id].OutputResources.Any(o => o.Type.Id == resourceTypeId)))
+                .Sum(level => level.MaxManufactureCount);
+
+            return Math.Min(_workerManager.GetCapacity(playerId), slots);
+        }
+
         private CalculateInfo CreateOrder(int playerId, int villageLevel)
         {
             var neighbors = _villageLevelCalculator.GetOpenNeighbors(villageLevel);
-            var neighbor = neighbors[Random.Shared.Next(neighbors.Length)];
+            var producible = GetProducibleResourceTypeIds(playerId);
+            var pairs = neighbors
+                .SelectMany(n => new[] { (Neighbor: n, ResourceTypeId: n.PrimaryResourceTypeId), (Neighbor: n, ResourceTypeId: n.SecondaryResourceTypeId ?? 0) })
+                .Where(x => x.ResourceTypeId != 0 && producible.Contains(x.ResourceTypeId))
+                .ToArray();
+            Neighbor neighbor;
+            int resourceTypeId;
+            if (pairs.Length > 0)
+            {
+                (neighbor, resourceTypeId) = pairs[Random.Shared.Next(pairs.Length)];
+            }
+            else
+            {
+                neighbor = neighbors[Random.Shared.Next(neighbors.Length)];
+                resourceTypeId = neighbor.PrimaryResourceTypeId;
+            }
+
             var tier = Tiers[Random.Shared.Next(Tiers.Length)];
             var now = DateTimeHelper.GetNowDate();
             var expireDate = now.AddSeconds(tier.DurationSeconds);
-            var quantity = GetOrderQuantity(tier, neighbor.PrimaryResourceTypeId);
-            var rewardCoins = (int)Math.Round(quantity * ResourceManager.GetMarketValue(neighbor.PrimaryResourceTypeId) * tier.DemandMultiplier, MidpointRounding.AwayFromZero);
+            var capacity = GetCapacity(playerId, resourceTypeId);
+            var quantity = GetEffectiveQuantity(tier, resourceTypeId, capacity);
+            var rewardCoins = (int)Math.Round(quantity * ResourceManager.GetMarketValue(resourceTypeId) * tier.DemandMultiplier, MidpointRounding.AwayFromZero);
 
             var order = new Data.Order
             {
@@ -174,7 +271,7 @@ namespace Domiki.Web.Business.Core
             _context.OrderResources.Add(new Data.OrderResource
             {
                 OrderId = order.Id,
-                ResourceTypeId = neighbor.PrimaryResourceTypeId,
+                ResourceTypeId = resourceTypeId,
                 Value = quantity,
             });
             _context.SaveChanges();

@@ -46,25 +46,47 @@ namespace Domiki.Web.Tests
                     continue;
                 }
 
+                if (type.Id is 4 or 7)
+                {
+                    continue;
+                }
+
                 var coinCost = typeLevel.Resources.Single(x => x.Type.Id == 1).Value;
                 Assert.That(coinCost, Is.EqualTo(expectedCoins), $"domik type {type.Id}");
             }
         }
 
+        [TestCase(2, 150)]
+        [TestCase(3, 450)]
+        [TestCase(4, 2200)]
+        [TestCase(5, 13000)]
+        public void GoldMineAndMarketUpgradeCoinCostsAreReshapedTest(int level, int expectedCoins)
+        {
+            var types = GetDomikTypes();
+
+            foreach (var typeId in new[] { 4, 7 })
+            {
+                var typeLevel = types.Single(x => x.Id == typeId).Levels.Single(x => x.Value == level);
+                var coinCost = typeLevel.Resources.Single(x => x.Type.Id == 1).Value;
+                Assert.That(coinCost, Is.EqualTo(expectedCoins), $"domik type {typeId}");
+            }
+        }
+
         [Test]
-        public void ForgeBrickShiftConsumesClayAndProducesBricksTest()
+        public void PotteryBrickShiftConsumesClayAndProducesBricksTest()
         {
             var playerId = GetPlayerId();
-            GrantResource(playerId, 1, 400);
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 2);
-            UpgradeDomik(playerId, 1);
-            BuyDomik(playerId, 1);
+            GrantResource(playerId, 1, 700);
+            GrantBlueprint(playerId, 3);
+            GrantDomik(playerId, 3, 2);
+            GrantDomik(playerId, 4, 2);
+            GrantDomik(playerId, 5, 2);
+            BuyDomik(playerId, 13);
+            UpgradeDomik(playerId, 6);
             GrantResource(playerId, 4, 16);
             var before = GetResources(playerId);
 
-            StartManufacture(playerId, 4, 27, true);
+            StartManufacture(playerId, 6, 27, true);
 
             var after = GetResources(playerId);
             Assert.That(ResourceValue(before, 4) - ResourceValue(after, 4), Is.EqualTo(16));
@@ -72,32 +94,30 @@ namespace Domiki.Web.Tests
         }
 
         [Test]
-        public void DurationMultiplierClampUsesBaseReceiptDurationTest()
+        public void DurationMultiplierUsesTraitsAndSkillAfterToolTest()
         {
             var playerId = GetPlayerId();
-            BuyDomik(playerId, 2);
-            BuyDomik(playerId, 5);
+            GrantDomik(playerId, 3, 5);
             GrantResource(playerId, 8, 1);
             var worker = GetWorkers(playerId).Single();
             SetWorkerTrait(worker.Id, 3);
             SetWorkerSkill(worker.Id, 5, 100);
             var start = DateTimeHelper.GetNowDate();
 
-            StartManufacture(playerId, 2, 14, false, true, new[] { worker.Id });
+            StartManufacture(playerId, 3, 14, false, true, new[] { worker.Id });
 
             var manufacture = GetManufactures(playerId).Single();
             var durationSeconds = (manufacture.FinishDate - start).TotalSeconds;
-            Assert.That(durationSeconds, Is.GreaterThanOrEqualTo(Math.Ceiling(28800 * 0.6)));
-            Assert.That(durationSeconds, Is.LessThanOrEqualTo(Math.Ceiling(28800 * 0.6) + 1));
+            Assert.That(durationSeconds, Is.EqualTo(19584).Within(1));
         }
 
         [Test]
         public void WorkerNamesAreUniquePerPlayerTest()
         {
             var playerId = GetPlayerId();
-            for (var i = 0; i < 5; i++)
+            for (var i = 0; i < 4; i++)
             {
-                BuyDomik(playerId, 2);
+                GrantDomik(playerId, 3 + i, 2);
             }
 
             var workers = GetWorkers(playerId);
@@ -205,6 +225,16 @@ namespace Domiki.Web.Tests
                 }
 
                 resource.Value += value;
+                uow.Context.SaveChanges();
+                uow.Commit();
+            }
+        }
+
+        private void GrantBlueprint(int playerId, int blueprintId)
+        {
+            using (var uow = GetUow())
+            {
+                uow.Context.PlayerBlueprints.Add(new Domiki.Web.Data.PlayerBlueprint { PlayerId = playerId, BlueprintId = blueprintId });
                 uow.Context.SaveChanges();
                 uow.Commit();
             }
